@@ -1,0 +1,23 @@
+# Netlify site config for hio Studio. Create a SECOND Netlify site pointing at this
+# repo with base directory = apps/studio. Netlify reads this file from the base dir.
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NEXT_TELEMETRY_DISABLED = "1"
+
+# Production deploys from `main`; Supabase integration injects PROD project env here.
+[context.production.environment]
+
+# Per-PR Deploy Previews (dev Supabase project / per-PR branch on Pro).
+[context.deploy-preview.environment]
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"

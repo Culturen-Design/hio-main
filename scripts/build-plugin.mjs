@@ -28,12 +28,24 @@ for (const dir of ["commands", "agents", "skills", "hooks"]) {
 const P = "${CLAUDE_PLUGIN_ROOT}";
 const hooks = {
   PreToolUse: [
-    { matcher: "Read|Edit|Write|Bash", hooks: [{ type: "command", command: `node ${P}/hooks/block-secrets.mjs` }] },
-    { matcher: "Edit|Write", hooks: [{ type: "command", command: `node ${P}/hooks/protect-paths.mjs` }] },
-    { matcher: "mcp__supabase__.*", hooks: [{ type: "command", command: `node ${P}/hooks/no-direct-prod-db.mjs` }] },
+    {
+      matcher: "Read|Edit|Write|Bash",
+      hooks: [{ type: "command", command: `node ${P}/hooks/block-secrets.mjs` }],
+    },
+    {
+      matcher: "Edit|Write",
+      hooks: [{ type: "command", command: `node ${P}/hooks/protect-paths.mjs` }],
+    },
+    {
+      matcher: "mcp__supabase__.*",
+      hooks: [{ type: "command", command: `node ${P}/hooks/no-direct-prod-db.mjs` }],
+    },
   ],
   PostToolUse: [
-    { matcher: "Edit|Write", hooks: [{ type: "command", command: `node ${P}/hooks/format-and-check.mjs` }] },
+    {
+      matcher: "Edit|Write",
+      hooks: [{ type: "command", command: `node ${P}/hooks/format-and-check.mjs` }],
+    },
   ],
 };
 writeFileSync(join(out, "hooks", "hooks.json"), `${JSON.stringify(hooks, null, 2)}\n`);

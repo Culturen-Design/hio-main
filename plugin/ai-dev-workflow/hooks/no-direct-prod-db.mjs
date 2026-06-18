@@ -35,14 +35,18 @@ const values = JSON.stringify(input);
 
 // 1. Any reference to the prod project ref is forbidden.
 if (PROD && values.includes(PROD)) {
-  block(`This Supabase MCP call references the PRODUCTION project (${PROD}). Production changes happen only via CI on merge to main. Blocked.`);
+  block(
+    `This Supabase MCP call references the PRODUCTION project (${PROD}). Production changes happen only via CI on merge to main. Blocked.`,
+  );
 }
 
 // 2. Writes must explicitly target the dev project; otherwise block.
 if (isWrite) {
   const targetsDev = DEV && values.includes(DEV);
   if (!targetsDev) {
-    block(`"${tool}" is a write operation. Run schema changes through the db-migration skill (CLI + supabase/migrations), not direct MCP writes. If you truly need a dev write, pass project_ref=${DEV ?? "<dev-ref>"} explicitly.`);
+    block(
+      `"${tool}" is a write operation. Run schema changes through the db-migration skill (CLI + supabase/migrations), not direct MCP writes. If you truly need a dev write, pass project_ref=${DEV ?? "<dev-ref>"} explicitly.`,
+    );
   }
 }
 
