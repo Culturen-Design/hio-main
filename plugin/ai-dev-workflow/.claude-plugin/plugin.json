@@ -1,0 +1,7 @@
+{
+  "name": "ai-dev-workflow",
+  "version": "0.1.0",
+  "description": "AI-assisted Next.js + Supabase + Netlify dev workflow: guardrail hooks, review subagents, skills, and slash commands for a small team.",
+  "author": { "name": "Your Team" },
+  "keywords": ["nextjs", "supabase", "netlify", "workflow", "guardrails"]
+}

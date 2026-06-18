@@ -1,0 +1,11 @@
+{
+  "name": "team-workflow-marketplace",
+  "owner": { "name": "Your Team" },
+  "plugins": [
+    {
+      "name": "ai-dev-workflow",
+      "source": "./plugin/ai-dev-workflow",
+      "description": "Guardrail hooks, review subagents, skills, and slash commands for the Next.js + Supabase + Netlify workflow."
+    }
+  ]
+}

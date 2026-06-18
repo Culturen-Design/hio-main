@@ -1,0 +1,73 @@
+name: CI
+
+# Required status check for merging into main. Netlify builds the Deploy Preview
+# separately; this gate is lint + types + tests + build + migration safety.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint (Biome)
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm run test
+
+      - name: Build
+        run: npm run build
+        env:
+          # Build-time public env. Use harmless placeholders so the build compiles
+          # without real secrets; runtime values come from Netlify per context.
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+          NEXT_PUBLIC_SITE_URL: http://localhost:3000
+
+  migrations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Lint migrations (start local DB + db lint)
+        run: |
+          supabase start
+          supabase db lint --level warning
+
+      - name: Enforce migration immutability
+        # Fail if a PR modifies a migration file that already exists on main
+        # (applied migrations are append-only — add a new file instead).
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin ${{ github.base_ref }} --depth=1
+          CHANGED=$(git diff --name-status origin/${{ github.base_ref }}...HEAD -- supabase/migrations || true)
+          echo "$CHANGED"
+          if echo "$CHANGED" | grep -E '^(M|D|R)' | grep -q 'supabase/migrations/'; then
+            echo "::error::A committed migration was modified, deleted, or renamed. Migrations are immutable — create a NEW migration instead."
+            exit 1
+          fi

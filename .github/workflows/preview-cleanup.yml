@@ -1,0 +1,32 @@
+name: Preview DB cleanup (Supabase Pro only)
+
+# Deletes the per-PR Supabase database branch when a PR closes, so stale preview
+# branches don't keep billing (~$9.60/mo each if left running).
+#
+# ENABLE ONLY after upgrading to Supabase Pro + turning on branching. On the Free
+# plan there are no DB branches to clean up — this workflow is a no-op safety net.
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    # Guard: only run when branching is enabled (set this repo variable to "true").
+    if: vars.SUPABASE_BRANCHING_ENABLED == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Delete the PR's database branch (best-effort)
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          echo "Deleting Supabase branch for: $BRANCH"
+          supabase branches delete "$BRANCH" --project-ref "$SUPABASE_PROD_REF" --experimental || \
+            echo "No matching branch (already cleaned up or never created)."
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROD_REF: ${{ secrets.SUPABASE_PROD_REF }}

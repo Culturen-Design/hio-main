@@ -1,0 +1,42 @@
+{
+  "PreToolUse": [
+    {
+      "matcher": "Read|Edit|Write|Bash",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "node ${CLAUDE_PLUGIN_ROOT}/hooks/block-secrets.mjs"
+        }
+      ]
+    },
+    {
+      "matcher": "Edit|Write",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "node ${CLAUDE_PLUGIN_ROOT}/hooks/protect-paths.mjs"
+        }
+      ]
+    },
+    {
+      "matcher": "mcp__supabase__.*",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "node ${CLAUDE_PLUGIN_ROOT}/hooks/no-direct-prod-db.mjs"
+        }
+      ]
+    }
+  ],
+  "PostToolUse": [
+    {
+      "matcher": "Edit|Write",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "node ${CLAUDE_PLUGIN_ROOT}/hooks/format-and-check.mjs"
+        }
+      ]
+    }
+  ]
+}
