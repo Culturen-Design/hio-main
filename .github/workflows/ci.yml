@@ -44,6 +44,10 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: latest
+        env:
+          # Authenticated GitHub API calls so resolving the CLI release doesn't hit
+          # the 60/hr unauthenticated rate limit.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Lint migrations (start local DB + db lint)
         run: |
