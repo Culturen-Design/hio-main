@@ -22,8 +22,8 @@
       "**/node_modules",
       "**/dist",
       ".turbo",
-      "supabase/migrations",
-      "packages/db/src/database.types.ts"
+      "**/migrations/**",
+      "**/database.types.ts"
     ]
   }
 }
