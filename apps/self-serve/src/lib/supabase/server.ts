@@ -1,4 +1,5 @@
 import { publicEnv } from "@/lib/env";
+import type { Database } from "@hio/db";
 import { type CookieOptions, createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
@@ -12,7 +13,7 @@ type CookieToSet = { name: string; value: string; options?: CookieOptions };
 export async function createClient() {
   const cookieStore = await cookies();
 
-  return createServerClient(
+  return createServerClient<Database>(
     publicEnv.NEXT_PUBLIC_SUPABASE_URL,
     publicEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
