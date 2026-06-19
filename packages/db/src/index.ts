@@ -1,8 +1,16 @@
 /**
- * @hio/db — shared Supabase client typing + database types.
+ * @hio/db — shared Supabase database types (generated from the dev project).
  *
- * M2 brings over the schema (migrations 001-004 from exploration/hio-builder) and
- * the typed server/client factories. Apps still create their own request-scoped
- * clients (SSR cookie handling) in apps/<app>/src/lib/supabase/*.
+ * Regenerate after a migration with `npm run db:types`. Apps create their own
+ * request-scoped clients (SSR cookie handling) in apps/<app>/src/lib/supabase/*,
+ * parameterized by the `Database` type exported here.
  */
-export type { Database } from "./database.types";
+export type {
+  Database,
+  Json,
+  Tables,
+  TablesInsert,
+  TablesUpdate,
+  Enums,
+} from "./database.types";
+export { Constants } from "./database.types";
