@@ -3,10 +3,9 @@ name: CI
 # Required status check for merging into main. Netlify builds the Deploy Preview
 # separately; this gate is lint + types + tests + build + migration safety.
 on:
-  pull_request:
-    branches: [main]
+  pull_request: # all PRs, regardless of base (we stage via integration/v2)
   push:
-    branches: [main]
+    branches: [main, "integration/**"]
 
 concurrency:
   group: ci-${{ github.ref }}
