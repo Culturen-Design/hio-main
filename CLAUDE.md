@@ -4,11 +4,18 @@ This file is the contract Claude Code follows in this repo. Keep it short. Long
 procedures live in `.claude/skills/` and load on demand.
 
 ## Stack
-- **Next.js** (App Router, TypeScript, React 19) — code in `src/`
-- **Supabase** (Postgres + Auth + Storage) — schema in `supabase/migrations/`
-- **Netlify** hosting — config in `netlify.toml` (production / deploy-preview / branch contexts)
+- **Monorepo** — npm workspaces + Turborepo. `apps/{self-serve,studio}` + `packages/{ai-engine,content-model,ui,db}`.
+- **Next.js** (App Router, TypeScript, React 19) — app code in `apps/<app>/src/`
+- **Supabase** (Postgres + Auth + Storage) — shared schema in `supabase/migrations/`
+- **Netlify** hosting — one site per app (`apps/<app>/netlify.toml`, base dir = the app)
 - **Biome** lint+format · **Vitest** unit · **Playwright** e2e · **Zod** validation
-- Package manager: **npm**
+- Package manager: **npm**. Run tasks via Turbo: `npm run check` = `turbo run lint typecheck test`.
+
+## Two products, one engine
+hio is two business lines sharing one **schema-driven AI editor** (`packages/ai-engine`): it builds its
+Claude tools from a `SchemaProvider` (`packages/content-model`). **Self-Serve** ships one built-in schema;
+**Studio** resolves a schema + theme per client. Never hard-code module types in the engine — extend the
+provider. See `docs/EXPLORATION-COMPARISON.md` and the plan (Part 2).
 
 ## Non-negotiable rules (enforced by hooks + CI — do not work around them)
 1. **Never touch production data.** No writes to the prod Supabase project. All DB
@@ -30,6 +37,7 @@ procedures live in `.claude/skills/` and load on demand.
 
 ## What "good" looks like
 - Every feature ships with a colocated test. `npm run check` (lint + typecheck + test) passes locally.
-- Files follow existing structure: routes in `src/app/`, shared code in `src/lib/`, UI in `src/components/`.
-- Prefer reusing existing utilities (`src/lib/supabase/*`, `src/lib/env.ts`) over new ones.
+- Files follow existing structure: routes in `apps/<app>/src/app/`, shared cross-app code in `packages/*`.
+- Prefer reusing existing utilities (`apps/<app>/src/lib/supabase/*`, `@hio/ui`, `@hio/content-model`) over new ones.
+- Cross-app/shared logic belongs in a `packages/*` workspace, not copied between apps.
 - Small, focused PRs with conventional-commit titles (`feat:`, `fix:`, `chore:`…).

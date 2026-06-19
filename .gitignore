@@ -9,6 +9,11 @@ out/
 build/
 next-env.d.ts
 
+# monorepo
+.turbo/
+dist/
+*.tsbuildinfo
+
 # env — NEVER commit real secrets. Only .env.example is tracked.
 .env
 .env.*

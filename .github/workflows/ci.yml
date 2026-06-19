@@ -3,10 +3,9 @@ name: CI
 # Required status check for merging into main. Netlify builds the Deploy Preview
 # separately; this gate is lint + types + tests + build + migration safety.
 on:
-  pull_request:
-    branches: [main]
+  pull_request: # all PRs, regardless of base (we stage via integration/v2)
   push:
-    branches: [main]
+    branches: [main, "integration/**"]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -25,20 +24,12 @@ jobs:
 
       - run: npm ci
 
-      - name: Lint (Biome)
-        run: npm run lint
-
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Unit tests
-        run: npm run test
-
-      - name: Build
-        run: npm run build
+      # One Turborepo pass runs lint + typecheck + test + build across every
+      # workspace (apps + packages), with caching. Placeholder public env lets the
+      # Next builds compile without real secrets; runtime values come from Netlify.
+      - name: Lint / typecheck / test / build (turbo)
+        run: npx turbo run lint typecheck test build
         env:
-          # Build-time public env. Use harmless placeholders so the build compiles
-          # without real secrets; runtime values come from Netlify per context.
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
           NEXT_PUBLIC_SITE_URL: http://localhost:3000

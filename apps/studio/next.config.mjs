@@ -1,9 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Type and lint errors fail the build by default — do NOT disable these.
+  transpilePackages: ["@hio/ui", "@hio/content-model", "@hio/ai-engine", "@hio/db"],
   typescript: { ignoreBuildErrors: false },
-  eslint: { ignoreDuringBuilds: true }, // we use Biome, not ESLint
+  eslint: { ignoreDuringBuilds: true },
 };
 
 export default nextConfig;
