@@ -1,4 +1,5 @@
 import { publicEnv } from "@/lib/env";
+import type { Database } from "@hio/db";
 import { createBrowserClient } from "@supabase/ssr";
 
 /**
@@ -6,7 +7,7 @@ import { createBrowserClient } from "@supabase/ssr";
  * The block-secrets hook + RLS ensure no privileged key reaches the client.
  */
 export function createClient() {
-  return createBrowserClient(
+  return createBrowserClient<Database>(
     publicEnv.NEXT_PUBLIC_SUPABASE_URL,
     publicEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   );
