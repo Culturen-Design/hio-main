@@ -1,11 +1,8 @@
 /**
- * @hio/ui — shared design system (shadcn + tokens + section renderers).
+ * @hio/ui — shared design system + module renderers.
  *
- * M2 brings in: the design tokens + shadcn primitives and the SectionHero pattern
- * from exploration/hio-space-poli (the visual quality bar), plus the 9 module
- * renderers ported from exploration/hio-builder, restyled to the token system.
- *
- * For now: the `cn` class-merge helper (seeded from hio-space-poli src/lib/utils.ts).
+ * Renderers are presentational (server-component friendly). M2.5 wires AI editing;
+ * a later pass swaps inline styles for shadcn + the design tokens from hio-space-poli.
  */
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -13,3 +10,8 @@ import { twMerge } from "tailwind-merge";
 export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
 }
+
+export { HeroModule } from "./modules/HeroModule";
+export { BioModule } from "./modules/BioModule";
+export { LinksModule } from "./modules/LinksModule";
+export { ModuleRenderer, type RenderableSection } from "./modules/ModuleRenderer";

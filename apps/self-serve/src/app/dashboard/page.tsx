@@ -70,12 +70,37 @@ export default async function DashboardPage() {
             Public URL: <code>/{page.slug}</code>
           </p>
           <p style={{ margin: "0.25rem 0" }}>
-            Sections: <strong>{sectionCount}</strong>{" "}
-            <span style={{ color: "#6b7280" }}>(auto-provisioned on signup)</span>
+            Sections: <strong>{sectionCount}</strong>
           </p>
-          <p style={{ color: "#9ca3af", fontSize: 13, marginBottom: 0 }}>
-            The visual builder lands in M2.4.
-          </p>
+          <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+            <a
+              href="/builder"
+              style={{
+                padding: "0.5rem 0.9rem",
+                borderRadius: 8,
+                background: "#111827",
+                color: "white",
+                textDecoration: "none",
+                fontWeight: 600,
+              }}
+            >
+              Open builder
+            </a>
+            <a
+              href={`/${page.slug}`}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                padding: "0.5rem 0.9rem",
+                borderRadius: 8,
+                border: "1px solid #d1d5db",
+                color: "#111827",
+                textDecoration: "none",
+              }}
+            >
+              View public page ↗
+            </a>
+          </div>
         </div>
       ) : (
         <p style={{ color: "#dc2626" }}>No page found for your account.</p>
