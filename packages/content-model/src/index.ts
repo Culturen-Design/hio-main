@@ -108,3 +108,58 @@ export function createSchemaProvider(id: string, modules: ModuleDefinition[]): S
     allTools: () => modules.flatMap((m) => m.aiTools),
   };
 }
+
+/* ── Bio module schema ──────────────────────────────────────────────────────── */
+
+export const bioSchema = z.object({
+  title: z.string().max(60),
+  body: z.string().max(800),
+  photo_url: z.string().url().optional(),
+  photo_alt: z.string().optional(),
+});
+export type BioContent = z.infer<typeof bioSchema>;
+
+/* ── Module definitions ─────────────────────────────────────────────────────── */
+// AI tools land in M2.5 (the engine generates Claude tools from these).
+
+export const heroModule: ModuleDefinition<HeroContent> = {
+  type: "hero",
+  label: "Hero",
+  contentSchema: heroSchema,
+  defaults: { headline: "Hello, I'm …", subheadline: "Welcome to my page." },
+  width: [12, 12],
+  aiTools: [],
+};
+
+export const bioModule: ModuleDefinition<BioContent> = {
+  type: "bio",
+  label: "Bio",
+  contentSchema: bioSchema,
+  defaults: { title: "About me", body: "Tell visitors a little about yourself." },
+  width: [4, 12],
+  aiTools: [],
+};
+
+export const linksModule: ModuleDefinition<LinksContent> = {
+  type: "links",
+  label: "Links",
+  contentSchema: linksSchema,
+  defaults: { title: "Links", items: [], columns: 2 },
+  width: [4, 12],
+  aiTools: [],
+};
+
+/**
+ * The built-in Self-Serve schema. Studio (M4) resolves a different provider per
+ * client; the engine + renderers never hard-code module types.
+ */
+export const selfServeSchema = createSchemaProvider("self-serve", [
+  heroModule,
+  bioModule,
+  linksModule,
+]);
+
+/** Default content for a freshly-added module of the given type. */
+export function defaultContentFor(type: ModuleType): unknown {
+  return selfServeSchema.getModule(type)?.defaults ?? {};
+}
