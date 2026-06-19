@@ -5,6 +5,7 @@ import type { Tables } from "@hio/db";
 import { ModuleRenderer } from "@hio/ui";
 import Link from "next/link";
 import { useState, useTransition } from "react";
+import { ChatSidebar } from "./ChatSidebar";
 import { SectionEditor } from "./SectionEditor";
 import { addModule, deleteSection, moveSection } from "./actions";
 
@@ -162,6 +163,8 @@ export function BuilderCanvas({
           </div>
         ))}
       </div>
+
+      <ChatSidebar pageId={page.id} />
     </main>
   );
 }

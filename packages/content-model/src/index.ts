@@ -67,15 +67,32 @@ export type CalendarContent = z.infer<typeof calendarSchema>;
 
 /* ── AI tool descriptors — the per-module capabilities the AI may invoke ────── */
 
+/**
+ * Declarative execution semantics for a tool. The engine interprets these
+ * against a section's `content` — no per-product code lives in the engine.
+ * Every op's input is expected to carry `section_id`; collection ops name the
+ * array field they mutate. `update_module_content` is a built-in engine tool
+ * (it works for every module) and is NOT declared here.
+ */
+export type AiToolOp =
+  /** Append `input[itemKey]` to the `field` array (engine assigns an id when `genId`). */
+  | { kind: "appendItem"; field: string; itemKey: string; genId?: boolean }
+  /** Patch the array item whose id === `input[idKey]` with `input[itemKey]`. */
+  | { kind: "updateItem"; field: string; idKey: string; itemKey: string }
+  /** Remove the array item whose id === `input[idKey]`. */
+  | { kind: "removeItem"; field: string; idKey: string };
+
 export interface AiToolDescriptor {
   /** Tool name surfaced to Claude. */
   name: string;
   /** One-line description for the model. */
   description: string;
-  /** Validates the tool input server-side before it runs. */
+  /** Validates the tool input server-side before it runs (must include section_id). */
   inputSchema: z.ZodTypeAny;
   /** Which module type this tool operates on. */
   moduleType: ModuleType;
+  /** How the engine applies this tool to the target section's content. */
+  op: AiToolOp;
 }
 
 export interface ModuleDefinition<TContent = unknown> {
@@ -119,8 +136,31 @@ export const bioSchema = z.object({
 });
 export type BioContent = z.infer<typeof bioSchema>;
 
+/* ── Per-module AI tools ────────────────────────────────────────────────────── */
+// Text-field edits on any module are handled by the engine's built-in
+// `update_module_content` tool. Modules only declare tools for collection
+// (array) mutations the AI should be able to perform.
+
+const linkInputSchema = linkItemSchema.omit({ id: true });
+
+export const linksAiTools: AiToolDescriptor[] = [
+  {
+    name: "add_link",
+    description: "Adds a link card to a links module. Requires a title and a valid URL.",
+    moduleType: "links",
+    inputSchema: z.object({ section_id: z.string(), link: linkInputSchema }),
+    op: { kind: "appendItem", field: "items", itemKey: "link", genId: true },
+  },
+  {
+    name: "remove_link",
+    description: "Removes a link from a links module by its link id.",
+    moduleType: "links",
+    inputSchema: z.object({ section_id: z.string(), link_id: z.string() }),
+    op: { kind: "removeItem", field: "items", idKey: "link_id" },
+  },
+];
+
 /* ── Module definitions ─────────────────────────────────────────────────────── */
-// AI tools land in M2.5 (the engine generates Claude tools from these).
 
 export const heroModule: ModuleDefinition<HeroContent> = {
   type: "hero",
@@ -146,7 +186,7 @@ export const linksModule: ModuleDefinition<LinksContent> = {
   contentSchema: linksSchema,
   defaults: { title: "Links", items: [], columns: 2 },
   width: [4, 12],
-  aiTools: [],
+  aiTools: linksAiTools,
 };
 
 /**
