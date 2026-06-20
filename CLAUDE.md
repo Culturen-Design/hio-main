@@ -15,7 +15,7 @@ procedures live in `.claude/skills/` and load on demand.
 hio is two business lines sharing one **schema-driven AI editor** (`packages/ai-engine`): it builds its
 Claude tools from a `SchemaProvider` (`packages/content-model`). **Self-Serve** ships one built-in schema;
 **Studio** resolves a schema + theme per client. Never hard-code module types in the engine — extend the
-provider. See `docs/EXPLORATION-COMPARISON.md` and the plan (Part 2).
+provider. See `docs/EXPLORATION-COMPARISON.md` and the **roadmap** (`docs/ROADMAP.md`).
 
 ## Non-negotiable rules (enforced by hooks + CI — do not work around them)
 1. **Never touch production data.** No writes to the prod Supabase project. All DB
@@ -27,6 +27,11 @@ provider. See `docs/EXPLORATION-COMPARISON.md` and the plan (Part 2).
 4. **Server secrets never reach the client.** Never import `serverEnv()` or the service-role
    key into a Client Component. Validate all external input with Zod.
 5. **`main` is always shippable.** All work happens on a branch → PR → green CI → human review.
+6. **Follow the roadmap; never deviate silently.** `docs/ROADMAP.md` is authoritative for *what*
+   to build and *in what order*. Work the next step in sequence. If a different order, scope, or
+   step is warranted, **stop and propose the change explicitly — what changes and why it's required —
+   and get a human decision before acting.** Every approved deviation gets a dated entry in the
+   roadmap's Deviation log. A deviation without a logged reason is a defect.
 
 ## How to do common things (use these skills/commands)
 - Add a feature → use the **`new-feature`** skill
