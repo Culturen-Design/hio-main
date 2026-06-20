@@ -97,8 +97,10 @@ hio-main/                      # root holds the guardrails (.claude, .github, CL
 npm workspaces + Turborepo; guardrails at root; `apps/{self-serve,studio}` + `packages/{ai-engine,
 content-model,ui,db}` scaffolded and building; `ci.yml` runs `turbo run lint typecheck test build`.
 
-### M2 — Self-Serve port (builder → guarded Next) 🔵
-Bring the builder's schema/RLS/auth/modules/AI editor onto the guarded Next.js stack.
+### M2 — Self-Serve port (builder → guarded Next) ✅ (gate met; widening backlog deferred)
+Bring the builder's schema/RLS/auth/modules/AI editor onto the guarded Next.js stack. The milestone
+gate is met (shipped + verified live end-to-end); the remaining module renderers, drag-and-drop, and
+shadcn restyle listed under "Module build-out" below are **deferred enhancements**, not blockers.
 
 - **M2.1 — Schema** ✅ migrations `001–006` (RLS, triggers, auto-provision, tiers, hardening) applied
   to dev; `@hio/db` typed.
