@@ -37,11 +37,14 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
 
 `✅ done` · `🔵 in progress` · `⬜ not started` · `↪ moved` (see deviation log)
 
-- **Now:** **M2 nearly complete.** M2.5a (AI engine + edge fn + ChatSidebar) ✅ #6 · M2.5b
-  (tiers/admin) ✅ #8 · calendar module ✅ #9 · **M2.6 (deploy + live verify) ✅ done** — the
-  `ai-command` function is deployed to dev (v3) and the AI editor is **proven end-to-end live**.
-- **Next action:** the **M3 seam-freeze gate** — ratify `content-model` (`SchemaProvider` /
-  `AiToolDescriptor`) as the stable seam before M4 builds Studio on it.
+- **Now:** **M2 complete; M3 seam-freeze done (PR-1).** `content-model` is ratified and frozen at
+  **`@hio/content-model@1.0.0`** — `CONTRACT.md` defines the stable seam and a contract test
+  (`packages/ai-engine/src/contract.test.ts`) proves swapping the `SchemaProvider` changes the AI
+  toolset with zero engine change. Gate decisions: module-type space stays **closed** (`custom` is
+  the escape hatch), **theme is out** of content-model (lives in `@hio/ui`), and the engine enforces
+  unique/non-reserved tool names + module types at construction.
+- **Next action:** **M3 PR-2** — the `ai-command` deploy-path reconciliation (a pre-deploy bundle
+  script so repo == deployed). Then **M4 (Studio)**.
 - **In parallel (widening M2):** remaining renderers (`services`, `contact`, `gallery`,
   `testimonial`, `custom`), drag-and-drop reorder, shadcn restyle.
 - **Branch model:** work happens on `integration/v2`; it becomes `main` when v2 is ready.
@@ -132,12 +135,23 @@ engine's `updateItem` op; paid-tier gated). Remaining renderers: `services`, `co
 `testimonial`, `custom`. Plus drag-and-drop reordering and the shadcn/design-system restyle of all
 renderers.
 
-### M3 — Extract, generalize & **freeze** the core ↪ (largely pulled into M2.5a)
-The engine is already schema-driven with Vitest coverage (done in M2.5a). **What remains and must
-not be skipped:** ratify and **freeze `content-model` as the stable seam** — a deliberate review
-that the `SchemaProvider`/`AiToolDescriptor` contract is good enough for Studio to build on without
-churning it. This is the control point the M3→M2.5 pull-forward put at risk; we keep it as an
-explicit gate before M4.
+### M3 — Extract, generalize & **freeze** the core 🔵 (engine generalized in M2.5a; freeze ✅ PR-1)
+The engine was made schema-driven with Vitest coverage in M2.5a. The remaining, non-skippable work
+was the **seam-freeze gate**: a deliberate review ratifying that the `SchemaProvider` /
+`AiToolDescriptor` contract is good enough for Studio to build on without churning it.
+
+- **M3 freeze ✅ (PR-1):** `content-model` frozen at **`@hio/content-model@1.0.0`** with
+  [`CONTRACT.md`](../packages/content-model/CONTRACT.md) (the frozen surface + change protocol) and a
+  regression-guard contract test that proves a swapped provider yields a different toolset with **zero
+  engine code change**. Pre-freeze hardening: `createSchemaProvider` enforces unique module types,
+  unique AI tool names, and no collision with reserved engine tools; `defaultContentFor` takes a
+  provider. **Gate decisions** (recorded in `CONTRACT.md`): module-type space is **CLOSED** (`custom`
+  is the escape hatch; opening it is deferred to M4+); **theme is OUT** of content-model — it is
+  presentation, so `StyleVariant` moved to `@hio/ui`; "allowed modules" = `provider.modules`, enforced
+  per product (Self-Serve tier RLS; Studio per-client provider + future tenancy RLS).
+- **M3 deploy reconciliation ⬜ (PR-2):** fold in the M2.6 follow-up — reconcile the two `ai-command`
+  deploy paths (MCP self-contained bundle vs the repo's `../../../packages` import map) via a
+  pre-deploy bundle step so the deployed artifact is generated from the packages (repo == deployed).
 
 ### M4 — Studio (build on the proven core) ⬜
 New `apps/studio`: agency dashboard + **tenant model** (new migrations: `clients`, `client_sites`,

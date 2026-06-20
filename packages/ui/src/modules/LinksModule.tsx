@@ -1,4 +1,5 @@
-import type { LinksContent, StyleVariant } from "@hio/content-model";
+import type { LinksContent } from "@hio/content-model";
+import type { StyleVariant } from "../style";
 
 export function LinksModule({ content }: { content: LinksContent; variant?: StyleVariant | null }) {
   return (

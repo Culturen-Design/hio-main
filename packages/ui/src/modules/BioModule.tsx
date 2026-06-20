@@ -1,4 +1,5 @@
-import type { BioContent, StyleVariant } from "@hio/content-model";
+import type { BioContent } from "@hio/content-model";
+import type { StyleVariant } from "../style";
 
 export function BioModule({ content }: { content: BioContent; variant?: StyleVariant | null }) {
   return (

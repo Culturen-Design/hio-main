@@ -1,4 +1,5 @@
-import type { HeroContent, StyleVariant } from "@hio/content-model";
+import type { HeroContent } from "@hio/content-model";
+import type { StyleVariant } from "../style";
 
 export function HeroModule({ content }: { content: HeroContent; variant?: StyleVariant | null }) {
   return (
