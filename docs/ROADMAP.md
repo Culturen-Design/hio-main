@@ -117,9 +117,11 @@ Bring the builder's schema/RLS/auth/modules/AI editor onto the guarded Next.js s
 - **M2.6 — Deploy + live verify** ⬜ **(next)** deploy `ai-command` to dev, set `ANTHROPIC_API_KEY`
   secret, verify ChatSidebar end-to-end.
 
-**Deferred within M2 (tracked, not dropped):** remaining module renderers (services, calendar,
-contact, gallery, testimonial, custom), drag-and-drop reordering, and the shadcn/design-system
-restyle of all renderers. These widen M2 after the vertical slice is proven.
+**Module build-out (widening M2, in parallel while M2.6 is owner-blocked):** `calendar` ✅ done
+(renderer + `add_event`/`update_event`/`remove_event` AI tools — first module to exercise the
+engine's `updateItem` op; paid-tier gated). Remaining renderers: `services`, `contact`, `gallery`,
+`testimonial`, `custom`. Plus drag-and-drop reordering and the shadcn/design-system restyle of all
+renderers.
 
 ### M3 — Extract, generalize & **freeze** the core ↪ (largely pulled into M2.5a)
 The engine is already schema-driven with Vitest coverage (done in M2.5a). **What remains and must

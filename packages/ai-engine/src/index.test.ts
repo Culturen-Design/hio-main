@@ -202,6 +202,62 @@ describe("executeTool — collection ops", () => {
   });
 });
 
+describe("executeTool — calendar (proves the engine generalizes to a 2nd module)", () => {
+  const calendarSections = (): SectionRecord[] => [
+    {
+      id: "cal-1",
+      type: "calendar",
+      content: {
+        title: "Events",
+        events: [{ id: "e1", date: "2099-01-01", title: "Kickoff" }],
+        show_past: false,
+      },
+    },
+  ];
+
+  it("adds an event with a generated id (appendItem on a different field)", async () => {
+    const sections = calendarSections();
+    const r = await executeTool(
+      selfServeSchema,
+      "add_event",
+      { section_id: "cal-1", event: { date: "2099-02-02", title: "Launch" } },
+      sections,
+      fakeStore(sections),
+      seq("e2"),
+    );
+    expect(r.ok).toBe(true);
+    const events = (sections[0]?.content as { events: { id: string; title: string }[] }).events;
+    expect(events).toHaveLength(2);
+    expect(events[1]).toEqual({ id: "e2", date: "2099-02-02", title: "Launch" });
+  });
+
+  it("updates an existing event by id (updateItem op)", async () => {
+    const sections = calendarSections();
+    const r = await executeTool(
+      selfServeSchema,
+      "update_event",
+      { section_id: "cal-1", event_id: "e1", updates: { title: "Kickoff (moved)" } },
+      sections,
+      fakeStore(sections),
+    );
+    expect(r.ok).toBe(true);
+    const events = (sections[0]?.content as { events: { id: string; title: string }[] }).events;
+    expect(events[0]).toEqual({ id: "e1", date: "2099-01-01", title: "Kickoff (moved)" });
+  });
+
+  it("rejects a non-ISO date server-side (schema validation)", async () => {
+    const sections = calendarSections();
+    const r = await executeTool(
+      selfServeSchema,
+      "add_event",
+      { section_id: "cal-1", event: { date: "next friday", title: "Bad" } },
+      sections,
+      fakeStore(sections),
+    );
+    expect(r.ok).toBe(false);
+  });
+});
+
 describe("PROTECTED_FIELDS", () => {
   it("guards identity, layout, and style fields", () => {
     expect(PROTECTED_FIELDS).toContain("type");

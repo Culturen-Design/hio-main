@@ -1,11 +1,13 @@
 import type {
   BioContent,
+  CalendarContent,
   HeroContent,
   LinksContent,
   ModuleType,
   StyleVariant,
 } from "@hio/content-model";
 import { BioModule } from "./BioModule";
+import { CalendarModule } from "./CalendarModule";
 import { HeroModule } from "./HeroModule";
 import { LinksModule } from "./LinksModule";
 
@@ -29,6 +31,8 @@ export function ModuleRenderer({ section }: { section: RenderableSection }) {
       return <BioModule content={section.content as BioContent} variant={variant} />;
     case "links":
       return <LinksModule content={section.content as LinksContent} variant={variant} />;
+    case "calendar":
+      return <CalendarModule content={section.content as CalendarContent} variant={variant} />;
     default:
       return (
         <div style={{ padding: "1rem 1.5rem", color: "#9ca3af" }}>
