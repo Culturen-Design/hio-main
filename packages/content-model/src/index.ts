@@ -10,11 +10,19 @@
  */
 import { z } from "zod";
 
-export type StyleVariant = "minimal" | "bold" | "outlined" | "filled";
+// NOTE: `StyleVariant` (presentation-only) lives in `@hio/ui` as of the M3
+// seam-freeze (2026-06-20). The content seam stays presentation-free: this
+// package owns content + AI capabilities; theme/styling is resolved next to the
+// provider in the UI layer. See `CONTRACT.md`.
 
 /** Every module type the platform knows about. Single source of truth — the
  *  `ModuleType` union and any runtime checks (admin overrides, Zod enums) derive
- *  from this. Must stay in sync with the `module_type` enum in the DB. */
+ *  from this. Must stay in sync with the `module_type` enum in the DB.
+ *
+ *  FROZEN as a CLOSED set (M3 decision, 2026-06-20): products choose from these
+ *  types; `custom` is the escape hatch for bespoke content. Opening the space to
+ *  arbitrary per-client types is a deferred M4+ decision (it would also reshape
+ *  the DB `module_type` enum). See `CONTRACT.md`. */
 export const MODULE_TYPES = [
   "hero",
   "bio",
@@ -126,8 +134,45 @@ export interface SchemaProvider {
   allTools(): AiToolDescriptor[];
 }
 
+/**
+ * Tool names the engine reserves for its built-in, module-agnostic tools. A
+ * provider may not declare a tool with one of these names (it would be shadowed
+ * and never dispatched). Mirrors `UPDATE_CONTENT_TOOL` in `@hio/ai-engine`;
+ * duplicated here to keep the seam free of an engine dependency (the engine
+ * depends on this package, never the reverse).
+ */
+export const RESERVED_TOOL_NAMES: readonly string[] = ["update_module_content"];
+
+/**
+ * Build a provider from a module list, enforcing the seam's invariants up front:
+ * module types are unique, AI tool names are unique, and no tool name collides
+ * with an engine built-in. These fail loudly at construction so a malformed
+ * provider (Self-Serve's built-in or a Studio per-client one) can never reach the
+ * engine, where a collision would silently resolve last-wins.
+ */
 export function createSchemaProvider(id: string, modules: ModuleDefinition[]): SchemaProvider {
-  const byType = new Map(modules.map((m) => [m.type, m]));
+  const byType = new Map<ModuleType, ModuleDefinition>();
+  for (const m of modules) {
+    if (byType.has(m.type)) {
+      throw new Error(`SchemaProvider "${id}": duplicate module type "${m.type}".`);
+    }
+    byType.set(m.type, m);
+  }
+
+  const reserved = new Set(RESERVED_TOOL_NAMES);
+  const seenTools = new Set<string>();
+  for (const m of modules) {
+    for (const t of m.aiTools) {
+      if (reserved.has(t.name)) {
+        throw new Error(`SchemaProvider "${id}": tool "${t.name}" is a reserved engine tool name.`);
+      }
+      if (seenTools.has(t.name)) {
+        throw new Error(`SchemaProvider "${id}": duplicate AI tool name "${t.name}".`);
+      }
+      seenTools.add(t.name);
+    }
+  }
+
   return {
     id,
     modules,
@@ -250,7 +295,12 @@ export const selfServeSchema = createSchemaProvider("self-serve", [
   calendarModule,
 ]);
 
-/** Default content for a freshly-added module of the given type. */
-export function defaultContentFor(type: ModuleType): unknown {
-  return selfServeSchema.getModule(type)?.defaults ?? {};
+/** Default content for a freshly-added module of the given type, resolved against
+ *  the given provider (defaults to the built-in Self-Serve one). Studio passes its
+ *  per-client provider so defaults follow that client's module set. */
+export function defaultContentFor(
+  type: ModuleType,
+  provider: SchemaProvider = selfServeSchema,
+): unknown {
+  return provider.getModule(type)?.defaults ?? {};
 }

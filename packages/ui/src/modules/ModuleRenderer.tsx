@@ -4,8 +4,8 @@ import type {
   HeroContent,
   LinksContent,
   ModuleType,
-  StyleVariant,
 } from "@hio/content-model";
+import type { StyleVariant } from "../style";
 import { BioModule } from "./BioModule";
 import { CalendarModule } from "./CalendarModule";
 import { HeroModule } from "./HeroModule";

@@ -1,4 +1,5 @@
-import type { CalendarContent, StyleVariant } from "@hio/content-model";
+import type { CalendarContent } from "@hio/content-model";
+import type { StyleVariant } from "../style";
 
 const fmtDate = (iso: string) => {
   const d = new Date(`${iso}T00:00:00`);
