@@ -290,16 +290,79 @@ export const calendarModule: ModuleDefinition<CalendarContent> = {
   aiTools: calendarAiTools,
 };
 
+/* ── Module registry & per-tenant provider resolution (M4.2) ────────────────── */
+
 /**
- * The built-in Self-Serve schema. Studio (M4) resolves a different provider per
- * client; the engine + renderers never hard-code module types.
+ * The closed registry of every module the platform has actually built, keyed by
+ * `ModuleType`. This is the single source the resolver draws from — a tenant can
+ * only enable a module that lives here. It is `Partial` by design: the
+ * `ModuleType` space is the frozen closed union, but a type only appears here once
+ * its `ModuleDefinition` (schema + renderer-side defaults + AI tools) exists.
+ * Building a new module (`services`, `contact`, …) = add it here; that is additive
+ * growth of the seam, not a contract change. See `CONTRACT.md`.
  */
-export const selfServeSchema = createSchemaProvider("self-serve", [
-  heroModule,
-  bioModule,
-  linksModule,
-  calendarModule,
-]);
+export const MODULE_REGISTRY: Partial<Record<ModuleType, ModuleDefinition>> = {
+  hero: heroModule,
+  bio: bioModule,
+  links: linksModule,
+  calendar: calendarModule,
+};
+
+/** The built-in Self-Serve product surface (mirrors the tier-gated module set). */
+const SELF_SERVE_MODULE_TYPES: readonly ModuleType[] = ["hero", "bio", "links", "calendar"];
+
+/**
+ * Named module bundles, keyed by the value stored in `tenants.schema_variant`.
+ * A bundle is the closed list of module types a variant enables; the resolver
+ * turns it into a per-tenant `SchemaProvider`. Studio (M4.3) sets a tenant's
+ * `schema_variant` to one of these names when creating a client — onboarding is
+ * an INSERT, never code (see `TENANCY.md`). New plans/variants are additive.
+ */
+export const MODULE_BUNDLES: Record<string, readonly ModuleType[]> = {
+  "self-serve": SELF_SERVE_MODULE_TYPES,
+};
+
+/**
+ * Build a per-tenant `SchemaProvider` from an explicit list of enabled module
+ * types, resolved against `MODULE_REGISTRY`. This is the low-level resolver: the
+ * engine is handed the result and never hard-codes module types. Throws if a
+ * requested type has no registered definition (a tenant enabled a module that
+ * hasn't been built yet) — failing loudly at resolution, never at request time.
+ * `createSchemaProvider` then enforces the seam's uniqueness invariants.
+ */
+export function resolveProvider(id: string, enabledTypes: readonly ModuleType[]): SchemaProvider {
+  const modules = enabledTypes.map((type) => {
+    const def = MODULE_REGISTRY[type];
+    if (!def) {
+      throw new Error(
+        `resolveProvider "${id}": module type "${type}" is not registered in MODULE_REGISTRY.`,
+      );
+    }
+    return def;
+  });
+  return createSchemaProvider(id, modules);
+}
+
+/**
+ * Resolve a provider from a tenant's `schema_variant` (a named bundle). This is
+ * the seam Studio uses: a tenant row carries `schema_variant`; this maps it to its
+ * bundle and builds the provider. Throws on an unknown variant rather than
+ * silently serving an empty toolset.
+ */
+export function resolveVariant(id: string, variant: string): SchemaProvider {
+  const bundle = MODULE_BUNDLES[variant];
+  if (!bundle) {
+    throw new Error(`resolveVariant "${id}": unknown schema_variant "${variant}".`);
+  }
+  return resolveProvider(id, bundle);
+}
+
+/**
+ * The built-in Self-Serve schema, now expressed via the registry/bundle so it and
+ * Studio's per-client providers are built the same way. Studio (M4) resolves a
+ * different provider per client; the engine + renderers never hard-code module types.
+ */
+export const selfServeSchema = resolveProvider("self-serve", SELF_SERVE_MODULE_TYPES);
 
 /** Default content for a freshly-added module of the given type, resolved against
  *  the given provider (defaults to the built-in Self-Serve one). Studio passes its

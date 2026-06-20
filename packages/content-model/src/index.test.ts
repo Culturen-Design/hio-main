@@ -2,11 +2,14 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import {
   type AiToolDescriptor,
+  MODULE_BUNDLES,
   type ModuleDefinition,
   RESERVED_TOOL_NAMES,
   createSchemaProvider,
   defaultContentFor,
   heroModule,
+  resolveProvider,
+  resolveVariant,
   selfServeSchema,
 } from "./index";
 
@@ -89,5 +92,51 @@ describe("selfServeSchema", () => {
   it("is a valid provider (construction would have thrown on a collision)", () => {
     expect(selfServeSchema.id).toBe("self-serve");
     expect(selfServeSchema.modules.length).toBeGreaterThan(0);
+  });
+
+  it("is expressed via the registry/bundle (same module set as the self-serve bundle)", () => {
+    expect(selfServeSchema.modules.map((m) => m.type)).toEqual(MODULE_BUNDLES["self-serve"]);
+  });
+});
+
+describe("resolveProvider — per-tenant provider from an enabled module set", () => {
+  it("exposes ONLY the enabled modules and their tools (toolset = enabled set)", () => {
+    // A studio-style tenant that enables links but NOT calendar.
+    const p = resolveProvider("client-acme", ["hero", "links"]);
+    expect(p.modules.map((m) => m.type)).toEqual(["hero", "links"]);
+    const toolNames = p.allTools().map((t) => t.name);
+    // links' tools are present...
+    expect(toolNames).toContain("add_link");
+    expect(toolNames).toContain("remove_link");
+    // ...calendar was not enabled, so its tools do NOT leak in.
+    expect(toolNames).not.toContain("add_event");
+    expect(p.getModule("calendar")).toBeUndefined();
+  });
+
+  it("preserves the enabled-type order in the resolved module list", () => {
+    const p = resolveProvider("client-x", ["links", "hero"]);
+    expect(p.modules.map((m) => m.type)).toEqual(["links", "hero"]);
+  });
+
+  it("throws on a closed-union type that has no registered definition yet", () => {
+    // `services` is a valid ModuleType but not yet built (absent from MODULE_REGISTRY).
+    expect(() => resolveProvider("client-y", ["hero", "services"])).toThrow(
+      /not registered in MODULE_REGISTRY/i,
+    );
+  });
+
+  it("inherits createSchemaProvider invariants (duplicate enabled types rejected)", () => {
+    expect(() => resolveProvider("client-z", ["hero", "hero"])).toThrow(/duplicate module type/i);
+  });
+});
+
+describe("resolveVariant — provider from a tenant's schema_variant", () => {
+  it("resolves the self-serve variant to the self-serve bundle's modules", () => {
+    const p = resolveVariant("tenant-1", "self-serve");
+    expect(p.modules.map((m) => m.type)).toEqual(MODULE_BUNDLES["self-serve"]);
+  });
+
+  it("throws on an unknown schema_variant rather than serving an empty toolset", () => {
+    expect(() => resolveVariant("tenant-2", "does-not-exist")).toThrow(/unknown schema_variant/i);
   });
 });
