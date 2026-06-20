@@ -12,16 +12,26 @@ import { z } from "zod";
 
 export type StyleVariant = "minimal" | "bold" | "outlined" | "filled";
 
-export type ModuleType =
-  | "hero"
-  | "bio"
-  | "services"
-  | "calendar"
-  | "links"
-  | "contact"
-  | "gallery"
-  | "testimonial"
-  | "custom";
+/** Every module type the platform knows about. Single source of truth — the
+ *  `ModuleType` union and any runtime checks (admin overrides, Zod enums) derive
+ *  from this. Must stay in sync with the `module_type` enum in the DB. */
+export const MODULE_TYPES = [
+  "hero",
+  "bio",
+  "services",
+  "calendar",
+  "links",
+  "contact",
+  "gallery",
+  "testimonial",
+  "custom",
+] as const;
+
+export type ModuleType = (typeof MODULE_TYPES)[number];
+
+/** Module types unlocked for every user on the free tier (mirrors the DB's
+ *  `allowed_module_types()`). Overrides grant access to the rest. */
+export const FREE_MODULE_TYPES: readonly ModuleType[] = ["hero", "bio", "links", "contact"];
 
 /* ── Content schemas (Zod = single source of truth; types are inferred) ─────── */
 

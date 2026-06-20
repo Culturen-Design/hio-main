@@ -37,13 +37,11 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
 
 `✅ done` · `🔵 in progress` · `⬜ not started` · `↪ moved` (see deviation log)
 
-- **Now:** mid-**M2 (Self-Serve port)**. **M2.5a** (AI engine + edge function + ChatSidebar) is
-  done and in PR (CI green), pending merge into `integration/v2`.
-- **Next action:** **M2.5b — tiers/admin** (flip a user free↔paid + manage `module_overrides`).
-  The DB groundwork already exists (`user_settings.tier` enum + `allowed_module_types()` RLS fn
-  from migration `004`), so this is mostly a server action + admin UI.
-- **Then:** deploy the `ai-command` edge function to dev (`supabase functions deploy` + set
-  `ANTHROPIC_API_KEY` secret) and verify ChatSidebar end-to-end live.
+- **Now:** mid-**M2 (Self-Serve port)**. **M2.5a** (AI engine + edge function + ChatSidebar) ✅
+  merged (#6). **M2.5b** (tiers/admin) ✅ done, in PR (#8).
+- **Next action:** **M2.6 — deploy + live verify**: deploy the `ai-command` edge function to dev
+  (`supabase functions deploy` + set `ANTHROPIC_API_KEY` secret) and verify ChatSidebar end-to-end.
+- **Then:** the **M3 seam-freeze gate** (ratify `content-model` as stable) before M4.
 - **Branch model:** work happens on `integration/v2`; it becomes `main` when v2 is ready.
 
 ---
@@ -106,15 +104,18 @@ Bring the builder's schema/RLS/auth/modules/AI editor onto the guarded Next.js s
   provider) and `@hio/ui` renderers (Hero/Bio/Links + `ModuleRenderer`).
 - **M2.4 — Clickable builder** ✅ `/builder` with server actions (add/update/delete/reorder, the
   last via the `reorder_sections` RPC), `SectionEditor`, and public read-only `/[slug]`. Verified live.
-- **M2.5a — AI editing vertical** ✅ *(in PR, CI green, pending merge)* schema-driven `@hio/ai-engine`
+- **M2.5a — AI editing vertical** ✅ *(merged, #6)* schema-driven `@hio/ai-engine`
   (`buildClaudeTools` via `zod-to-json-schema`, protected-field guard, `executeTool` over a
   `SectionStore` port, 13 Vitest tests); the `ai-command` Deno edge function delegating to it; and
   `ChatSidebar` in the builder. **Note:** this absorbs M3's "schema-driven engine" work — see
   [deviation log](#deviation-log).
-- **M2.5b — Tiers + admin** ⬜ **(next)** UI/mechanism to flip a user `free↔paid` and manage
-  `module_overrides`. DB groundwork exists (migration `004`).
-- **M2.6 — Deploy + live verify** ⬜ deploy `ai-command` to dev, set `ANTHROPIC_API_KEY` secret,
-  verify ChatSidebar end-to-end.
+- **M2.5b — Tiers + admin** ✅ *(in PR, #8)* admin-gated `/admin` console: per-user tier `free↔paid`
+  + `module_overrides` grants, via Zod-validated server actions enforced by the existing
+  `settings_update_admin` RLS policy. No migration — the `is_admin` flag + admin RLS already existed
+  (migrations `001`/`004`). Dashboard shows an Admin link to admins. Verified live (non-admin gate,
+  admin view, write path).
+- **M2.6 — Deploy + live verify** ⬜ **(next)** deploy `ai-command` to dev, set `ANTHROPIC_API_KEY`
+  secret, verify ChatSidebar end-to-end.
 
 **Deferred within M2 (tracked, not dropped):** remaining module renderers (services, calendar,
 contact, gallery, testimonial, custom), drag-and-drop reordering, and the shadcn/design-system

@@ -27,6 +27,12 @@ export default async function DashboardPage() {
     sectionCount = count ?? 0;
   }
 
+  const { data: settings } = await supabase
+    .from("user_settings")
+    .select("is_admin")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
   return (
     <main
       style={{ fontFamily: "system-ui", maxWidth: 640, margin: "0 auto", padding: "3rem 1.5rem" }}
@@ -51,6 +57,14 @@ export default async function DashboardPage() {
 
       <p style={{ color: "#6b7280" }}>
         Signed in as <strong>{user.email}</strong>
+        {settings?.is_admin && (
+          <>
+            {" · "}
+            <a href="/admin" style={{ color: "#7c3aed", fontWeight: 600 }}>
+              Admin console
+            </a>
+          </>
+        )}
       </p>
 
       {page ? (
