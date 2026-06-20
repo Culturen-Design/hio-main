@@ -37,14 +37,14 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
 
 `✅ done` · `🔵 in progress` · `⬜ not started` · `↪ moved` (see deviation log)
 
-- **Now:** **M2 complete; M3 seam-freeze done (PR-1).** `content-model` is ratified and frozen at
-  **`@hio/content-model@1.0.0`** — `CONTRACT.md` defines the stable seam and a contract test
-  (`packages/ai-engine/src/contract.test.ts`) proves swapping the `SchemaProvider` changes the AI
-  toolset with zero engine change. Gate decisions: module-type space stays **closed** (`custom` is
-  the escape hatch), **theme is out** of content-model (lives in `@hio/ui`), and the engine enforces
-  unique/non-reserved tool names + module types at construction.
-- **Next action:** **M3 PR-2** — the `ai-command` deploy-path reconciliation (a pre-deploy bundle
-  script so repo == deployed). Then **M4 (Studio)**.
+- **Now:** **M2 + M3 complete.** `content-model` is frozen at **`@hio/content-model@1.0.0`**
+  (`CONTRACT.md` + the `contract.test.ts` regression guard — a swapped `SchemaProvider` changes the AI
+  toolset with zero engine change; gate decisions: closed module-type space with `custom` escape hatch,
+  theme out of content-model, construction-time unique/non-reserved tool + module checks) ✅ #11. The
+  two `ai-command` deploy paths are reconciled — the function is self-contained via a generated
+  `vendor/` bundle, with an `edge-bundle` CI freshness gate ✅ #12.
+- **Next action:** **M4 (Studio).** Open follow-up: redeploy the regenerated `ai-command` bundle to dev
+  (v4) via the MCP and re-run the live smoke test, to prove the generated artifact deploys cleanly.
 - **In parallel (widening M2):** remaining renderers (`services`, `contact`, `gallery`,
   `testimonial`, `custom`), drag-and-drop reorder, shadcn restyle.
 - **Branch model:** work happens on `integration/v2`; it becomes `main` when v2 is ready.
@@ -137,7 +137,7 @@ engine's `updateItem` op; paid-tier gated). Remaining renderers: `services`, `co
 `testimonial`, `custom`. Plus drag-and-drop reordering and the shadcn/design-system restyle of all
 renderers.
 
-### M3 — Extract, generalize & **freeze** the core 🔵 (engine generalized in M2.5a; freeze ✅ PR-1)
+### M3 — Extract, generalize & **freeze** the core ✅ (engine generalized in M2.5a; freeze + deploy reconcile done)
 The engine was made schema-driven with Vitest coverage in M2.5a. The remaining, non-skippable work
 was the **seam-freeze gate**: a deliberate review ratifying that the `SchemaProvider` /
 `AiToolDescriptor` contract is good enough for Studio to build on without churning it.
@@ -151,9 +151,12 @@ was the **seam-freeze gate**: a deliberate review ratifying that the `SchemaProv
   is the escape hatch; opening it is deferred to M4+); **theme is OUT** of content-model — it is
   presentation, so `StyleVariant` moved to `@hio/ui`; "allowed modules" = `provider.modules`, enforced
   per product (Self-Serve tier RLS; Studio per-client provider + future tenancy RLS).
-- **M3 deploy reconciliation ⬜ (PR-2):** fold in the M2.6 follow-up — reconcile the two `ai-command`
-  deploy paths (MCP self-contained bundle vs the repo's `../../../packages` import map) via a
-  pre-deploy bundle step so the deployed artifact is generated from the packages (repo == deployed).
+- **M3 deploy reconciliation ✅ (PR-2, #12):** the M2.6 follow-up is closed. `npm run bundle:ai-command`
+  vendors the `@hio/*` packages into `supabase/functions/ai-command/vendor/` (source of truth stays the
+  packages) and `deno.json` imports from there, so the committed function is self-contained and
+  identical to what deploys (MCP flat upload or CLI). The `edge-bundle` CI job fails on any drift. See
+  the function's `README.md`. **Open follow-up:** redeploy the regenerated bundle to dev (v4) + re-run
+  the live smoke test.
 
 ### M4 — Studio (build on the proven core) ⬜
 New `apps/studio`: agency dashboard + **tenant model** (new migrations: `clients`, `client_sites`,
