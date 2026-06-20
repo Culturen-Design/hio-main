@@ -23,7 +23,8 @@
       "**/dist",
       ".turbo",
       "**/migrations/**",
-      "**/database.types.ts"
+      "**/database.types.ts",
+      "supabase/functions/*/vendor/**"
     ]
   }
 }

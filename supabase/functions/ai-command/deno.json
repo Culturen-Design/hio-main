@@ -4,7 +4,7 @@
     "@supabase/supabase-js": "npm:@supabase/supabase-js@2",
     "zod": "npm:zod@^3.24.0",
     "zod-to-json-schema": "npm:zod-to-json-schema@^3.24.0",
-    "@hio/content-model": "../../../packages/content-model/src/index.ts",
-    "@hio/ai-engine": "../../../packages/ai-engine/src/index.ts"
+    "@hio/content-model": "./vendor/content-model.ts",
+    "@hio/ai-engine": "./vendor/ai-engine.ts"
   }
 }

@@ -34,6 +34,28 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
           NEXT_PUBLIC_SITE_URL: http://localhost:3000
 
+  edge-bundle:
+    # The ai-command edge function is not an npm workspace, so turbo doesn't cover
+    # it. Its vendored @hio/* copies are generated from the packages; verify they
+    # are in sync so the committed (and therefore deployed) function never drifts.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Regenerate the ai-command bundle
+        run: npm run bundle:ai-command
+
+      - name: Fail if the vendored bundle is out of sync with the packages
+        run: |
+          if ! git diff --exit-code -- supabase/functions/ai-command/vendor; then
+            echo "::error::ai-command vendor/ is stale. Run 'npm run bundle:ai-command' and commit the result."
+            exit 1
+          fi
+
   migrations:
     runs-on: ubuntu-latest
     steps:

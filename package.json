@@ -21,7 +21,8 @@
     "db:lint": "supabase db lint",
     "db:reset": "supabase db reset",
     "db:types": "supabase gen types typescript --linked > packages/db/src/database.types.ts",
-    "plugin:build": "node scripts/build-plugin.mjs"
+    "plugin:build": "node scripts/build-plugin.mjs",
+    "bundle:ai-command": "node scripts/bundle-edge-function.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",

@@ -124,10 +124,12 @@ Bring the builder's schema/RLS/auth/modules/AI editor onto the guarded Next.js s
   tool-gated `update_module_content` → service-role write → persisted (hero headline changed in the
   DB). De-risks the Deno↔workspace-package wiring. `ANTHROPIC_API_KEY` was already set on the dev
   project (carried over from the hio-builder exploration, which used the same Supabase project).
-  **Follow-up:** the function was deployed via the Supabase MCP as a *self-contained* bundle (the
-  `@hio/*` packages inlined), whereas the repo's `supabase/functions/ai-command/` uses a
-  `../../../packages` import map for CLI/CI deploy. Reconcile the two deploy paths (e.g. a bundling
-  step or a deploy script) so repo == deployed.
+  **Follow-up ✅ (reconciled in M3 PR-2):** the two deploy paths are unified by a bundling step.
+  `npm run bundle:ai-command` vendors the `@hio/*` packages into
+  `supabase/functions/ai-command/vendor/` (source of truth stays the packages), and `deno.json`
+  imports `@hio/*` from there. The committed function is now **self-contained and identical to what
+  deploys** (MCP flat upload or CLI alike); the `edge-bundle` CI job fails on any drift between the
+  vendored copies and the packages. See `supabase/functions/ai-command/README.md`.
 
 **Module build-out (widening M2):** `calendar` ✅ done
 (renderer + `add_event`/`update_event`/`remove_event` AI tools — first module to exercise the
