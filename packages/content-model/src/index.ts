@@ -170,6 +170,37 @@ export const linksAiTools: AiToolDescriptor[] = [
   },
 ];
 
+const eventInputSchema = calendarEventSchema.omit({ id: true });
+
+export const calendarAiTools: AiToolDescriptor[] = [
+  {
+    name: "add_event",
+    description:
+      "Adds an event to a calendar module. Date must be ISO 8601 (YYYY-MM-DD); resolve relative dates first.",
+    moduleType: "calendar",
+    inputSchema: z.object({ section_id: z.string(), event: eventInputSchema }),
+    op: { kind: "appendItem", field: "events", itemKey: "event", genId: true },
+  },
+  {
+    name: "update_event",
+    description: "Updates fields of an existing calendar event, found by its event id.",
+    moduleType: "calendar",
+    inputSchema: z.object({
+      section_id: z.string(),
+      event_id: z.string(),
+      updates: eventInputSchema.partial(),
+    }),
+    op: { kind: "updateItem", field: "events", idKey: "event_id", itemKey: "updates" },
+  },
+  {
+    name: "remove_event",
+    description: "Removes an event from a calendar module by its event id.",
+    moduleType: "calendar",
+    inputSchema: z.object({ section_id: z.string(), event_id: z.string() }),
+    op: { kind: "removeItem", field: "events", idKey: "event_id" },
+  },
+];
+
 /* ── Module definitions ─────────────────────────────────────────────────────── */
 
 export const heroModule: ModuleDefinition<HeroContent> = {
@@ -199,6 +230,15 @@ export const linksModule: ModuleDefinition<LinksContent> = {
   aiTools: linksAiTools,
 };
 
+export const calendarModule: ModuleDefinition<CalendarContent> = {
+  type: "calendar",
+  label: "Calendar",
+  contentSchema: calendarSchema,
+  defaults: { title: "Events", events: [], show_past: false },
+  width: [6, 12],
+  aiTools: calendarAiTools,
+};
+
 /**
  * The built-in Self-Serve schema. Studio (M4) resolves a different provider per
  * client; the engine + renderers never hard-code module types.
@@ -207,6 +247,7 @@ export const selfServeSchema = createSchemaProvider("self-serve", [
   heroModule,
   bioModule,
   linksModule,
+  calendarModule,
 ]);
 
 /** Default content for a freshly-added module of the given type. */

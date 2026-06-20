@@ -14,4 +14,5 @@ export function cn(...inputs: ClassValue[]): string {
 export { HeroModule } from "./modules/HeroModule";
 export { BioModule } from "./modules/BioModule";
 export { LinksModule } from "./modules/LinksModule";
+export { CalendarModule } from "./modules/CalendarModule";
 export { ModuleRenderer, type RenderableSection } from "./modules/ModuleRenderer";
