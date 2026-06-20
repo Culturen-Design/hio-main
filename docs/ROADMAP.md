@@ -41,9 +41,12 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
   deployed + live-verified on dev. M4 builds the unified tenant model and the Studio app on the frozen
   engine. **M4.1 (tenancy schema, expand phase) done** — unified `tenants`/`tenant_members`/`sites`
   + `sections.tenant_id/site_id`, existing Self-Serve pages backfilled, membership RLS (migration `007`,
-  applied to dev; backfill verified 0 orphans).
-- **Next action:** **M4.2** — per-client `SchemaProvider` resolution in `@hio/content-model`
-  (`MODULE_REGISTRY` + `resolveProvider`), then the Studio app shell (M4.3) and beyond.
+  applied to dev; backfill verified 0 orphans). **M4.2 (provider resolution) done** —
+  `@hio/content-model@1.1.0` adds `MODULE_REGISTRY` + `resolveProvider`/`resolveVariant`, resolving a
+  per-tenant `SchemaProvider` from a tenant's `schema_variant` bundle (zero engine change).
+- **Next action:** **M4.3** — Studio app shell + team auth + agency dashboard (list clients, "New
+  client" via the `create_studio_client` RPC, per-client settings). M4.2 (per-client `SchemaProvider`
+  resolution in `@hio/content-model`) is **done** — see below.
 - **In parallel (widening M2):** remaining renderers (`services`, `contact`, `gallery`,
   `testimonial`, `custom`), drag-and-drop reorder, shadcn restyle.
 - **Branch model:** work happens on `integration/v2`; it becomes `main` when v2 is ready.
@@ -173,8 +176,15 @@ onto tenants too, via expand→migrate→contract), **one generalized** tenant-a
   nullable for Studio sections); existing Self-Serve pages backfilled into tenants/sites; membership
   RLS (`is_tenant_member`) with a **studio-scoped** section-write policy so Self-Serve's tier gate is
   untouched. Applied to dev; backfill verified (0 orphan sections). `@hio/db` types regenerated.
-- **M4.2 — Provider resolution** ⬜ `MODULE_REGISTRY` + `resolveProvider(id, schema_variant)` in
-  `@hio/content-model` (additive, minor bump; contract test extended).
+- **M4.2 — Provider resolution** ✅ `@hio/content-model@1.1.0` (additive/minor): `MODULE_REGISTRY`
+  (built modules keyed by `ModuleType`), `MODULE_BUNDLES` (named module sets keyed by
+  `tenants.schema_variant`), `resolveProvider(id, enabledTypes)` + `resolveVariant(id, variant)`
+  building a per-tenant `SchemaProvider` over `createSchemaProvider`. `selfServeSchema` now expressed
+  via the registry/bundle. Storage **sub-decision (ratified 2026-06-21):** a tenant's enabled-module
+  set is its **`schema_variant` named bundle** (no new column) — a granular `enabled_modules` override
+  stays a future *additive* option; this is what `create_studio_client` (M4.3) sets. Tests in
+  `content-model`'s `index.test.ts` prove a resolved provider exposes only the enabled modules' tools;
+  `contract.test.ts` stays green; `CONTRACT.md` change-log updated; vendor bundle regenerated.
 - **M4.3 — Studio shell + team auth + agency dashboard** ⬜ list clients, "New client"
   (`create_studio_client` RPC), per-client settings (enabled modules + theme).
 - **M4.4 — Per-client builder** ⬜ tenant-membership-gated section CRUD reusing `@hio/ui`.

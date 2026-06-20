@@ -1,9 +1,12 @@
-# `@hio/content-model` — the frozen seam (v1.0.0)
+# `@hio/content-model` — the frozen seam (v1.1.0)
 
 This package is **the pluggable seam** between the two products and the one engine.
 `@hio/ai-engine` and both apps depend on the contract defined here. As of the **M3
 seam-freeze** (2026-06-20, `@hio/content-model@1.0.0`) this contract is **stable**:
-Studio (M4) builds on it without it churning.
+Studio (M4) builds on it without it churning. **v1.1.0** (M4.2, 2026-06-21) adds the
+per-tenant provider resolver (`MODULE_REGISTRY` + `resolveProvider`/`resolveVariant`)
+— an **additive, minor** change that grows the seam without touching the frozen surface
+(see [change protocol](#change-protocol-the-freeze-is-social--documentary)).
 
 > Freeze ratified by the M3 gate: the `SchemaProvider` / `ModuleDefinition` /
 > `AiToolDescriptor` contract is good enough for Studio to resolve a provider
@@ -33,6 +36,15 @@ providers and modules grow — that growth is _not_ a contract change.
   `gallery`, `testimonial`, …). New modules are additive, not contract changes.
 - Concrete **providers**: `selfServeSchema` is one instance; Studio adds one per client.
 - Per-module `defaults`, `width`, descriptions, and `aiTools` lists.
+- **Provider resolution (added v1.1.0, M4.2):** `MODULE_REGISTRY` (the registry of built
+  modules, keyed by `ModuleType`), `MODULE_BUNDLES` (named module sets keyed by a tenant's
+  `schema_variant`), and `resolveProvider(id, enabledTypes)` / `resolveVariant(id, variant)`
+  which build a per-tenant `SchemaProvider` over `createSchemaProvider`. These are
+  **resolution helpers above** the frozen surface — they produce a `SchemaProvider`, they
+  do not change its shape. Registering a new module or adding a new bundle/variant is
+  additive growth, not a contract change. **Storage decision (M4.2):** a tenant's enabled
+  module set is its `tenants.schema_variant` (a named bundle), not a per-tenant column — a
+  granular `enabled_modules` override stays a future *additive* option.
 
 ## Enforced invariants
 
@@ -83,3 +95,13 @@ is the rule below + the deviation log.
    and update this file.
 3. `contract.test.ts` is the regression guard for the freeze. If a change makes it fail,
    that is the signal you are touching the frozen surface — go to step 2.
+
+### Change log
+
+- **v1.1.0 — 2026-06-21 (M4.2, additive/minor).** Added the per-tenant provider resolver:
+  `MODULE_REGISTRY`, `MODULE_BUNDLES`, `resolveProvider(id, enabledTypes)`, and
+  `resolveVariant(id, variant)`. No 🔒 frozen item changed — these build a `SchemaProvider`
+  over the unchanged `createSchemaProvider`. `contract.test.ts` stays green; new coverage in
+  `content-model`'s `index.test.ts` proves a resolved provider exposes only the enabled
+  modules' tools. `selfServeSchema` is now expressed via the registry/bundle (same module set).
+- **v1.0.0 — 2026-06-20 (M3 seam-freeze).** Initial frozen surface.
