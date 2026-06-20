@@ -44,9 +44,9 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
   applied to dev; backfill verified 0 orphans). **M4.2 (provider resolution) done** —
   `@hio/content-model@1.1.0` adds `MODULE_REGISTRY` + `resolveProvider`/`resolveVariant`, resolving a
   per-tenant `SchemaProvider` from a tenant's `schema_variant` bundle (zero engine change).
-- **Next action:** **M4.3** — Studio app shell + team auth + agency dashboard (list clients, "New
-  client" via the `create_studio_client` RPC, per-client settings). M4.2 (per-client `SchemaProvider`
-  resolution in `@hio/content-model`) is **done** — see below.
+- **Next action:** **M4.3b** — `create_studio_client` RPC (migration) + "New client" flow + per-client
+  settings (pick `schema_variant` bundle + theme). **M4.3a (Studio shell + team auth + read-only
+  dashboard) is done** — see below. M4.2 (provider resolution) is also **done**.
 - **In parallel (widening M2):** remaining renderers (`services`, `contact`, `gallery`,
   `testimonial`, `custom`), drag-and-drop reorder, shadcn restyle.
 - **Branch model:** work happens on `integration/v2`; it becomes `main` when v2 is ready.
@@ -185,8 +185,19 @@ onto tenants too, via expand→migrate→contract), **one generalized** tenant-a
   stays a future *additive* option; this is what `create_studio_client` (M4.3) sets. Tests in
   `content-model`'s `index.test.ts` prove a resolved provider exposes only the enabled modules' tools;
   `contract.test.ts` stays green; `CONTRACT.md` change-log updated; vendor bundle regenerated.
-- **M4.3 — Studio shell + team auth + agency dashboard** ⬜ list clients, "New client"
-  (`create_studio_client` RPC), per-client settings (enabled modules + theme).
+- **M4.3 — Studio shell + team auth + agency dashboard** 🔵 (split into 4.3a/4.3b for reviewable PRs,
+  per the M2 precedent — same "each step = a reviewed PR" principle, no scope change):
+  - **M4.3a — Shell + team auth + read-only dashboard** ✅ `apps/studio` gains the Self-Serve
+    scaffolding (`lib/env` [public Supabase pair only], `lib/supabase/{server,client}`, `middleware`),
+    **login-only** team auth (no public signup — agency staff are provisioned users), and a protected
+    `/dashboard`. **Authz sub-decision (ratified 2026-06-21):** agency staff = the existing
+    `user_settings.is_admin` flag (reused, no new table); a non-staff user who authenticates is gated to
+    a "No Studio access" state. The dashboard lists `kind='studio_client'` tenants the caller belongs to
+    (RLS `tenants_select_member`), empty until 4.3b. No migration. Verified live (login form renders;
+    admin test user → empty client list; staff gate exercised). Colocated Vitest on the credentials schema.
+  - **M4.3b — `create_studio_client` RPC + "New client" + per-client settings** ⬜ SECURITY DEFINER RPC
+    (admin-gated) inserts tenant (`kind='studio_client'`, name, slug, `theme`, `schema_variant`) + owner
+    membership + site + seeded template sections; dashboard "New client" form + settings.
 - **M4.4 — Per-client builder** ⬜ tenant-membership-gated section CRUD reusing `@hio/ui`.
 - **M4.5 — Generalize `ai-command`** ⬜ tenant-aware (membership check + resolved provider) serving
   both products; redeploy + live-verify.
