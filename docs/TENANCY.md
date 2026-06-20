@@ -50,7 +50,12 @@ SchemaProvider per client at runtime**, over the **same** database and engine.
   table maps which auth users may manage which tenants. Optionally a client gets a restricted
   login (an end-editor) scoped by RLS to only their tenant.
 
-## Proposed schema (M4 will turn this into migrations)
+## Proposed schema (M4 turns this into migrations)
+
+> **Status (2026-06-21):** M4.1 implemented this as migration `007_tenancy_expand.sql` (the *expand*
+> step). One difference from the sketch below: the content table stays named **`sections`** (gaining
+> `tenant_id`/`site_id`) rather than a new table — the EXPAND phase reuses the existing Self-Serve
+> `sections` so the live product keeps working; the *contract* phase later drops `pages` + `page_id`.
 
 ```sql
 -- A tenant = a self-serve user's space OR a managed client site.

@@ -50,8 +50,10 @@ export type Database = {
           nav_label: string | null
           nav_order: number | null
           order: number
-          page_id: string
+          page_id: string | null
+          site_id: string | null
           style_variant: Database["public"]["Enums"]["style_variant"]
+          tenant_id: string | null
           type: Database["public"]["Enums"]["module_type"]
           updated_at: string
           width: number
@@ -64,8 +66,10 @@ export type Database = {
           nav_label?: string | null
           nav_order?: number | null
           order?: number
-          page_id: string
+          page_id?: string | null
+          site_id?: string | null
           style_variant?: Database["public"]["Enums"]["style_variant"]
+          tenant_id?: string | null
           type: Database["public"]["Enums"]["module_type"]
           updated_at?: string
           width?: number
@@ -78,8 +82,10 @@ export type Database = {
           nav_label?: string | null
           nav_order?: number | null
           order?: number
-          page_id?: string
+          page_id?: string | null
+          site_id?: string | null
           style_variant?: Database["public"]["Enums"]["style_variant"]
+          tenant_id?: string | null
           type?: Database["public"]["Enums"]["module_type"]
           updated_at?: string
           width?: number
@@ -92,7 +98,124 @@ export type Database = {
             referencedRelation: "pages"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "sections_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sections_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      sites: {
+        Row: {
+          created_at: string
+          id: string
+          is_published: boolean
+          slug: string
+          tenant_id: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          slug: string
+          tenant_id: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          slug?: string
+          tenant_id?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_members: {
+        Row: {
+          created_at: string
+          role: string
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          role?: string
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          role?: string
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_members_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenants: {
+        Row: {
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["tenant_kind"]
+          name: string
+          plan: string
+          schema_variant: string
+          slug: string
+          theme: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["tenant_kind"]
+          name: string
+          plan?: string
+          schema_variant?: string
+          slug: string
+          theme?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["tenant_kind"]
+          name?: string
+          plan?: string
+          schema_variant?: string
+          slug?: string
+          theme?: Json
+          updated_at?: string
+        }
+        Relationships: []
       }
       user_settings: {
         Row: {
@@ -170,6 +293,7 @@ export type Database = {
       }
       is_active_user: { Args: never; Returns: boolean }
       is_current_user_admin: { Args: never; Returns: boolean }
+      is_tenant_member: { Args: { p_tenant_id: string }; Returns: boolean }
       reorder_sections: {
         Args: { p_page_id: string; p_updates: Json }
         Returns: undefined
@@ -187,6 +311,7 @@ export type Database = {
         | "testimonial"
         | "custom"
       style_variant: "minimal" | "bold" | "outlined" | "filled"
+      tenant_kind: "self_serve" | "studio_client"
       user_tier: "free" | "paid"
     }
     CompositeTypes: {
@@ -327,6 +452,7 @@ export const Constants = {
         "custom",
       ],
       style_variant: ["minimal", "bold", "outlined", "filled"],
+      tenant_kind: ["self_serve", "studio_client"],
       user_tier: ["free", "paid"],
     },
   },

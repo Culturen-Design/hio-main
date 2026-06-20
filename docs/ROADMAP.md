@@ -37,14 +37,13 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
 
 `✅ done` · `🔵 in progress` · `⬜ not started` · `↪ moved` (see deviation log)
 
-- **Now:** **M2 + M3 complete.** `content-model` is frozen at **`@hio/content-model@1.0.0`**
-  (`CONTRACT.md` + the `contract.test.ts` regression guard — a swapped `SchemaProvider` changes the AI
-  toolset with zero engine change; gate decisions: closed module-type space with `custom` escape hatch,
-  theme out of content-model, construction-time unique/non-reserved tool + module checks) ✅ #11. The
-  two `ai-command` deploy paths are reconciled — the function is self-contained via a generated
-  `vendor/` bundle, with an `edge-bundle` CI freshness gate ✅ #12.
-- **Next action:** **M4 (Studio).** Open follow-up: redeploy the regenerated `ai-command` bundle to dev
-  (v4) via the MCP and re-run the live smoke test, to prove the generated artifact deploys cleanly.
+- **Now:** **M4 (Studio) in progress.** M2 + M3 are complete and the `ai-command` v4 bundle is
+  deployed + live-verified on dev. M4 builds the unified tenant model and the Studio app on the frozen
+  engine. **M4.1 (tenancy schema, expand phase) done** — unified `tenants`/`tenant_members`/`sites`
+  + `sections.tenant_id/site_id`, existing Self-Serve pages backfilled, membership RLS (migration `007`,
+  applied to dev; backfill verified 0 orphans).
+- **Next action:** **M4.2** — per-client `SchemaProvider` resolution in `@hio/content-model`
+  (`MODULE_REGISTRY` + `resolveProvider`), then the Studio app shell (M4.3) and beyond.
 - **In parallel (widening M2):** remaining renderers (`services`, `contact`, `gallery`,
   `testimonial`, `custom`), drag-and-drop reorder, shadcn restyle.
 - **Branch model:** work happens on `integration/v2`; it becomes `main` when v2 is ready.
@@ -155,20 +154,56 @@ was the **seam-freeze gate**: a deliberate review ratifying that the `SchemaProv
   vendors the `@hio/*` packages into `supabase/functions/ai-command/vendor/` (source of truth stays the
   packages) and `deno.json` imports from there, so the committed function is self-contained and
   identical to what deploys (MCP flat upload or CLI). The `edge-bundle` CI job fails on any drift. See
-  the function's `README.md`. **Open follow-up:** redeploy the regenerated bundle to dev (v4) + re-run
-  the live smoke test.
+  the function's `README.md`. **Verified:** regenerated bundle redeployed to dev as **v4** and the AI
+  editor re-tested live end-to-end (hero headline edited via the function → persisted).
 
-### M4 — Studio (build on the proven core) ⬜
-New `apps/studio`: agency dashboard + **tenant model** (new migrations: `clients`, `client_sites`,
-`themes`, per-client schema variant). Resolve a `SchemaProvider` per client; reuse `ai-engine`
-unchanged. Per-client publishing + custom domains. Add **version history** (rollback). See
-[`TENANCY.md`](TENANCY.md).
+### M4 — Studio (build on the proven core) 🔵
+New `apps/studio`: agency dashboard over the **unified tenant model** from [`TENANCY.md`](TENANCY.md) —
+a self-serve user's space and a Studio client are both `tenants` (by `kind`). Studio resolves a
+`SchemaProvider` per client (reusing `ai-engine` unchanged), with per-client publishing, custom domains,
+and version history. Decisions ratified 2026-06-21 (see [deviation log](#deviation-log)): **unified
+model** (not the roadmap's original `clients`/`client_sites` naming), **big-bang** (Self-Serve migrated
+onto tenants too, via expand→migrate→contract), **one generalized** tenant-aware edit function, and
+**custom domains in scope**.
+
+- **M4.1 — Tenancy schema (expand)** ✅ migration `007`: `tenant_kind` enum, `tenants`,
+  `tenant_members`, `sites`; `sections` gains nullable `tenant_id`/`site_id` (and `page_id` made
+  nullable for Studio sections); existing Self-Serve pages backfilled into tenants/sites; membership
+  RLS (`is_tenant_member`) with a **studio-scoped** section-write policy so Self-Serve's tier gate is
+  untouched. Applied to dev; backfill verified (0 orphan sections). `@hio/db` types regenerated.
+- **M4.2 — Provider resolution** ⬜ `MODULE_REGISTRY` + `resolveProvider(id, schema_variant)` in
+  `@hio/content-model` (additive, minor bump; contract test extended).
+- **M4.3 — Studio shell + team auth + agency dashboard** ⬜ list clients, "New client"
+  (`create_studio_client` RPC), per-client settings (enabled modules + theme).
+- **M4.4 — Per-client builder** ⬜ tenant-membership-gated section CRUD reusing `@hio/ui`.
+- **M4.5 — Generalize `ai-command`** ⬜ tenant-aware (membership check + resolved provider) serving
+  both products; redeploy + live-verify.
+- **M4.6 — Theme application + public site rendering by slug** ⬜.
+- **M4.7 — Version history / rollback** ⬜ `site_section_versions` + restore.
+- **M4.8 — Custom domains** ⬜ Netlify wildcard/edge → tenant slug lookup.
+- **CONTRACT phase (late M4):** make `sections.tenant_id/site_id` NOT NULL and drop `pages` + the
+  legacy page-based section policies + `page_id`, once Self-Serve reads the unified model.
 
 ---
 
 ## Deviation log
 
 Every approved departure from the original plan, with its reason and cost.
+
+### 2026-06-21 — M4 tenant model: unified `tenants`, big-bang, generalized fn, domains in scope
+**Change (4 decisions, human-ratified):** (1) build TENANCY.md's **unified `tenants`** model rather than
+the roadmap's M4 wording of Studio-specific `clients`/`client_sites`/`themes`; (2) **big-bang** — migrate
+the shipped Self-Serve product onto the tenant model too (not Studio-only/additive); (3) **one
+generalized** tenant-aware `ai-command` rather than a separate `studio-ai-command`; (4) **custom domains
+in scope** for M4.
+**Why required:** TENANCY.md is the more-considered canonical doc and "both products are tenants" is the
+stated north star; the roadmap's `clients/client_sites` line was shorthand. The owner chose the cleanest
+end state over the lowest-risk staging.
+**Cost / mitigation:** big-bang touches the live, verified Self-Serve product. **Mitigation:** land it via
+**expand → migrate → contract** (M4.1 is the expand step — purely additive + backfill, Self-Serve keeps
+running on its existing columns/policies; the new section-write policy is scoped to `kind='studio_client'`
+so the tier gate is untouched). Generalizing the one edge function defers until M4.5; the live function is
+unchanged until then. Custom domains add infra work (M4.8).
 
 ### 2026-06-20 — M3's schema-driven engine pulled forward into M2.5a
 **Change:** the original plan made the engine schema-driven in **M3**, after M2 shipped a ported
