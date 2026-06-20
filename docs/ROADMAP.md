@@ -37,11 +37,13 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
 
 `✅ done` · `🔵 in progress` · `⬜ not started` · `↪ moved` (see deviation log)
 
-- **Now:** mid-**M2 (Self-Serve port)**. **M2.5a** (AI engine + edge function + ChatSidebar) ✅
-  merged (#6). **M2.5b** (tiers/admin) ✅ done, in PR (#8).
-- **Next action:** **M2.6 — deploy + live verify**: deploy the `ai-command` edge function to dev
-  (`supabase functions deploy` + set `ANTHROPIC_API_KEY` secret) and verify ChatSidebar end-to-end.
-- **Then:** the **M3 seam-freeze gate** (ratify `content-model` as stable) before M4.
+- **Now:** **M2 nearly complete.** M2.5a (AI engine + edge fn + ChatSidebar) ✅ #6 · M2.5b
+  (tiers/admin) ✅ #8 · calendar module ✅ #9 · **M2.6 (deploy + live verify) ✅ done** — the
+  `ai-command` function is deployed to dev (v3) and the AI editor is **proven end-to-end live**.
+- **Next action:** the **M3 seam-freeze gate** — ratify `content-model` (`SchemaProvider` /
+  `AiToolDescriptor`) as the stable seam before M4 builds Studio on it.
+- **In parallel (widening M2):** remaining renderers (`services`, `contact`, `gallery`,
+  `testimonial`, `custom`), drag-and-drop reorder, shadcn restyle.
 - **Branch model:** work happens on `integration/v2`; it becomes `main` when v2 is ready.
 
 ---
@@ -109,15 +111,22 @@ Bring the builder's schema/RLS/auth/modules/AI editor onto the guarded Next.js s
   `SectionStore` port, 13 Vitest tests); the `ai-command` Deno edge function delegating to it; and
   `ChatSidebar` in the builder. **Note:** this absorbs M3's "schema-driven engine" work — see
   [deviation log](#deviation-log).
-- **M2.5b — Tiers + admin** ✅ *(in PR, #8)* admin-gated `/admin` console: per-user tier `free↔paid`
+- **M2.5b — Tiers + admin** ✅ *(merged, #8)* admin-gated `/admin` console: per-user tier `free↔paid`
   + `module_overrides` grants, via Zod-validated server actions enforced by the existing
   `settings_update_admin` RLS policy. No migration — the `is_admin` flag + admin RLS already existed
   (migrations `001`/`004`). Dashboard shows an Admin link to admins. Verified live (non-admin gate,
   admin view, write path).
-- **M2.6 — Deploy + live verify** ⬜ **(next)** deploy `ai-command` to dev, set `ANTHROPIC_API_KEY`
-  secret, verify ChatSidebar end-to-end.
+- **M2.6 — Deploy + live verify** ✅ `ai-command` deployed to dev (v3, `verify_jwt: true`). The AI
+  editor is **proven end-to-end live**: a natural-language prompt in the ChatSidebar → Claude Haiku →
+  tool-gated `update_module_content` → service-role write → persisted (hero headline changed in the
+  DB). De-risks the Deno↔workspace-package wiring. `ANTHROPIC_API_KEY` was already set on the dev
+  project (carried over from the hio-builder exploration, which used the same Supabase project).
+  **Follow-up:** the function was deployed via the Supabase MCP as a *self-contained* bundle (the
+  `@hio/*` packages inlined), whereas the repo's `supabase/functions/ai-command/` uses a
+  `../../../packages` import map for CLI/CI deploy. Reconcile the two deploy paths (e.g. a bundling
+  step or a deploy script) so repo == deployed.
 
-**Module build-out (widening M2, in parallel while M2.6 is owner-blocked):** `calendar` ✅ done
+**Module build-out (widening M2):** `calendar` ✅ done
 (renderer + `add_event`/`update_event`/`remove_event` AI tools — first module to exercise the
 engine's `updateItem` op; paid-tier gated). Remaining renderers: `services`, `contact`, `gallery`,
 `testimonial`, `custom`. Plus drag-and-drop reordering and the shadcn/design-system restyle of all
