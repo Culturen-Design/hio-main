@@ -70,8 +70,9 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
   **(3)** arm `PROD_DB_DEPLOY_ENABLED=true` + the prod GitHub Actions secrets (`SUPABASE_ACCESS_TOKEN`,
   `SUPABASE_PROD_REF`, `SUPABASE_PROD_DB_PASSWORD`); **(4)** promote `integration/v2` → `main` so CI runs
   the 14 migrations against prod and Netlify deploys production.
-- **In parallel (widening M2):** remaining renderers (`services`, `contact`, `gallery`,
-  `testimonial`, `custom`), drag-and-drop reorder, shadcn restyle.
+- **In parallel (widening M2) — now the active track (owner decision 2026-06-22: widen M2 before prod):**
+  `contact` ✅ done; remaining renderers (`services`, `gallery`, `testimonial`, `custom`),
+  drag-and-drop reorder, shadcn restyle.
 - **Branch model:** work happens on `integration/v2`; it becomes `main` when v2 is ready.
 
 ---
@@ -160,7 +161,12 @@ shadcn restyle listed under "Module build-out" below are **deferred enhancements
 
 **Module build-out (widening M2):** `calendar` ✅ done
 (renderer + `add_event`/`update_event`/`remove_event` AI tools — first module to exercise the
-engine's `updateItem` op; paid-tier gated). Remaining renderers: `services`, `contact`, `gallery`,
+engine's `updateItem` op; paid-tier gated). `contact` ✅ done (`@hio/content-model@1.2.0`: `contactSchema`
++ `contactModule` registered + added to the `self-serve` bundle; `@hio/ui` `ContactModule` renderer; a
+plain-text **free-tier** module — closes the gap where the DB `allowed_module_types()` listed `contact`
+free but no module existed; edited by the built-in `update_module_content`, no new AI tools; vendor
+re-bundled + ai-command redeployed **v8**; verified live: REST insert under the self_serve RLS, AI title
+edit via v8 → DB-persisted, public `/[slug]` renders it). Remaining renderers: `services`, `gallery`,
 `testimonial`, `custom`. Plus drag-and-drop reordering and the shadcn/design-system restyle of all
 renderers.
 

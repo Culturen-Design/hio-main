@@ -1,6 +1,7 @@
 import type {
   BioContent,
   CalendarContent,
+  ContactContent,
   HeroContent,
   LinksContent,
   ModuleType,
@@ -8,6 +9,7 @@ import type {
 import type { StyleVariant } from "../style";
 import { BioModule } from "./BioModule";
 import { CalendarModule } from "./CalendarModule";
+import { ContactModule } from "./ContactModule";
 import { HeroModule } from "./HeroModule";
 import { LinksModule } from "./LinksModule";
 
@@ -33,6 +35,8 @@ export function ModuleRenderer({ section }: { section: RenderableSection }) {
       return <LinksModule content={section.content as LinksContent} variant={variant} />;
     case "calendar":
       return <CalendarModule content={section.content as CalendarContent} variant={variant} />;
+    case "contact":
+      return <ContactModule content={section.content as ContactContent} variant={variant} />;
     default:
       return (
         <div style={{ padding: "1rem 1.5rem", color: "#9ca3af" }}>
