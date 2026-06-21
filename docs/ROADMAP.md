@@ -59,13 +59,17 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
   theme via `@hio/ui`, with a publish toggle; verified live. **M4.7 (version history) done** — `site_versions`
   whole-site snapshots (migration `010`) with `snapshot_site`/`restore_site_version` RPCs; captured on
   publish + manual save; restore auto-snapshots first; verified live.
-- **Next action:** **(1)** migrate `apps/self-serve/admin/page.tsx` off its last `pages.slug` read (the
-  admin user→slug label) — needs an admin-readable user→slug path (e.g. add `slug` to the
-  `get_auth_users_for_admin` RPC, or a dedicated admin RPC). Then **(2) the CONTRACT migration**: drop
-  `pages` + `page_id` + the legacy page-based section policies + the legacy `{page_id}` branch in
-  `ai-command` (redeploy v7), and make `sections.tenant_id/site_id` NOT NULL. After that, the path to prod
-  is **infra**: create the prod Supabase project (separate account), finish the Netlify connection, arm
-  `PROD_DB_DEPLOY_ENABLED` + prod secrets, and promote `integration/v2` → `main`.
+- **Next action:** **(1) admin slug fix ✅** — `apps/self-serve/admin/page.tsx` no longer reads `pages`;
+  migration `013` extends the admin-gated `get_auth_users_for_admin` RPC (SECURITY DEFINER) to also return
+  each user's self_serve `sites.slug` (== the old `page.slug`), and the console labels users from that RPC.
+  `EXECUTE` revoked from anon/PUBLIC, search_path pinned, types regenerated. Verified live on dev (admin
+  console lists all 4 users with correct slugs) + SQL (admin allowed, non-admin → "Unauthorized"). **No app
+  or edge code reads `page_id` or `pages` for behavior anymore** (only the AI engine's transitional
+  acceptance + the schema itself). Next: **(2) the CONTRACT migration** — drop `pages` + `page_id` + the
+  legacy page-based section policies + the legacy `{page_id}` branch in `ai-command` (redeploy v7), update
+  `handle_new_user` to stop inserting a page, and make `sections.tenant_id/site_id` NOT NULL. After that, the
+  path to prod is **infra**: create the prod Supabase project (separate account), finish the Netlify
+  connection, arm `PROD_DB_DEPLOY_ENABLED` + prod secrets, and promote `integration/v2` → `main`.
 - **In parallel (widening M2):** remaining renderers (`services`, `contact`, `gallery`,
   `testimonial`, `custom`), drag-and-drop reorder, shadcn restyle.
 - **Branch model:** work happens on `integration/v2`; it becomes `main` when v2 is ready.
@@ -287,9 +291,12 @@ onto tenants too, via expand→migrate→contract), **one generalized** tenant-a
     `reorder_sections` RPC is unusable for site rows). The AI ChatSidebar still posts `{page_id}`
     (transitional — generalized in PR C). Verified live on dev (login → dashboard/builder via site path;
     add module persisted with `page_id` NULL + `site_id`/`tenant_id`; reorder swap DB-confirmed; public
-    `[slug]` renders all modules via `sites`; unknown slug → 404). **Remaining pages reference:**
-    `admin/page.tsx` still reads `pages.slug` to label users — needs an admin-readable user→slug path
-    (small change) before CONTRACT drops `pages`.
+    `[slug]` renders all modules via `sites`; unknown slug → 404).
+  - **Admin slug fix ✅** migration `013`: extends the admin-gated `get_auth_users_for_admin` RPC
+    (SECURITY DEFINER) to also return each user's self_serve `sites.slug`, so `admin/page.tsx` labels
+    users from the RPC instead of the world-readable `pages` table. `EXECUTE` revoked from anon/PUBLIC,
+    search_path pinned. Verified live (4 users + correct slugs) + SQL (non-admin rejected). This was the
+    **last `pages`/`page_id` reference in app code** — unblocks CONTRACT.
   - **PR C — ai-command** ✅ generalize the `{tenant_id, site_id}` branch to accept any tenant the caller
     is a member of — the only change is dropping the `kind='studio_client'` filter, so a `self_serve`
     tenant resolves via `resolveVariant('self-serve')` (≡ `selfServeSchema`). Self-Serve ChatSidebar now
