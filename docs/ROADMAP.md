@@ -50,10 +50,13 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
   `/clients/[id]/builder` with membership-gated section CRUD, the add-module palette resolved per client
   via `resolveVariant`, reusing `@hio/ui`; verified live. **M4.5 (generalized `ai-command`) done** — one
   tenant-aware edge function (deployed dev v5) serves both products, resolving the per-client provider by
-  request shape; Studio builder got a ChatSidebar; both paths live-verified.
-- **Next action:** **M4.6** — theme application + public site rendering by slug. **M4.5 (generalized
-  tenant-aware `ai-command`, deployed v5) is done**, as are M4.2–M4.4 — see below. The Studio product
-  now has the full create → build → AI-edit loop on the shared engine.
+  request shape; Studio builder got a ChatSidebar; both paths live-verified. **M4.6 (theme + public render)
+  done** — `get_public_site` RPC (migration `009`) + Studio `/sites/[slug]` route applying the per-tenant
+  theme via `@hio/ui`, with a publish toggle; verified live.
+- **Next action:** **M4.7** — version history / rollback (`site_section_versions` + restore). **M4.6
+  (theme + public render by slug) is done**, as are M4.2–M4.5 — see below. Studio now has the full
+  create → build → AI-edit → publish loop on the shared engine; remaining: versions (M4.7), custom
+  domains (M4.8), then the CONTRACT phase.
 - **In parallel (widening M2):** remaining renderers (`services`, `contact`, `gallery`,
   `testimonial`, `custom`), drag-and-drop reorder, shadcn restyle.
 - **Branch model:** work happens on `integration/v2`; it becomes `main` when v2 is ready.
@@ -228,7 +231,15 @@ onto tenants too, via expand→migrate→contract), **one generalized** tenant-a
   Redeployed to dev as **ai-command v5** (MCP, `verify_jwt:true`); **both paths live-verified** end-to-end
   (Studio: ChatSidebar edited a client's hero → DB-confirmed; Self-Serve: authenticated REST `page_id`
   edit → DB-confirmed). README updated with the dual-mode contract.
-- **M4.6 — Theme application + public site rendering by slug** ⬜.
+- **M4.6 — Theme application + public site rendering by slug** ✅ migration `009`: `get_public_site(slug)`
+  SECURITY DEFINER RPC (anon-callable, pinned `search_path`) returns ONLY a **published** site's public
+  fields — title, tenant name + `theme`, ordered sections — so anon renders without exposing the
+  member-only `tenants` row (chosen over a public tenants RLS policy to avoid leaking plan/schema_variant).
+  Studio public route `/sites/[slug]` renders the sections via `@hio/ui`'s `ModuleRenderer` and applies the
+  tenant `theme` (new `SiteTheme` + `parseSiteTheme`/`themeToStyle` in `@hio/ui` → background/text/font +
+  `--site-accent`); unpublished/unknown slugs 404. A publish/unpublish toggle + public URL on the client
+  settings page (RLS `sites_write_member`). Verified live on dev (themed public page rendered; toggle
+  persisted; unpublished → 404). `@hio/db` types regenerated.
 - **M4.7 — Version history / rollback** ⬜ `site_section_versions` + restore.
 - **M4.8 — Custom domains** ⬜ Netlify wildcard/edge → tenant slug lookup.
 - **CONTRACT phase (late M4):** make `sections.tenant_id/site_id` NOT NULL and drop `pages` + the

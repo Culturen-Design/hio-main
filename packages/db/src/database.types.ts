@@ -300,6 +300,7 @@ export type Database = {
           id: string
         }[]
       }
+      get_public_site: { Args: { p_slug: string }; Returns: Json }
       is_active_user: { Args: never; Returns: boolean }
       is_current_user_admin: { Args: never; Returns: boolean }
       is_tenant_member: { Args: { p_tenant_id: string }; Returns: boolean }
