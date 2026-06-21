@@ -37,13 +37,16 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
 
 `✅ done` · `🔵 in progress` · `⬜ not started` · `↪ moved` (see deviation log)
 
-- **Now:** **M4 feature-complete + Self-Serve MIGRATE done; one small fix from the CONTRACT migration.**
-  M2 + M3 are complete and the `ai-command` **v6** bundle is deployed + live-verified on dev (serves both
-  products by request shape, incl. self_serve `{tenant_id,site_id}`). **All M4 features (M4.1–M4.8) are
-  done** — Studio has the full create → build → AI-edit → publish → public-render → version/rollback →
-  custom-domain loop on the shared engine — and the **Self-Serve MIGRATE phase (PRs A/B/C, #25–#27) is done**:
-  Self-Serve now reads/writes the unified `sites`/`sections` keys. The only remaining `pages` reference in
-  app code is `apps/self-serve/admin/page.tsx`'s user→slug label. **M4.1 (tenancy schema, expand phase) done** — unified `tenants`/`tenant_members`/`sites`
+- **Now:** **M4 feature-complete + the page→tenant rewrite fully landed (expand → migrate → CONTRACT done).
+  Legacy `pages`/`page_id` no longer exist anywhere — the path to prod is now pure infra.**
+  M2 + M3 are complete and the `ai-command` **v7** bundle is deployed + live-verified on dev (one unified
+  `{tenant_id,site_id}` path for both products; the legacy `{page_id}` shape is gone). **All M4 features
+  (M4.1–M4.8) are done** — Studio has the full create → build → AI-edit → publish → public-render →
+  version/rollback → custom-domain loop on the shared engine — the **Self-Serve MIGRATE phase (PRs A/B/C,
+  #25–#27) is done**, the **admin slug fix (`013`, #29) is done**, and the **CONTRACT phase (`014`) is done**:
+  `pages` + `sections.page_id` + the legacy page-based section policies + the dead `reorder_sections` RPC are
+  dropped, `sections.tenant_id/site_id` are NOT NULL, and `handle_new_user`/`create_studio_client` no longer
+  touch `pages`. **M4.1 (tenancy schema, expand phase) done** — unified `tenants`/`tenant_members`/`sites`
   + `sections.tenant_id/site_id`, existing Self-Serve pages backfilled, membership RLS (migration `007`,
   applied to dev; backfill verified 0 orphans). **M4.2 (provider resolution) done** —
   `@hio/content-model@1.1.0` adds `MODULE_REGISTRY` + `resolveProvider`/`resolveVariant`, resolving a
@@ -59,17 +62,14 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
   theme via `@hio/ui`, with a publish toggle; verified live. **M4.7 (version history) done** — `site_versions`
   whole-site snapshots (migration `010`) with `snapshot_site`/`restore_site_version` RPCs; captured on
   publish + manual save; restore auto-snapshots first; verified live.
-- **Next action:** **(1) admin slug fix ✅** — `apps/self-serve/admin/page.tsx` no longer reads `pages`;
-  migration `013` extends the admin-gated `get_auth_users_for_admin` RPC (SECURITY DEFINER) to also return
-  each user's self_serve `sites.slug` (== the old `page.slug`), and the console labels users from that RPC.
-  `EXECUTE` revoked from anon/PUBLIC, search_path pinned, types regenerated. Verified live on dev (admin
-  console lists all 4 users with correct slugs) + SQL (admin allowed, non-admin → "Unauthorized"). **No app
-  or edge code reads `page_id` or `pages` for behavior anymore** (only the AI engine's transitional
-  acceptance + the schema itself). Next: **(2) the CONTRACT migration** — drop `pages` + `page_id` + the
-  legacy page-based section policies + the legacy `{page_id}` branch in `ai-command` (redeploy v7), update
-  `handle_new_user` to stop inserting a page, and make `sections.tenant_id/site_id` NOT NULL. After that, the
-  path to prod is **infra**: create the prod Supabase project (separate account), finish the Netlify
-  connection, arm `PROD_DB_DEPLOY_ENABLED` + prod secrets, and promote `integration/v2` → `main`.
+- **Next action:** **INFRA — the path to prod** (the page→tenant rewrite is fully done; admin slug `013`
+  + CONTRACT `014` both landed). This is mostly owner accounts/decisions — propose, don't assume:
+  **(1)** create the **prod** Supabase project in a **separate account** (per `ENVIRONMENTS.md`), fill
+  `SUPABASE_PROD_REF`; **(2)** finish the **Netlify** connection on both monorepo sites (repo link +
+  `SUPABASE_SERVICE_ROLE_KEY` on Self-Serve + production branch + domains — see `hio-netlify-deploy`);
+  **(3)** arm `PROD_DB_DEPLOY_ENABLED=true` + the prod GitHub Actions secrets (`SUPABASE_ACCESS_TOKEN`,
+  `SUPABASE_PROD_REF`, `SUPABASE_PROD_DB_PASSWORD`); **(4)** promote `integration/v2` → `main` so CI runs
+  the 14 migrations against prod and Netlify deploys production.
 - **In parallel (widening M2):** remaining renderers (`services`, `contact`, `gallery`,
   `testimonial`, `custom`), drag-and-drop reorder, shadcn restyle.
 - **Branch model:** work happens on `integration/v2`; it becomes `main` when v2 is ready.
@@ -306,9 +306,20 @@ onto tenants too, via expand→migrate→contract), **one generalized** tenant-a
     `{tenant_id, site_id}` path edited the test user's hero → DB-persisted; the legacy `{page_id}` path
     still works (backward-compatible). Self-Serve no longer depends on `page_id` except the `admin/page.tsx`
     slug label (below).
-- **CONTRACT phase (late M4):** make `sections.tenant_id/site_id` NOT NULL and drop `pages` + the
-  legacy page-based section policies + `page_id`, once the MIGRATE phase above lands (Self-Serve no
-  longer reads/writes `pages`/`page_id`).
+- **CONTRACT phase (late M4)** ✅ migration `014` + `ai-command v7`: the destructive end of the
+  expand → migrate → contract rewrite. Dropped the 4 legacy page-based section policies
+  (`sections_{delete,update}_own`, `"Users can insert own sections"`, `"Public can read sections"` —
+  superseded by the `*_self_serve_member` (012) + `*_studio_member` (007) policies), set
+  `sections.tenant_id/site_id` **NOT NULL**, dropped `sections.page_id` (FK + unused index), dropped the
+  dead page-keyed `reorder_sections` RPC (both products reorder via order-value swaps), and dropped the
+  `pages` table. `handle_new_user` now seeds only tenant + membership + site + hero (no page);
+  `create_studio_client` lost its `pages` slug check. **`ai-command` redeployed dev v7** — the legacy
+  `{page_id}` branch removed, every request is `{tenant_id, site_id}`; engine `PROTECTED_FIELDS` swapped
+  `page_id` → `tenant_id`/`site_id` (vendor re-bundled). **Verified live**: self_serve `{tenant_id,site_id}`
+  edit → DB-persisted; legacy `{page_id}` request → "Missing tenant_id + site_id"; non-member → "Not found";
+  new-user provisioning (trigger) creates tenant/site/hero with **no page** (throwaway user, cleaned up);
+  advisors show all `pages`/`page_id` findings gone, no new issues. `@hio/db` types regenerated.
+  **`pages`/`page_id` now exist nowhere in the system.**
 
 ---
 

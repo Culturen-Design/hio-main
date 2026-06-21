@@ -263,5 +263,10 @@ describe("PROTECTED_FIELDS", () => {
     expect(PROTECTED_FIELDS).toContain("type");
     expect(PROTECTED_FIELDS).toContain("style_variant");
     expect(PROTECTED_FIELDS).toContain("id");
+    // Tenancy keys are identity columns the AI must never write into content.
+    expect(PROTECTED_FIELDS).toContain("tenant_id");
+    expect(PROTECTED_FIELDS).toContain("site_id");
+    // page_id was removed with the legacy schema (CONTRACT phase).
+    expect(PROTECTED_FIELDS).not.toContain("page_id");
   });
 });
