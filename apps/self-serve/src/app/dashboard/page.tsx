@@ -10,20 +10,22 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Proves the full chain: auth → RLS → the handle_new_user trigger that provisions
-  // a page + hero section on signup.
-  const { data: page } = await supabase
-    .from("pages")
-    .select("*")
-    .eq("user_id", user.id)
+  // The caller's self_serve tenant + site (RLS-scoped to their membership). Proves the
+  // full chain: auth → RLS → the handle_new_user trigger that provisions the tenant +
+  // site + hero section on signup.
+  const { data: tenant } = await supabase
+    .from("tenants")
+    .select("id, sites(id, slug, title)")
+    .eq("kind", "self_serve")
     .maybeSingle();
+  const site = tenant?.sites?.[0] ?? null;
 
   let sectionCount = 0;
-  if (page) {
+  if (site) {
     const { count } = await supabase
       .from("sections")
       .select("*", { count: "exact", head: true })
-      .eq("page_id", page.id);
+      .eq("site_id", site.id);
     sectionCount = count ?? 0;
   }
 
@@ -67,7 +69,7 @@ export default async function DashboardPage() {
         )}
       </p>
 
-      {page ? (
+      {site ? (
         <div
           style={{
             border: "1px solid #e5e7eb",
@@ -78,10 +80,10 @@ export default async function DashboardPage() {
         >
           <h2 style={{ marginTop: 0, fontSize: "1.1rem" }}>Your page</h2>
           <p style={{ margin: "0.25rem 0" }}>
-            Title: <strong>{page.title ?? "—"}</strong>
+            Title: <strong>{site.title ?? "—"}</strong>
           </p>
           <p style={{ margin: "0.25rem 0" }}>
-            Public URL: <code>/{page.slug}</code>
+            Public URL: <code>/{site.slug}</code>
           </p>
           <p style={{ margin: "0.25rem 0" }}>
             Sections: <strong>{sectionCount}</strong>
@@ -101,7 +103,7 @@ export default async function DashboardPage() {
               Open builder
             </a>
             <a
-              href={`/${page.slug}`}
+              href={`/${site.slug}`}
               target="_blank"
               rel="noreferrer"
               style={{

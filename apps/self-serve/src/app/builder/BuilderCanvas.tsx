@@ -10,7 +10,6 @@ import { SectionEditor } from "./SectionEditor";
 import { addModule, deleteSection, moveSection } from "./actions";
 
 type Section = Tables<"sections">;
-type Page = Tables<"pages">;
 
 const btn: React.CSSProperties = {
   padding: "0.3rem 0.6rem",
@@ -22,11 +21,13 @@ const btn: React.CSSProperties = {
 };
 
 export function BuilderCanvas({
-  page,
+  site,
+  pageId,
   sections,
   allowed,
 }: {
-  page: Page;
+  site: { id: string; slug: string };
+  pageId: string | null;
   sections: Section[];
   allowed: string[];
 }) {
@@ -49,11 +50,11 @@ export function BuilderCanvas({
         <div>
           <h1 style={{ margin: 0 }}>Builder</h1>
           <p style={{ margin: "0.25rem 0 0", color: "#6b7280", fontSize: 14 }}>
-            Editing <code>/{page.slug}</code>
+            Editing <code>/{site.slug}</code>
           </p>
         </div>
         <div style={{ display: "flex", gap: "0.5rem" }}>
-          <Link href={`/${page.slug}`} target="_blank" style={btn}>
+          <Link href={`/${site.slug}`} target="_blank" style={btn}>
             View public ↗
           </Link>
           <Link href="/dashboard" style={btn}>
@@ -164,7 +165,7 @@ export function BuilderCanvas({
         ))}
       </div>
 
-      <ChatSidebar pageId={page.id} />
+      {pageId && <ChatSidebar pageId={pageId} />}
     </main>
   );
 }
