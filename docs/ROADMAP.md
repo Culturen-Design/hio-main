@@ -286,16 +286,15 @@ onto tenants too, via expand→migrate→contract), **one generalized** tenant-a
     `[slug]` renders all modules via `sites`; unknown slug → 404). **Remaining pages reference:**
     `admin/page.tsx` still reads `pages.slug` to label users — needs an admin-readable user→slug path
     (small change) before CONTRACT drops `pages`.
-  - **PR C — ai-command** 🔵 (code complete; dev redeploy pending) generalize the `{tenant_id, site_id}`
-    branch to accept any tenant the caller is a member of — the only change is dropping the
-    `kind='studio_client'` filter, so a `self_serve` tenant resolves via `resolveVariant('self-serve')`
-    (≡ `selfServeSchema`). Self-Serve ChatSidebar now sends `{tenant_id, site_id}`; the builder no longer
-    looks up `pages` at all. No `@hio/*` change → vendor bundle unchanged. **Verified at SQL/logic level**
-    (the test user's self_serve tenant passes every check the generalized fn performs: member, variant
-    `self-serve`, site-belongs, sections-by-site). **Remaining: redeploy ai-command to dev as v6** (MCP
-    `deploy_edge_function`, inline incl. vendor/*) + live AI smoke-test of the self_serve `{tenant_id,
-    site_id}` path. Held deliberately because a bad inline-vendor transcription would replace the live dev
-    function (used by Studio too) — do it carefully / when not mid-manual-testing.
+  - **PR C — ai-command** ✅ generalize the `{tenant_id, site_id}` branch to accept any tenant the caller
+    is a member of — the only change is dropping the `kind='studio_client'` filter, so a `self_serve`
+    tenant resolves via `resolveVariant('self-serve')` (≡ `selfServeSchema`). Self-Serve ChatSidebar now
+    sends `{tenant_id, site_id}`; the builder no longer looks up `pages` at all. No `@hio/*` change → vendor
+    bundle unchanged. **Redeployed to dev as ai-command v6** (MCP `deploy_edge_function`, `verify_jwt:true`,
+    inline incl. vendor/*; needs `import_map_path: deno.json`). **Live-verified end-to-end**: the self_serve
+    `{tenant_id, site_id}` path edited the test user's hero → DB-persisted; the legacy `{page_id}` path
+    still works (backward-compatible). Self-Serve no longer depends on `page_id` except the `admin/page.tsx`
+    slug label (below).
 - **CONTRACT phase (late M4):** make `sections.tenant_id/site_id` NOT NULL and drop `pages` + the
   legacy page-based section policies + `page_id`, once the MIGRATE phase above lands (Self-Serve no
   longer reads/writes `pages`/`page_id`).
