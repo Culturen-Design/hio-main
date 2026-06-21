@@ -37,11 +37,12 @@ const bubble = (role: ChatMessage["role"]): React.CSSProperties => ({
 });
 
 /**
- * Floating AI editor for the builder. Sends the prompt + page id to the
- * `ai-command` edge function (which is schema-driven by @hio/ai-engine) and
- * refreshes the server components when an edit lands so the canvas updates.
+ * Floating AI editor for the builder. Sends the prompt + the user's tenant/site ids
+ * to the shared `ai-command` edge function (schema-driven by @hio/ai-engine, which
+ * resolves the provider + membership-gates the edit) and refreshes the server
+ * components when an edit lands so the canvas updates.
  */
-export function ChatSidebar({ pageId }: { pageId: string }) {
+export function ChatSidebar({ tenantId, siteId }: { tenantId: string; siteId: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
@@ -66,7 +67,7 @@ export function ChatSidebar({ pageId }: { pageId: string }) {
     try {
       const supabase = createClient();
       const { data, error } = await supabase.functions.invoke<CommandResponse>("ai-command", {
-        body: { prompt, page_id: pageId },
+        body: { prompt, tenant_id: tenantId, site_id: siteId },
       });
 
       let reply: string;

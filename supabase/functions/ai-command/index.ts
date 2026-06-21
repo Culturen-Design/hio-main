@@ -6,10 +6,14 @@
 // the product logic (which tools exist, how each mutation is validated + applied)
 // comes from the shared engine, which reads it from a SchemaProvider. The function
 // selects the provider + the section set by request shape:
-//   • { page_id }            → Self-Serve: page-ownership check + selfServeSchema.
-//   • { tenant_id, site_id } → Studio: tenant-membership check + the client's
-//                              per-client provider (resolveVariant(schema_variant)).
-// The engine code is identical for both — only the provider and the rows differ.
+//   • { tenant_id, site_id } → the unified tenant model (BOTH products): tenant
+//                              membership gates access; the tenant's schema_variant
+//                              picks the provider (resolveVariant). A self_serve
+//                              tenant resolves to the self-serve bundle (== selfServeSchema);
+//                              a studio_client to its per-client variant.
+//   • { page_id }            → legacy Self-Serve path (page-ownership + selfServeSchema),
+//                              kept until the CONTRACT phase drops pages/page_id.
+// The engine code is identical for all — only the provider and the rows differ.
 //
 // Imports resolve via ./deno.json (npm: for third-party, relative for @hio/*).
 import Anthropic from "@anthropic-ai/sdk";
@@ -55,9 +59,10 @@ interface EditTarget {
  * ownership/membership boundary by hand (the admin client bypasses RLS). Returns a
  * `Response` to short-circuit on any auth/lookup failure, or the `EditTarget`.
  *
- *  • `{ tenant_id, site_id }` → Studio: caller must be a member of the (studio_client)
- *    tenant and the site must belong to it; provider = resolveVariant(schema_variant).
- *  • `{ page_id }` → Self-Serve: caller must own the page; provider = selfServeSchema.
+ *  • `{ tenant_id, site_id }` → unified path (both products): caller must be a member
+ *    of the tenant and the site must belong to it; provider = resolveVariant(schema_variant)
+ *    (self_serve → self-serve bundle; studio_client → its per-client variant).
+ *  • `{ page_id }` → legacy Self-Serve: caller must own the page; provider = selfServeSchema.
  */
 async function resolveTarget(
   admin: SupabaseClient,
@@ -74,22 +79,22 @@ async function resolveTarget(
   };
 
   if (ids.tenant_id && ids.site_id) {
-    // Studio: membership gates access; the tenant's schema_variant picks the provider.
+    // Unified path (self_serve or studio_client): membership gates access; the
+    // tenant's schema_variant picks the provider — no kind filter, both are tenants.
     const { data: membership } = await admin
       .from("tenant_members")
       .select("tenant_id")
       .eq("tenant_id", ids.tenant_id)
       .eq("user_id", userId)
       .maybeSingle();
-    if (!membership) return json({ ok: false, message: "Client not found." }, 404);
+    if (!membership) return json({ ok: false, message: "Not found." }, 404);
 
     const { data: tenant } = await admin
       .from("tenants")
       .select("schema_variant")
       .eq("id", ids.tenant_id)
-      .eq("kind", "studio_client")
       .maybeSingle();
-    if (!tenant) return json({ ok: false, message: "Client not found." }, 404);
+    if (!tenant) return json({ ok: false, message: "Not found." }, 404);
 
     const { data: site } = await admin
       .from("sites")
