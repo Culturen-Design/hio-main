@@ -1,11 +1,24 @@
 # `ai-command` edge function
 
-The AI page editor. A thin Deno function that owns only the **security-critical
-wiring** — CORS, JWT verify, page-ownership check, service-role isolation, and the
-Anthropic call. All product logic (which tools exist, how each mutation is validated
-and applied) comes from the shared `@hio/ai-engine`, driven by a `SchemaProvider`
-from `@hio/content-model`. Self-Serve passes its built-in schema; Studio (M4) passes
-a per-client schema.
+The AI editor for **both products**. A thin Deno function that owns only the
+**security-critical wiring** — CORS, JWT verify, ownership/membership check,
+service-role isolation, and the Anthropic call. All product logic (which tools exist,
+how each mutation is validated and applied) comes from the shared `@hio/ai-engine`,
+driven by a `SchemaProvider` from `@hio/content-model`.
+
+## Two products, one function (M4.5)
+
+The function picks the provider + the section set from the **request shape**:
+
+| Request body | Product | Gate | Provider |
+|---|---|---|---|
+| `{ prompt, page_id }` | Self-Serve | page ownership (`pages.user_id`) | `selfServeSchema` |
+| `{ prompt, tenant_id, site_id }` | Studio | tenant membership (`tenant_members`, `kind='studio_client'`) + site-belongs-to-tenant | `resolveVariant(tenant.schema_variant)` |
+
+`resolveTarget()` enforces the boundary by hand (the service-role client bypasses
+RLS) and returns the resolved provider + rows; the engine code below it is identical
+for both. New per-client module sets need **no function change** — only the tenant's
+`schema_variant`.
 
 ## Layout
 

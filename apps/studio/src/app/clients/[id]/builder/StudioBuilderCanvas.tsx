@@ -3,6 +3,7 @@
 import type { ModuleType } from "@hio/content-model";
 import { ModuleRenderer, type StyleVariant } from "@hio/ui";
 import { useState, useTransition } from "react";
+import { ChatSidebar } from "./ChatSidebar";
 import { StudioSectionEditor } from "./StudioSectionEditor";
 import { addSection, deleteSection, moveSection } from "./actions";
 
@@ -26,6 +27,7 @@ const btn: React.CSSProperties = {
 
 export function StudioBuilderCanvas({
   tenantId,
+  siteId,
   clientName,
   schemaVariant,
   sections,
@@ -33,6 +35,7 @@ export function StudioBuilderCanvas({
   paletteError,
 }: {
   tenantId: string;
+  siteId: string;
   clientName: string;
   schemaVariant: string;
   sections: Section[];
@@ -187,6 +190,8 @@ export function StudioBuilderCanvas({
           </div>
         ))}
       </div>
+
+      <ChatSidebar tenantId={tenantId} siteId={siteId} />
     </main>
   );
 }
