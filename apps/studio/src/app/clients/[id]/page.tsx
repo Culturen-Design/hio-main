@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound, redirect } from "next/navigation";
 import { ClientSettingsForm } from "../ClientSettingsForm";
 import { PublishControls } from "../PublishControls";
+import { VersionList } from "../VersionList";
 
 export default async function ClientSettingsPage({
   params,
@@ -34,9 +35,18 @@ export default async function ClientSettingsPage({
 
   const { data: site } = await supabase
     .from("sites")
-    .select("slug, is_published")
+    .select("id, slug, is_published")
     .eq("tenant_id", client.id)
     .maybeSingle();
+
+  // Membership-scoped (site_versions_select_member), newest first.
+  const { data: versions } = site
+    ? await supabase
+        .from("site_versions")
+        .select("id, label, created_at")
+        .eq("site_id", site.id)
+        .order("created_at", { ascending: false })
+    : { data: null };
 
   return (
     <main
@@ -77,6 +87,13 @@ export default async function ClientSettingsPage({
         />
       ) : (
         <p style={{ color: "#dc2626" }}>This client has no site.</p>
+      )}
+
+      {site && (
+        <>
+          <h2 style={{ fontSize: "1.05rem", marginTop: "1.5rem" }}>Version history</h2>
+          <VersionList tenantId={client.id} siteId={site.id} versions={versions ?? []} />
+        </>
       )}
 
       <h2 style={{ fontSize: "1.05rem", marginTop: "1.5rem" }}>Settings</h2>

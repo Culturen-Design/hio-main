@@ -94,6 +94,18 @@ export async function setSitePublished(
   const staff = await requireStaff();
   if (!staff) return { error: "Not authorized: agency staff only." };
 
+  // Capture a version on publish (each publish = a restorable release). Best-effort:
+  // resolve the site, snapshot, then flip the flag.
+  if (publish) {
+    const { data: site } = await staff.supabase
+      .from("sites")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+    if (site)
+      await staff.supabase.rpc("snapshot_site", { p_site_id: site.id, p_label: "Published" });
+  }
+
   const { error } = await staff.supabase
     .from("sites")
     .update({ is_published: publish })
@@ -101,5 +113,51 @@ export async function setSitePublished(
   if (error) return { error: error.message };
 
   revalidatePath(`/clients/${tenantId}`);
+  return null;
+}
+
+/** Manually capture a version ("Save version") of a client's site. */
+export async function snapshotSite(
+  _prev: ClientActionState,
+  formData: FormData,
+): Promise<ClientActionState> {
+  const tenantId = String(formData.get("tenant_id") ?? "");
+  const siteId = String(formData.get("site_id") ?? "");
+  if (!siteId) return { error: "Missing site." };
+
+  const staff = await requireStaff();
+  if (!staff) return { error: "Not authorized: agency staff only." };
+
+  // snapshot_site is membership-gated server-side (is_tenant_member).
+  const { error } = await staff.supabase.rpc("snapshot_site", {
+    p_site_id: siteId,
+    p_label: "Manual save",
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath(`/clients/${tenantId}`);
+  return null;
+}
+
+/** Restore a client's site to a saved version. restore_site_version snapshots the
+ *  current state first ("Before restore"), so a restore is itself reversible. */
+export async function restoreSiteVersion(
+  _prev: ClientActionState,
+  formData: FormData,
+): Promise<ClientActionState> {
+  const tenantId = String(formData.get("tenant_id") ?? "");
+  const versionId = String(formData.get("version_id") ?? "");
+  if (!versionId) return { error: "Missing version." };
+
+  const staff = await requireStaff();
+  if (!staff) return { error: "Not authorized: agency staff only." };
+
+  const { error } = await staff.supabase.rpc("restore_site_version", {
+    p_version_id: versionId,
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath(`/clients/${tenantId}`);
+  revalidatePath(`/clients/${tenantId}/builder`);
   return null;
 }
