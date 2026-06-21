@@ -21,16 +21,18 @@ export default async function AdminPage() {
     .single();
   if (!me?.is_admin) redirect("/dashboard");
 
-  // Admins can read all user_settings (RLS); pages are world-readable. We join by
-  // user_id in JS to label each user by their page slug (no auth.users access needed).
-  const [{ data: settings }, { data: pages }] = await Promise.all([
+  // Admins can read all user_settings (RLS). For the per-user slug label we call the
+  // admin-gated `get_auth_users_for_admin` RPC (SECURITY DEFINER) — it returns each
+  // user's self_serve site slug, so the console no longer depends on the legacy `pages`
+  // table (dropped in the CONTRACT migration). Joined by user_id in JS.
+  const [{ data: settings }, { data: authUsers }] = await Promise.all([
     supabase
       .from("user_settings")
       .select("user_id, tier, module_overrides, is_admin, is_locked, is_disabled"),
-    supabase.from("pages").select("user_id, slug"),
+    supabase.rpc("get_auth_users_for_admin"),
   ]);
 
-  const slugByUser = new Map((pages ?? []).map((p) => [p.user_id, p.slug]));
+  const slugByUser = new Map((authUsers ?? []).map((u) => [u.id, u.slug]));
   const rows: AdminUserRow[] = (settings ?? [])
     .map((s) => ({
       userId: s.user_id,

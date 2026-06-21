@@ -346,6 +346,7 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          slug: string
         }[]
       }
       get_public_site: { Args: { p_slug: string }; Returns: Json }
