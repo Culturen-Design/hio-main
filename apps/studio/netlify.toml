@@ -1,5 +1,13 @@
 # Netlify site config for hio Studio. Create a SECOND Netlify site pointing at this
 # repo with base directory = apps/studio. Netlify reads this file from the base dir.
+#
+# Custom domains (M4.8): client domains are served by THIS same site, not redirected.
+# For each client domain, add it as a Domain alias on the Studio Netlify site (Domain
+# management -> Add domain alias) and point its DNS at Netlify so a cert is issued.
+# Routing then happens in Next middleware: any incoming Host that is not an app host
+# is rewritten to /hosted, which renders that client's published site (resolved via
+# the get_public_site_by_domain RPC). Set NEXT_PUBLIC_STUDIO_APP_HOSTS to this site's
+# own primary host(s) if it ever uses a non-*.netlify.app domain for the app itself.
 
 [build]
   command = "npm run build"

@@ -37,8 +37,10 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
 
 `✅ done` · `🔵 in progress` · `⬜ not started` · `↪ moved` (see deviation log)
 
-- **Now:** **M4 (Studio) in progress.** M2 + M3 are complete and the `ai-command` v4 bundle is
-  deployed + live-verified on dev. M4 builds the unified tenant model and the Studio app on the frozen
+- **Now:** **M4 (Studio) feature-complete; entering the CONTRACT phase.** M2 + M3 are complete and the
+  `ai-command` v5 bundle is deployed + live-verified on dev. M4 builds the unified tenant model and the
+  Studio app on the frozen engine; **all M4 features (M4.1–M4.8) are done** — Studio has the full
+  create → build → AI-edit → publish → public-render → version/rollback → custom-domain loop on the shared
   engine. **M4.1 (tenancy schema, expand phase) done** — unified `tenants`/`tenant_members`/`sites`
   + `sections.tenant_id/site_id`, existing Self-Serve pages backfilled, membership RLS (migration `007`,
   applied to dev; backfill verified 0 orphans). **M4.2 (provider resolution) done** —
@@ -55,10 +57,11 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
   theme via `@hio/ui`, with a publish toggle; verified live. **M4.7 (version history) done** — `site_versions`
   whole-site snapshots (migration `010`) with `snapshot_site`/`restore_site_version` RPCs; captured on
   publish + manual save; restore auto-snapshots first; verified live.
-- **Next action:** **M4.8** — custom domains (Netlify wildcard/edge → tenant slug lookup). **M4.7 (version
-  history / rollback) is done**, as are M4.2–M4.6 — see below. Studio now has the full create → build →
-  AI-edit → publish → version/rollback loop on the shared engine; remaining: custom domains (M4.8), then
-  the CONTRACT phase (migrate Self-Serve to the unified model, then drop `pages`/`page_id`).
+- **Next action:** **CONTRACT phase** — migrate Self-Serve off `pages`/`page_id` onto the unified
+  `sites`/`sections` model (the MIGRATE step), then drop `pages` + the legacy page-based section policies +
+  `page_id` and make `sections.tenant_id/site_id` NOT NULL (the CONTRACT step). **All M4 features
+  (M4.1–M4.8) are done** — see below. The contract cannot start until Self-Serve no longer reads/writes
+  `pages`/`page_id`.
 - **In parallel (widening M2):** remaining renderers (`services`, `contact`, `gallery`,
   `testimonial`, `custom`), drag-and-drop reorder, shadcn restyle.
 - **Branch model:** work happens on `integration/v2`; it becomes `main` when v2 is ready.
@@ -251,9 +254,24 @@ onto tenants too, via expand→migrate→contract), **one generalized** tenant-a
   Studio settings: a Version history list (newest-first) with Save version + per-version Restore; publish
   auto-captures a "Published" version. Verified live + SQL (snapshot, restore reverts + auto-snapshot,
   publish→"Published" version, non-member → 42501, cascade delete leaves 0 orphans). `@hio/db` types regen.
-- **M4.8 — Custom domains** ⬜ Netlify wildcard/edge → tenant slug lookup.
+- **M4.8 — Custom domains** ✅ migration `011`: `tenants.custom_domain` (one domain per tenant —
+  nullable, UNIQUE, hostname CHECK) + `get_public_site_by_domain(host)`, an anon SECURITY DEFINER
+  sibling of `get_public_site` keyed on the domain (published-only, no tenant-row leak). **Sub-decision
+  (ratified 2026-06-21):** a single `custom_domain` column over a separate `domains` table (lightest,
+  matches TENANCY.md's singular "map a domain"; a multi-alias/verification table stays a future additive
+  option), resolved by **Next.js middleware + the by-domain RPC** (no edge function). `apps/studio`
+  middleware rewrites any non-app Host to `/hosted` (a host-reading render route reusing the M4.6
+  `PublicSiteView`), so a client's domain renders ONLY its published site and never the agency app;
+  `lib/hosts.ts` classifies app vs custom hosts (localhost / `*.netlify.app` / `NEXT_PUBLIC_STUDIO_APP_HOSTS`).
+  Client settings gained a Custom-domain form (`tenants_update_member` RLS, dup-domain → friendly error).
+  Real DNS/cert provisioning is a Netlify dashboard step (add the domain as an alias on the Studio site).
+  Verified live on dev: mapped+published host → 200 themed render, deep paths on it also render the site
+  (not the app), unknown host → 404, app host → /dashboard; RPC checked as `anon` (exact + case-insensitive
+  match, published-only filter). `@hio/db` types regenerated.
 - **CONTRACT phase (late M4):** make `sections.tenant_id/site_id` NOT NULL and drop `pages` + the
-  legacy page-based section policies + `page_id`, once Self-Serve reads the unified model.
+  legacy page-based section policies + `page_id`, once Self-Serve reads the unified model. **Blocked on
+  the Self-Serve MIGRATE step** — Self-Serve still reads/writes `pages`/`page_id`; that must move to
+  `sites`/`sections` before `pages`/`page_id` can be dropped.
 
 ---
 

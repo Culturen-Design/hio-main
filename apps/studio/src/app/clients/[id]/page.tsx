@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound, redirect } from "next/navigation";
 import { ClientSettingsForm } from "../ClientSettingsForm";
+import { CustomDomainForm } from "../CustomDomainForm";
 import { PublishControls } from "../PublishControls";
 import { VersionList } from "../VersionList";
 
@@ -27,7 +28,7 @@ export default async function ClientSettingsPage({
   // RLS (tenants_select_member) scopes this to clients the caller manages.
   const { data: client } = await supabase
     .from("tenants")
-    .select("id, name, slug, schema_variant, plan, kind")
+    .select("id, name, slug, schema_variant, plan, kind, custom_domain")
     .eq("id", id)
     .eq("kind", "studio_client")
     .maybeSingle();
@@ -88,6 +89,9 @@ export default async function ClientSettingsPage({
       ) : (
         <p style={{ color: "#dc2626" }}>This client has no site.</p>
       )}
+
+      <h2 style={{ fontSize: "1.05rem", marginTop: "1.5rem" }}>Custom domain</h2>
+      <CustomDomainForm tenantId={client.id} customDomain={client.custom_domain} />
 
       {site && (
         <>

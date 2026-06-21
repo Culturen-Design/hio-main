@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { newClientSchema, updateClientSchema } from "./validation";
+import { newClientSchema, updateClientSchema, updateCustomDomainSchema } from "./validation";
 
 export type ClientActionState = { error: string } | null;
 
@@ -78,6 +78,38 @@ export async function updateStudioClient(
 
   revalidatePath(`/clients/${parsed.data.id}`);
   revalidatePath("/dashboard");
+  return null;
+}
+
+/** Map (or clear) a client's custom domain (M4.8). An empty value clears it. The
+ *  tenants_update_member RLS policy gates this to tenant members; scoping to
+ *  studio_client keeps it off self_serve spaces. The DB CHECK + a UNIQUE constraint
+ *  back the Zod validation — a taken domain surfaces a friendly message. */
+export async function setCustomDomain(
+  _prev: ClientActionState,
+  formData: FormData,
+): Promise<ClientActionState> {
+  const parsed = updateCustomDomainSchema.safeParse({
+    id: formData.get("id"),
+    custom_domain: formData.get("custom_domain") ?? "",
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid domain" };
+
+  const staff = await requireStaff();
+  if (!staff) return { error: "Not authorized: agency staff only." };
+
+  const { error } = await staff.supabase
+    .from("tenants")
+    .update({ custom_domain: parsed.data.custom_domain })
+    .eq("id", parsed.data.id)
+    .eq("kind", "studio_client");
+  if (error) {
+    if (error.code === "23505")
+      return { error: "That domain is already mapped to another client." };
+    return { error: error.message };
+  }
+
+  revalidatePath(`/clients/${parsed.data.id}`);
   return null;
 }
 
