@@ -1,10 +1,15 @@
-// ai-command — the AI page editor, schema-driven by @hio/ai-engine.
+// ai-command — the AI editor, schema-driven by @hio/ai-engine. Serves BOTH products
+// from one function (M4.5): Self-Serve pages and Studio per-client sites.
 //
 // This Deno function owns ONLY the security-critical wiring: CORS, JWT verify,
-// page-ownership check, service-role isolation, and the Anthropic call. All the
-// product logic (which tools exist, how each mutation is validated + applied)
-// comes from the shared engine, which reads it from a SchemaProvider. Self-Serve
-// passes its one built-in schema; Studio (M4) will pass a per-client schema.
+// ownership/membership check, service-role isolation, and the Anthropic call. All
+// the product logic (which tools exist, how each mutation is validated + applied)
+// comes from the shared engine, which reads it from a SchemaProvider. The function
+// selects the provider + the section set by request shape:
+//   • { page_id }            → Self-Serve: page-ownership check + selfServeSchema.
+//   • { tenant_id, site_id } → Studio: tenant-membership check + the client's
+//                              per-client provider (resolveVariant(schema_variant)).
+// The engine code is identical for both — only the provider and the rows differ.
 //
 // Imports resolve via ./deno.json (npm: for third-party, relative for @hio/*).
 import Anthropic from "@anthropic-ai/sdk";
@@ -16,8 +21,8 @@ import {
   buildPageContext,
   executeTool,
 } from "@hio/ai-engine";
-import { selfServeSchema } from "@hio/content-model";
-import { createClient } from "@supabase/supabase-js";
+import { type SchemaProvider, resolveVariant, selfServeSchema } from "@hio/content-model";
+import { type SupabaseClient, createClient } from "@supabase/supabase-js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -38,6 +43,84 @@ function env(name: string): string {
   const value = Deno.env.get(name);
   if (!value) throw new Error(`Missing required env: ${name}`);
   return value;
+}
+
+interface EditTarget {
+  provider: SchemaProvider;
+  sections: SectionRecord[];
+}
+
+/**
+ * Resolves which provider and section set this request edits, enforcing the
+ * ownership/membership boundary by hand (the admin client bypasses RLS). Returns a
+ * `Response` to short-circuit on any auth/lookup failure, or the `EditTarget`.
+ *
+ *  • `{ tenant_id, site_id }` → Studio: caller must be a member of the (studio_client)
+ *    tenant and the site must belong to it; provider = resolveVariant(schema_variant).
+ *  • `{ page_id }` → Self-Serve: caller must own the page; provider = selfServeSchema.
+ */
+async function resolveTarget(
+  admin: SupabaseClient,
+  userId: string,
+  ids: { page_id?: string; tenant_id?: string; site_id?: string },
+): Promise<EditTarget | Response> {
+  const sectionsFor = async (column: "page_id" | "site_id", value: string) => {
+    const { data } = await admin
+      .from("sections")
+      .select("id, type, content")
+      .eq(column, value)
+      .order("order");
+    return (data ?? []) as SectionRecord[];
+  };
+
+  if (ids.tenant_id && ids.site_id) {
+    // Studio: membership gates access; the tenant's schema_variant picks the provider.
+    const { data: membership } = await admin
+      .from("tenant_members")
+      .select("tenant_id")
+      .eq("tenant_id", ids.tenant_id)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (!membership) return json({ ok: false, message: "Client not found." }, 404);
+
+    const { data: tenant } = await admin
+      .from("tenants")
+      .select("schema_variant")
+      .eq("id", ids.tenant_id)
+      .eq("kind", "studio_client")
+      .maybeSingle();
+    if (!tenant) return json({ ok: false, message: "Client not found." }, 404);
+
+    const { data: site } = await admin
+      .from("sites")
+      .select("id")
+      .eq("id", ids.site_id)
+      .eq("tenant_id", ids.tenant_id)
+      .maybeSingle();
+    if (!site) return json({ ok: false, message: "Site not found." }, 404);
+
+    let provider: SchemaProvider;
+    try {
+      provider = resolveVariant(ids.tenant_id, tenant.schema_variant);
+    } catch {
+      return json({ ok: false, message: "This client's schema is misconfigured." }, 500);
+    }
+    return { provider, sections: await sectionsFor("site_id", ids.site_id) };
+  }
+
+  if (ids.page_id) {
+    // Self-Serve: page ownership gates access; the built-in schema is the provider.
+    const { data: page } = await admin
+      .from("pages")
+      .select("id")
+      .eq("id", ids.page_id)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (!page) return json({ ok: false, message: "Page not found." }, 404);
+    return { provider: selfServeSchema, sections: await sectionsFor("page_id", ids.page_id) };
+  }
+
+  return json({ ok: false, message: "Missing page_id or tenant_id + site_id." }, 400);
 }
 
 Deno.serve(async (req: Request) => {
@@ -64,29 +147,25 @@ Deno.serve(async (req: Request) => {
     } = await userClient.auth.getUser();
     if (authError || !user) return json({ ok: false, message: "Unauthorized." }, 401);
 
-    const { prompt, page_id } = (await req.json()) as { prompt?: string; page_id?: string };
-    if (!prompt || !page_id) return json({ ok: false, message: "Missing prompt or page_id." }, 400);
+    const { prompt, page_id, tenant_id, site_id } = (await req.json()) as {
+      prompt?: string;
+      page_id?: string;
+      tenant_id?: string;
+      site_id?: string;
+    };
+    if (!prompt) return json({ ok: false, message: "Missing prompt." }, 400);
 
-    // Service-role client: bypasses RLS, so every access below is ownership-gated by hand.
+    // Service-role client: bypasses RLS, so every access below is gated by hand.
     const admin = createClient(supabaseUrl, serviceKey);
 
-    const { data: page } = await admin
-      .from("pages")
-      .select("id")
-      .eq("id", page_id)
-      .eq("user_id", user.id)
-      .single();
-    if (!page) return json({ ok: false, message: "Page not found." }, 404);
-
-    const { data: rows } = await admin
-      .from("sections")
-      .select("id, type, content")
-      .eq("page_id", page_id)
-      .order("order");
-    const sections = (rows ?? []) as SectionRecord[];
+    // Select the provider + section set by request shape. A resolution failure
+    // returns a Response; success returns the provider + the rows to edit.
+    const target = await resolveTarget(admin, user.id, { page_id, tenant_id, site_id });
+    if (target instanceof Response) return target;
+    const { provider, sections } = target;
 
     // The engine builds Claude's tools from the schema; we never hard-code them here.
-    const tools = buildClaudeTools(selfServeSchema);
+    const tools = buildClaudeTools(provider);
     const anthropic = new Anthropic({ apiKey });
     const response = await anthropic.messages.create({
       model: Deno.env.get("ANTHROPIC_MODEL") ?? DEFAULT_MODEL,
@@ -121,7 +200,7 @@ Deno.serve(async (req: Request) => {
       },
     };
 
-    const result = await executeTool(selfServeSchema, toolUse.name, toolUse.input, sections, store);
+    const result = await executeTool(provider, toolUse.name, toolUse.input, sections, store);
 
     return json({
       ok: result.ok,

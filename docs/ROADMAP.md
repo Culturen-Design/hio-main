@@ -48,10 +48,12 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
   `is_admin`-gated dashboard, and the `create_studio_client` RPC (migration `008`) behind a New-client
   form + per-client settings; verified live on dev. **M4.4 (per-client builder) done** — Studio
   `/clients/[id]/builder` with membership-gated section CRUD, the add-module palette resolved per client
-  via `resolveVariant`, reusing `@hio/ui`; verified live.
-- **Next action:** **M4.5** — generalize `ai-command` to be tenant-aware (membership check + resolved
-  provider) serving both products; redeploy + live-verify. **M4.4 (per-client builder) is done**, as are
-  M4.2 (provider resolution) and M4.3 (Studio shell + RPC) — see below.
+  via `resolveVariant`, reusing `@hio/ui`; verified live. **M4.5 (generalized `ai-command`) done** — one
+  tenant-aware edge function (deployed dev v5) serves both products, resolving the per-client provider by
+  request shape; Studio builder got a ChatSidebar; both paths live-verified.
+- **Next action:** **M4.6** — theme application + public site rendering by slug. **M4.5 (generalized
+  tenant-aware `ai-command`, deployed v5) is done**, as are M4.2–M4.4 — see below. The Studio product
+  now has the full create → build → AI-edit loop on the shared engine.
 - **In parallel (widening M2):** remaining renderers (`services`, `contact`, `gallery`,
   `testimonial`, `custom`), drag-and-drop reorder, shadcn restyle.
 - **Branch model:** work happens on `integration/v2`; it becomes `main` when v2 is ready.
@@ -217,8 +219,15 @@ onto tenants too, via expand→migrate→contract), **one generalized** tenant-a
   RLS (membership-gated, `kind='studio_client'`). Add/edit/delete + reorder (RLS-gated order-value swaps,
   since the existing `reorder_sections` RPC is page-keyed; the swap logic is a pure, unit-tested helper).
   No migration. Verified live on dev end-to-end (add → reorder → edit → delete; DB-confirmed).
-- **M4.5 — Generalize `ai-command`** ⬜ tenant-aware (membership check + resolved provider) serving
-  both products; redeploy + live-verify.
+- **M4.5 — Generalize `ai-command`** ✅ the one edge function now serves **both products**, selecting
+  provider + sections by request shape: `{ page_id }` → Self-Serve (page-ownership + `selfServeSchema`,
+  unchanged) · `{ tenant_id, site_id }` → Studio (tenant-membership check + `resolveVariant(schema_variant)`,
+  sections by `site_id`). A `resolveTarget()` helper enforces the boundary by hand (service role bypasses
+  RLS); the engine code is identical for both. Studio builder gained a `ChatSidebar` (the studio AI caller).
+  **No engine/content-model change** (engine already provider-driven; `resolveVariant` already vendored).
+  Redeployed to dev as **ai-command v5** (MCP, `verify_jwt:true`); **both paths live-verified** end-to-end
+  (Studio: ChatSidebar edited a client's hero → DB-confirmed; Self-Serve: authenticated REST `page_id`
+  edit → DB-confirmed). README updated with the dual-mode contract.
 - **M4.6 — Theme application + public site rendering by slug** ⬜.
 - **M4.7 — Version history / rollback** ⬜ `site_section_versions` + restore.
 - **M4.8 — Custom domains** ⬜ Netlify wildcard/edge → tenant slug lookup.

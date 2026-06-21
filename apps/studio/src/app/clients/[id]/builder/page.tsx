@@ -60,6 +60,7 @@ export default async function ClientBuilderPage({
   return (
     <StudioBuilderCanvas
       tenantId={client.id}
+      siteId={site.id}
       clientName={client.name}
       schemaVariant={client.schema_variant}
       sections={sections ?? []}
