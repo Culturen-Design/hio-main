@@ -14,33 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      pages: {
-        Row: {
-          created_at: string
-          id: string
-          slug: string
-          title: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          slug: string
-          title?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          slug?: string
-          title?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       sections: {
         Row: {
           content: Json
@@ -50,10 +23,9 @@ export type Database = {
           nav_label: string | null
           nav_order: number | null
           order: number
-          page_id: string | null
-          site_id: string | null
+          site_id: string
           style_variant: Database["public"]["Enums"]["style_variant"]
-          tenant_id: string | null
+          tenant_id: string
           type: Database["public"]["Enums"]["module_type"]
           updated_at: string
           width: number
@@ -66,10 +38,9 @@ export type Database = {
           nav_label?: string | null
           nav_order?: number | null
           order?: number
-          page_id?: string | null
-          site_id?: string | null
+          site_id: string
           style_variant?: Database["public"]["Enums"]["style_variant"]
-          tenant_id?: string | null
+          tenant_id: string
           type: Database["public"]["Enums"]["module_type"]
           updated_at?: string
           width?: number
@@ -82,22 +53,14 @@ export type Database = {
           nav_label?: string | null
           nav_order?: number | null
           order?: number
-          page_id?: string | null
-          site_id?: string | null
+          site_id?: string
           style_variant?: Database["public"]["Enums"]["style_variant"]
-          tenant_id?: string | null
+          tenant_id?: string
           type?: Database["public"]["Enums"]["module_type"]
           updated_at?: string
           width?: number
         }
         Relationships: [
-          {
-            foreignKeyName: "sections_page_id_fkey"
-            columns: ["page_id"]
-            isOneToOne: false
-            referencedRelation: "pages"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "sections_site_id_fkey"
             columns: ["site_id"]
@@ -354,10 +317,6 @@ export type Database = {
       is_active_user: { Args: never; Returns: boolean }
       is_current_user_admin: { Args: never; Returns: boolean }
       is_tenant_member: { Args: { p_tenant_id: string }; Returns: boolean }
-      reorder_sections: {
-        Args: { p_page_id: string; p_updates: Json }
-        Returns: undefined
-      }
       restore_site_version: {
         Args: { p_version_id: string }
         Returns: undefined

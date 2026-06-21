@@ -1,19 +1,17 @@
 // ai-command — the AI editor, schema-driven by @hio/ai-engine. Serves BOTH products
-// from one function (M4.5): Self-Serve pages and Studio per-client sites.
+// from one function (M4.5): Self-Serve user sites and Studio per-client sites.
 //
 // This Deno function owns ONLY the security-critical wiring: CORS, JWT verify,
-// ownership/membership check, service-role isolation, and the Anthropic call. All
-// the product logic (which tools exist, how each mutation is validated + applied)
-// comes from the shared engine, which reads it from a SchemaProvider. The function
-// selects the provider + the section set by request shape:
-//   • { tenant_id, site_id } → the unified tenant model (BOTH products): tenant
-//                              membership gates access; the tenant's schema_variant
-//                              picks the provider (resolveVariant). A self_serve
-//                              tenant resolves to the self-serve bundle (== selfServeSchema);
-//                              a studio_client to its per-client variant.
-//   • { page_id }            → legacy Self-Serve path (page-ownership + selfServeSchema),
-//                              kept until the CONTRACT phase drops pages/page_id.
-// The engine code is identical for all — only the provider and the rows differ.
+// membership check, service-role isolation, and the Anthropic call. All the product
+// logic (which tools exist, how each mutation is validated + applied) comes from the
+// shared engine, which reads it from a SchemaProvider. Every request targets the
+// unified tenant model:
+//   • { tenant_id, site_id } → BOTH products. Tenant membership gates access; the
+//                              tenant's schema_variant picks the provider (resolveVariant).
+//                              A self_serve tenant resolves to the self-serve bundle
+//                              (== selfServeSchema); a studio_client to its per-client variant.
+// The legacy { page_id } path was removed in the CONTRACT phase (pages/page_id dropped).
+// The engine code is identical for both products — only the provider and the rows differ.
 //
 // Imports resolve via ./deno.json (npm: for third-party, relative for @hio/*).
 import Anthropic from "@anthropic-ai/sdk";
@@ -25,7 +23,7 @@ import {
   buildPageContext,
   executeTool,
 } from "@hio/ai-engine";
-import { type SchemaProvider, resolveVariant, selfServeSchema } from "@hio/content-model";
+import { type SchemaProvider, resolveVariant } from "@hio/content-model";
 import { type SupabaseClient, createClient } from "@supabase/supabase-js";
 
 const CORS = {
@@ -56,24 +54,23 @@ interface EditTarget {
 
 /**
  * Resolves which provider and section set this request edits, enforcing the
- * ownership/membership boundary by hand (the admin client bypasses RLS). Returns a
- * `Response` to short-circuit on any auth/lookup failure, or the `EditTarget`.
+ * membership boundary by hand (the admin client bypasses RLS). Returns a `Response`
+ * to short-circuit on any auth/lookup failure, or the `EditTarget`.
  *
- *  • `{ tenant_id, site_id }` → unified path (both products): caller must be a member
- *    of the tenant and the site must belong to it; provider = resolveVariant(schema_variant)
+ *  • `{ tenant_id, site_id }` → both products: caller must be a member of the tenant
+ *    and the site must belong to it; provider = resolveVariant(schema_variant)
  *    (self_serve → self-serve bundle; studio_client → its per-client variant).
- *  • `{ page_id }` → legacy Self-Serve: caller must own the page; provider = selfServeSchema.
  */
 async function resolveTarget(
   admin: SupabaseClient,
   userId: string,
-  ids: { page_id?: string; tenant_id?: string; site_id?: string },
+  ids: { tenant_id?: string; site_id?: string },
 ): Promise<EditTarget | Response> {
-  const sectionsFor = async (column: "page_id" | "site_id", value: string) => {
+  const sectionsFor = async (siteId: string) => {
     const { data } = await admin
       .from("sections")
       .select("id, type, content")
-      .eq(column, value)
+      .eq("site_id", siteId)
       .order("order");
     return (data ?? []) as SectionRecord[];
   };
@@ -110,22 +107,10 @@ async function resolveTarget(
     } catch {
       return json({ ok: false, message: "This client's schema is misconfigured." }, 500);
     }
-    return { provider, sections: await sectionsFor("site_id", ids.site_id) };
+    return { provider, sections: await sectionsFor(ids.site_id) };
   }
 
-  if (ids.page_id) {
-    // Self-Serve: page ownership gates access; the built-in schema is the provider.
-    const { data: page } = await admin
-      .from("pages")
-      .select("id")
-      .eq("id", ids.page_id)
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (!page) return json({ ok: false, message: "Page not found." }, 404);
-    return { provider: selfServeSchema, sections: await sectionsFor("page_id", ids.page_id) };
-  }
-
-  return json({ ok: false, message: "Missing page_id or tenant_id + site_id." }, 400);
+  return json({ ok: false, message: "Missing tenant_id + site_id." }, 400);
 }
 
 Deno.serve(async (req: Request) => {
@@ -152,9 +137,8 @@ Deno.serve(async (req: Request) => {
     } = await userClient.auth.getUser();
     if (authError || !user) return json({ ok: false, message: "Unauthorized." }, 401);
 
-    const { prompt, page_id, tenant_id, site_id } = (await req.json()) as {
+    const { prompt, tenant_id, site_id } = (await req.json()) as {
       prompt?: string;
-      page_id?: string;
       tenant_id?: string;
       site_id?: string;
     };
@@ -163,9 +147,9 @@ Deno.serve(async (req: Request) => {
     // Service-role client: bypasses RLS, so every access below is gated by hand.
     const admin = createClient(supabaseUrl, serviceKey);
 
-    // Select the provider + section set by request shape. A resolution failure
+    // Resolve the provider + section set (membership-gated). A resolution failure
     // returns a Response; success returns the provider + the rows to edit.
-    const target = await resolveTarget(admin, user.id, { page_id, tenant_id, site_id });
+    const target = await resolveTarget(admin, user.id, { tenant_id, site_id });
     if (target instanceof Response) return target;
     const { provider, sections } = target;
 

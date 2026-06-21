@@ -1,24 +1,28 @@
 # `ai-command` edge function
 
 The AI editor for **both products**. A thin Deno function that owns only the
-**security-critical wiring** — CORS, JWT verify, ownership/membership check,
-service-role isolation, and the Anthropic call. All product logic (which tools exist,
-how each mutation is validated and applied) comes from the shared `@hio/ai-engine`,
-driven by a `SchemaProvider` from `@hio/content-model`.
+**security-critical wiring** — CORS, JWT verify, membership check, service-role
+isolation, and the Anthropic call. All product logic (which tools exist, how each
+mutation is validated and applied) comes from the shared `@hio/ai-engine`, driven by a
+`SchemaProvider` from `@hio/content-model`.
 
 ## Two products, one function (M4.5)
 
-The function picks the provider + the section set from the **request shape**:
+Every request targets the **unified tenant model**; the provider + section set are
+resolved from the tenant:
 
 | Request body | Product | Gate | Provider |
 |---|---|---|---|
-| `{ prompt, page_id }` | Self-Serve | page ownership (`pages.user_id`) | `selfServeSchema` |
-| `{ prompt, tenant_id, site_id }` | Studio | tenant membership (`tenant_members`, `kind='studio_client'`) + site-belongs-to-tenant | `resolveVariant(tenant.schema_variant)` |
+| `{ prompt, tenant_id, site_id }` | Self-Serve **and** Studio | tenant membership (`tenant_members`) + site-belongs-to-tenant | `resolveVariant(tenant.schema_variant)` (self_serve → `selfServeSchema`; studio_client → its per-client variant) |
 
 `resolveTarget()` enforces the boundary by hand (the service-role client bypasses
 RLS) and returns the resolved provider + rows; the engine code below it is identical
 for both. New per-client module sets need **no function change** — only the tenant's
 `schema_variant`.
+
+> The legacy `{ page_id }` request shape (Self-Serve page ownership) was removed in the
+> CONTRACT phase when `pages`/`page_id` were dropped. Self-Serve now sends
+> `{ tenant_id, site_id }` like Studio.
 
 ## Layout
 

@@ -32,7 +32,8 @@ export const UPDATE_CONTENT_TOOL = "update_module_content";
 /** Fields the AI may never write — they govern identity, layout, and style. */
 export const PROTECTED_FIELDS = [
   "id",
-  "page_id",
+  "tenant_id",
+  "site_id",
   "type",
   "order",
   "width",
