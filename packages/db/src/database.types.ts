@@ -262,6 +262,15 @@ export type Database = {
     }
     Functions: {
       allowed_module_types: { Args: never; Returns: string[] }
+      create_studio_client: {
+        Args: {
+          p_name: string
+          p_schema_variant?: string
+          p_slug: string
+          p_theme?: Json
+        }
+        Returns: string
+      }
       get_all_user_settings_for_admin: {
         Args: never
         Returns: {
