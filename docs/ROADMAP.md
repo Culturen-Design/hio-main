@@ -268,10 +268,23 @@ onto tenants too, via expand→migrate→contract), **one generalized** tenant-a
   Verified live on dev: mapped+published host → 200 themed render, deep paths on it also render the site
   (not the app), unknown host → 404, app host → /dashboard; RPC checked as `anon` (exact + case-insensitive
   match, published-only filter). `@hio/db` types regenerated.
+- **Self-Serve MIGRATE phase (unblocks CONTRACT)** 🔵 — switch the live Self-Serve product off
+  `pages`/`page_id` onto the unified `sites`/`sections` keys. Data is already dual-keyed (007 backfill +
+  `handle_new_user` seeds both), so this is a code+RLS switch, **phased into 3 PRs** (ratified 2026-06-21):
+  - **PR A — membership write RLS** ✅ migration `012`: additive `self_serve`-scoped section policies
+    (`sections_{insert,update,delete}_self_serve_member`) keyed on `is_tenant_member(tenant_id)` for
+    `kind='self_serve'`, **preserving the tier gate** (`allowed_module_types()` on insert) and
+    `is_active_user()` on update. Runs alongside the legacy page-based policies (no behavior change yet).
+    Applied to dev; SQL-verified (member insert-by-site_id with `page_id` NULL + update + delete pass;
+    non-member → 42501; free user + paid module → 42501). No type change.
+  - **PR B — app switch** ⬜ `apps/self-serve`: `requirePage`→`requireSite`; builder/dashboard/`[slug]`/
+    `actions.ts` query + write by `site_id`/`tenant_id`; reorder via order-swaps (the page-keyed
+    `reorder_sections` RPC is unusable for site rows).
+  - **PR C — ai-command** ⬜ generalize the membership check to accept `self_serve` (not only
+    `studio_client`); Self-Serve ChatSidebar sends `{tenant_id, site_id}`; redeploy (v6).
 - **CONTRACT phase (late M4):** make `sections.tenant_id/site_id` NOT NULL and drop `pages` + the
-  legacy page-based section policies + `page_id`, once Self-Serve reads the unified model. **Blocked on
-  the Self-Serve MIGRATE step** — Self-Serve still reads/writes `pages`/`page_id`; that must move to
-  `sites`/`sections` before `pages`/`page_id` can be dropped.
+  legacy page-based section policies + `page_id`, once the MIGRATE phase above lands (Self-Serve no
+  longer reads/writes `pages`/`page_id`).
 
 ---
 
