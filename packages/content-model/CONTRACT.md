@@ -98,6 +98,12 @@ is the rule below + the deviation log.
 
 ### Change log
 
+- **v1.2.0 — 2026-06-22 (M2 widening, additive/minor).** Built the `contact` module
+  (`contactSchema` + `ContactContent` + `contactModule`), registered it in `MODULE_REGISTRY`,
+  and added it to the `self-serve` bundle — closing the free-tier gap (the DB
+  `allowed_module_types()` gate lists `contact` as free, but it had no module). No 🔒 frozen
+  item changed; `contact` is a plain-text module edited by the built-in `update_module_content`
+  tool (no new AI tools). `contract.test.ts` stays green.
 - **v1.1.0 — 2026-06-21 (M4.2, additive/minor).** Added the per-tenant provider resolver:
   `MODULE_REGISTRY`, `MODULE_BUNDLES`, `resolveProvider(id, enabledTypes)`, and
   `resolveVariant(id, variant)`. No 🔒 frozen item changed — these build a `SchemaProvider`

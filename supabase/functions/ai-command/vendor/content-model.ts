@@ -197,6 +197,19 @@ export const bioSchema = z.object({
 });
 export type BioContent = z.infer<typeof bioSchema>;
 
+/* ── Contact module schema ──────────────────────────────────────────────────── */
+// Free-tier module: a simple "get in touch" block. All fields are plain text, so
+// the engine's built-in `update_module_content` tool edits them — no collection tools.
+
+export const contactSchema = z.object({
+  title: z.string().max(60),
+  intro: z.string().max(300).optional(),
+  email: z.string().email().optional(),
+  phone: z.string().max(40).optional(),
+  location: z.string().max(120).optional(),
+});
+export type ContactContent = z.infer<typeof contactSchema>;
+
 /* ── Per-module AI tools ────────────────────────────────────────────────────── */
 // Text-field edits on any module are handled by the engine's built-in
 // `update_module_content` tool. Modules only declare tools for collection
@@ -290,6 +303,15 @@ export const calendarModule: ModuleDefinition<CalendarContent> = {
   aiTools: calendarAiTools,
 };
 
+export const contactModule: ModuleDefinition<ContactContent> = {
+  type: "contact",
+  label: "Contact",
+  contentSchema: contactSchema,
+  defaults: { title: "Get in touch", intro: "I'd love to hear from you." },
+  width: [4, 12],
+  aiTools: [],
+};
+
 /* ── Module registry & per-tenant provider resolution (M4.2) ────────────────── */
 
 /**
@@ -306,10 +328,19 @@ export const MODULE_REGISTRY: Partial<Record<ModuleType, ModuleDefinition>> = {
   bio: bioModule,
   links: linksModule,
   calendar: calendarModule,
+  contact: contactModule,
 };
 
-/** The built-in Self-Serve product surface (mirrors the tier-gated module set). */
-const SELF_SERVE_MODULE_TYPES: readonly ModuleType[] = ["hero", "bio", "links", "calendar"];
+/** The built-in Self-Serve product surface. `hero`/`bio`/`links`/`contact` are the
+ *  free-tier modules (mirrors the DB `allowed_module_types()` gate); `calendar` is in
+ *  the palette but paid-gated by RLS. */
+const SELF_SERVE_MODULE_TYPES: readonly ModuleType[] = [
+  "hero",
+  "bio",
+  "links",
+  "contact",
+  "calendar",
+];
 
 /**
  * Named module bundles, keyed by the value stored in `tenants.schema_variant`.

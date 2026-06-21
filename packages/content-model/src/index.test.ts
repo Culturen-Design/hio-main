@@ -99,6 +99,23 @@ describe("selfServeSchema", () => {
   });
 });
 
+describe("contact module (free-tier)", () => {
+  it("is registered and resolvable, with sensible defaults", () => {
+    const p = resolveProvider("p", ["contact"]);
+    const mod = p.getModule("contact");
+    expect(mod?.type).toBe("contact");
+    // Defaults are valid against the module's own schema.
+    expect(mod?.contentSchema.safeParse(mod.defaults).success).toBe(true);
+    // Plain-text module: no declared collection tools (edited via update_module_content).
+    expect(mod?.aiTools).toEqual([]);
+  });
+
+  it("is part of the self-serve bundle (free-tier surface)", () => {
+    expect(MODULE_BUNDLES["self-serve"]).toContain("contact");
+    expect(selfServeSchema.getModule("contact")?.type).toBe("contact");
+  });
+});
+
 describe("resolveProvider — per-tenant provider from an enabled module set", () => {
   it("exposes ONLY the enabled modules and their tools (toolset = enabled set)", () => {
     // A studio-style tenant that enables links but NOT calendar.
