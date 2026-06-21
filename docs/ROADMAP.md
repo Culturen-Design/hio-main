@@ -277,9 +277,15 @@ onto tenants too, via expand→migrate→contract), **one generalized** tenant-a
     `is_active_user()` on update. Runs alongside the legacy page-based policies (no behavior change yet).
     Applied to dev; SQL-verified (member insert-by-site_id with `page_id` NULL + update + delete pass;
     non-member → 42501; free user + paid module → 42501). No type change.
-  - **PR B — app switch** ⬜ `apps/self-serve`: `requirePage`→`requireSite`; builder/dashboard/`[slug]`/
-    `actions.ts` query + write by `site_id`/`tenant_id`; reorder via order-swaps (the page-keyed
-    `reorder_sections` RPC is unusable for site rows).
+  - **PR B — app switch** ✅ `apps/self-serve`: `requirePage`→`requireSite` (resolves the caller's
+    self_serve tenant + site via membership-scoped RLS); builder/dashboard/`[slug]`/`actions.ts` now
+    query + write by `site_id`/`tenant_id`; reorder via order-value swaps (the page-keyed
+    `reorder_sections` RPC is unusable for site rows). The AI ChatSidebar still posts `{page_id}`
+    (transitional — generalized in PR C). Verified live on dev (login → dashboard/builder via site path;
+    add module persisted with `page_id` NULL + `site_id`/`tenant_id`; reorder swap DB-confirmed; public
+    `[slug]` renders all modules via `sites`; unknown slug → 404). **Remaining pages reference:**
+    `admin/page.tsx` still reads `pages.slug` to label users — needs an admin-readable user→slug path
+    (small change) before CONTRACT drops `pages`.
   - **PR C — ai-command** ⬜ generalize the membership check to accept `self_serve` (not only
     `studio_client`); Self-Serve ChatSidebar sends `{tenant_id, site_id}`; redeploy (v6).
 - **CONTRACT phase (late M4):** make `sections.tenant_id/site_id` NOT NULL and drop `pages` + the

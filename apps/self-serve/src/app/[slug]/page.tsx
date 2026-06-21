@@ -2,22 +2,22 @@ import { createClient } from "@/lib/supabase/server";
 import { ModuleRenderer } from "@hio/ui";
 import { notFound } from "next/navigation";
 
-// Public, read-only page. RLS allows anonymous SELECT on pages + sections.
+// Public, read-only page. RLS allows anonymous SELECT on sites + sections.
 export default async function PublicPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const supabase = await createClient();
 
-  const { data: page } = await supabase
-    .from("pages")
+  const { data: site } = await supabase
+    .from("sites")
     .select("id, title")
     .eq("slug", slug)
     .maybeSingle();
-  if (!page) notFound();
+  if (!site) notFound();
 
   const { data: sections } = await supabase
     .from("sections")
     .select("*")
-    .eq("page_id", page.id)
+    .eq("site_id", site.id)
     .order("order");
 
   return (
