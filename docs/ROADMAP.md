@@ -46,10 +46,12 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
   per-tenant `SchemaProvider` from a tenant's `schema_variant` bundle (zero engine change). **M4.3
   (Studio shell + team auth + agency dashboard) done** — `apps/studio` with login-only team auth, an
   `is_admin`-gated dashboard, and the `create_studio_client` RPC (migration `008`) behind a New-client
-  form + per-client settings; verified live on dev.
-- **Next action:** **M4.4** — per-client builder (tenant-membership-gated section CRUD reusing `@hio/ui`).
-  **M4.3 is done** (4.3a shell+auth+dashboard, 4.3b `create_studio_client` RPC + New-client + settings);
-  M4.2 (provider resolution) is also done — see below.
+  form + per-client settings; verified live on dev. **M4.4 (per-client builder) done** — Studio
+  `/clients/[id]/builder` with membership-gated section CRUD, the add-module palette resolved per client
+  via `resolveVariant`, reusing `@hio/ui`; verified live.
+- **Next action:** **M4.5** — generalize `ai-command` to be tenant-aware (membership check + resolved
+  provider) serving both products; redeploy + live-verify. **M4.4 (per-client builder) is done**, as are
+  M4.2 (provider resolution) and M4.3 (Studio shell + RPC) — see below.
 - **In parallel (widening M2):** remaining renderers (`services`, `contact`, `gallery`,
   `testimonial`, `custom`), drag-and-drop reorder, shadcn restyle.
 - **Branch model:** work happens on `integration/v2`; it becomes `main` when v2 is ready.
@@ -208,7 +210,13 @@ onto tenants too, via expand→migrate→contract), **one generalized** tenant-a
     clients linking to settings. Applied to dev; **verified live** end-to-end (create → list → rename) +
     SQL-level gate tests (no-auth 28000, non-admin 42501, dup-slug 23505). `@hio/db` types regenerated.
     Colocated Vitest on the form schemas.
-- **M4.4 — Per-client builder** ⬜ tenant-membership-gated section CRUD reusing `@hio/ui`.
+- **M4.4 — Per-client builder** ✅ `apps/studio` `/clients/[id]/builder`: tenant-membership-gated
+  section CRUD reusing `@hio/ui`'s `ModuleRenderer`. The add-module **palette is resolved per client**
+  via `resolveVariant(tenant.schema_variant)` (the seam in action — not a hard-coded list); sections are
+  keyed on `site_id`/`tenant_id` (`page_id` NULL) and every write rides the `sections_write_studio_member`
+  RLS (membership-gated, `kind='studio_client'`). Add/edit/delete + reorder (RLS-gated order-value swaps,
+  since the existing `reorder_sections` RPC is page-keyed; the swap logic is a pure, unit-tested helper).
+  No migration. Verified live on dev end-to-end (add → reorder → edit → delete; DB-confirmed).
 - **M4.5 — Generalize `ai-command`** ⬜ tenant-aware (membership check + resolved provider) serving
   both products; redeploy + live-verify.
 - **M4.6 — Theme application + public site rendering by slug** ⬜.

@@ -50,6 +50,23 @@ export default async function ClientSettingsPage({
         {client.plan}
       </p>
 
+      <a
+        href={`/clients/${client.id}/builder`}
+        style={{
+          display: "inline-block",
+          marginTop: "0.5rem",
+          padding: "0.5rem 0.9rem",
+          borderRadius: 8,
+          background: "#111827",
+          color: "white",
+          textDecoration: "none",
+          fontWeight: 600,
+          fontSize: 14,
+        }}
+      >
+        Open builder →
+      </a>
+
       <h2 style={{ fontSize: "1.05rem", marginTop: "1.5rem" }}>Settings</h2>
       <ClientSettingsForm id={client.id} name={client.name} schemaVariant={client.schema_variant} />
     </main>
