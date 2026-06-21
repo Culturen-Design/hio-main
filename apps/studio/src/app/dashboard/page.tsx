@@ -74,9 +74,26 @@ export default async function DashboardPage() {
       ) : (
         <section style={{ marginTop: "1.5rem" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2 style={{ margin: 0, fontSize: "1.1rem" }}>Clients</h2>
-            {/* "New client" lands in M4.3b (create_studio_client RPC). */}
-            <span style={{ fontSize: 13, color: "#9ca3af" }}>{clients?.length ?? 0} total</span>
+            <h2 style={{ margin: 0, fontSize: "1.1rem" }}>
+              Clients{" "}
+              <span style={{ fontSize: 13, color: "#9ca3af", fontWeight: 400 }}>
+                ({clients?.length ?? 0})
+              </span>
+            </h2>
+            <a
+              href="/clients/new"
+              style={{
+                padding: "0.5rem 0.9rem",
+                borderRadius: 8,
+                background: "#111827",
+                color: "white",
+                textDecoration: "none",
+                fontWeight: 600,
+                fontSize: 14,
+              }}
+            >
+              + New client
+            </a>
           </div>
 
           {clients && clients.length > 0 ? (
@@ -90,17 +107,26 @@ export default async function DashboardPage() {
               }}
             >
               {clients.map((c) => (
-                <li
-                  key={c.id}
-                  style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: "1rem 1.25rem" }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem" }}>
-                    <strong>{c.name}</strong>
-                    <code style={{ color: "#6b7280" }}>/{c.slug}</code>
-                  </div>
-                  <p style={{ margin: "0.4rem 0 0", fontSize: 13, color: "#6b7280" }}>
-                    Schema: <code>{c.schema_variant}</code> · Plan: {c.plan}
-                  </p>
+                <li key={c.id}>
+                  <a
+                    href={`/clients/${c.id}`}
+                    style={{
+                      display: "block",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 12,
+                      padding: "1rem 1.25rem",
+                      textDecoration: "none",
+                      color: "inherit",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem" }}>
+                      <strong>{c.name}</strong>
+                      <code style={{ color: "#6b7280" }}>/{c.slug}</code>
+                    </div>
+                    <p style={{ margin: "0.4rem 0 0", fontSize: 13, color: "#6b7280" }}>
+                      Schema: <code>{c.schema_variant}</code> · Plan: {c.plan}
+                    </p>
+                  </a>
                 </li>
               ))}
             </ul>
@@ -117,7 +143,7 @@ export default async function DashboardPage() {
             >
               <p style={{ margin: 0 }}>No clients yet.</p>
               <p style={{ margin: "0.25rem 0 0", fontSize: 13 }}>
-                Creating clients arrives next (M4.3b).
+                Use <strong>+ New client</strong> to create your first one.
               </p>
             </div>
           )}
