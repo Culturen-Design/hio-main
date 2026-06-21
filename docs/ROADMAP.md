@@ -37,11 +37,13 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
 
 `✅ done` · `🔵 in progress` · `⬜ not started` · `↪ moved` (see deviation log)
 
-- **Now:** **M4 (Studio) feature-complete; entering the CONTRACT phase.** M2 + M3 are complete and the
-  `ai-command` v5 bundle is deployed + live-verified on dev. M4 builds the unified tenant model and the
-  Studio app on the frozen engine; **all M4 features (M4.1–M4.8) are done** — Studio has the full
-  create → build → AI-edit → publish → public-render → version/rollback → custom-domain loop on the shared
-  engine. **M4.1 (tenancy schema, expand phase) done** — unified `tenants`/`tenant_members`/`sites`
+- **Now:** **M4 feature-complete + Self-Serve MIGRATE done; one small fix from the CONTRACT migration.**
+  M2 + M3 are complete and the `ai-command` **v6** bundle is deployed + live-verified on dev (serves both
+  products by request shape, incl. self_serve `{tenant_id,site_id}`). **All M4 features (M4.1–M4.8) are
+  done** — Studio has the full create → build → AI-edit → publish → public-render → version/rollback →
+  custom-domain loop on the shared engine — and the **Self-Serve MIGRATE phase (PRs A/B/C, #25–#27) is done**:
+  Self-Serve now reads/writes the unified `sites`/`sections` keys. The only remaining `pages` reference in
+  app code is `apps/self-serve/admin/page.tsx`'s user→slug label. **M4.1 (tenancy schema, expand phase) done** — unified `tenants`/`tenant_members`/`sites`
   + `sections.tenant_id/site_id`, existing Self-Serve pages backfilled, membership RLS (migration `007`,
   applied to dev; backfill verified 0 orphans). **M4.2 (provider resolution) done** —
   `@hio/content-model@1.1.0` adds `MODULE_REGISTRY` + `resolveProvider`/`resolveVariant`, resolving a
@@ -57,11 +59,13 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
   theme via `@hio/ui`, with a publish toggle; verified live. **M4.7 (version history) done** — `site_versions`
   whole-site snapshots (migration `010`) with `snapshot_site`/`restore_site_version` RPCs; captured on
   publish + manual save; restore auto-snapshots first; verified live.
-- **Next action:** **CONTRACT phase** — migrate Self-Serve off `pages`/`page_id` onto the unified
-  `sites`/`sections` model (the MIGRATE step), then drop `pages` + the legacy page-based section policies +
-  `page_id` and make `sections.tenant_id/site_id` NOT NULL (the CONTRACT step). **All M4 features
-  (M4.1–M4.8) are done** — see below. The contract cannot start until Self-Serve no longer reads/writes
-  `pages`/`page_id`.
+- **Next action:** **(1)** migrate `apps/self-serve/admin/page.tsx` off its last `pages.slug` read (the
+  admin user→slug label) — needs an admin-readable user→slug path (e.g. add `slug` to the
+  `get_auth_users_for_admin` RPC, or a dedicated admin RPC). Then **(2) the CONTRACT migration**: drop
+  `pages` + `page_id` + the legacy page-based section policies + the legacy `{page_id}` branch in
+  `ai-command` (redeploy v7), and make `sections.tenant_id/site_id` NOT NULL. After that, the path to prod
+  is **infra**: create the prod Supabase project (separate account), finish the Netlify connection, arm
+  `PROD_DB_DEPLOY_ENABLED` + prod secrets, and promote `integration/v2` → `main`.
 - **In parallel (widening M2):** remaining renderers (`services`, `contact`, `gallery`,
   `testimonial`, `custom`), drag-and-drop reorder, shadcn restyle.
 - **Branch model:** work happens on `integration/v2`; it becomes `main` when v2 is ready.
