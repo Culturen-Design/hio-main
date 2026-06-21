@@ -27,3 +27,25 @@ export const updateClientSchema = z.object({
   schema_variant: z.enum(SCHEMA_VARIANTS),
 });
 export type UpdateClientInput = z.infer<typeof updateClientSchema>;
+
+/** A normalized hostname (lowercase labels + TLD, no scheme/port/path). Mirrors the
+ *  CHECK on tenants.custom_domain (migration 011). */
+export const customDomainSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .max(253, "Domain is too long")
+  .regex(
+    /^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/,
+    "Enter a valid domain, e.g. example.com (no http:// or path)",
+  );
+
+/** Input for mapping/clearing a client's custom domain. An empty string clears the
+ *  mapping (→ null). */
+export const updateCustomDomainSchema = z.object({
+  id: z.string().uuid(),
+  custom_domain: z
+    .union([z.literal(""), customDomainSchema])
+    .transform((v) => (v === "" ? null : v)),
+});
+export type UpdateCustomDomainInput = z.infer<typeof updateCustomDomainSchema>;

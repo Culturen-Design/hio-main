@@ -114,44 +114,6 @@ export type Database = {
           },
         ]
       }
-      sites: {
-        Row: {
-          created_at: string
-          id: string
-          is_published: boolean
-          slug: string
-          tenant_id: string
-          title: string | null
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_published?: boolean
-          slug: string
-          tenant_id: string
-          title?: string | null
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_published?: boolean
-          slug?: string
-          tenant_id?: string
-          title?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sites_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       site_versions: {
         Row: {
           created_at: string
@@ -197,6 +159,44 @@ export type Database = {
           },
         ]
       }
+      sites: {
+        Row: {
+          created_at: string
+          id: string
+          is_published: boolean
+          slug: string
+          tenant_id: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          slug: string
+          tenant_id: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          slug?: string
+          tenant_id?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_members: {
         Row: {
           created_at: string
@@ -229,6 +229,7 @@ export type Database = {
       tenants: {
         Row: {
           created_at: string
+          custom_domain: string | null
           id: string
           kind: Database["public"]["Enums"]["tenant_kind"]
           name: string
@@ -240,6 +241,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          custom_domain?: string | null
           id?: string
           kind: Database["public"]["Enums"]["tenant_kind"]
           name: string
@@ -251,6 +253,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          custom_domain?: string | null
           id?: string
           kind?: Database["public"]["Enums"]["tenant_kind"]
           name?: string
@@ -346,6 +349,7 @@ export type Database = {
         }[]
       }
       get_public_site: { Args: { p_slug: string }; Returns: Json }
+      get_public_site_by_domain: { Args: { p_host: string }; Returns: Json }
       is_active_user: { Args: never; Returns: boolean }
       is_current_user_admin: { Args: never; Returns: boolean }
       is_tenant_member: { Args: { p_tenant_id: string }; Returns: boolean }
@@ -353,8 +357,14 @@ export type Database = {
         Args: { p_page_id: string; p_updates: Json }
         Returns: undefined
       }
-      restore_site_version: { Args: { p_version_id: string }; Returns: undefined }
-      snapshot_site: { Args: { p_label?: string; p_site_id: string }; Returns: string }
+      restore_site_version: {
+        Args: { p_version_id: string }
+        Returns: undefined
+      }
+      snapshot_site: {
+        Args: { p_label?: string; p_site_id: string }
+        Returns: string
+      }
     }
     Enums: {
       module_type:
