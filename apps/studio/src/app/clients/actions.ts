@@ -80,3 +80,26 @@ export async function updateStudioClient(
   revalidatePath("/dashboard");
   return null;
 }
+
+/** Publish or unpublish a client's site. The sites_write_member RLS policy gates
+ *  this to tenant members; the form passes the tenant id and the desired state. */
+export async function setSitePublished(
+  _prev: ClientActionState,
+  formData: FormData,
+): Promise<ClientActionState> {
+  const tenantId = String(formData.get("tenant_id") ?? "");
+  const publish = formData.get("publish") === "true";
+  if (!tenantId) return { error: "Missing client." };
+
+  const staff = await requireStaff();
+  if (!staff) return { error: "Not authorized: agency staff only." };
+
+  const { error } = await staff.supabase
+    .from("sites")
+    .update({ is_published: publish })
+    .eq("tenant_id", tenantId);
+  if (error) return { error: error.message };
+
+  revalidatePath(`/clients/${tenantId}`);
+  return null;
+}

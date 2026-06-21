@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound, redirect } from "next/navigation";
 import { ClientSettingsForm } from "../ClientSettingsForm";
+import { PublishControls } from "../PublishControls";
 
 export default async function ClientSettingsPage({
   params,
@@ -66,6 +67,17 @@ export default async function ClientSettingsPage({
       >
         Open builder →
       </a>
+
+      <h2 style={{ fontSize: "1.05rem", marginTop: "1.5rem" }}>Publishing</h2>
+      {site ? (
+        <PublishControls
+          tenantId={client.id}
+          siteSlug={site.slug}
+          isPublished={site.is_published}
+        />
+      ) : (
+        <p style={{ color: "#dc2626" }}>This client has no site.</p>
+      )}
 
       <h2 style={{ fontSize: "1.05rem", marginTop: "1.5rem" }}>Settings</h2>
       <ClientSettingsForm id={client.id} name={client.name} schemaVariant={client.schema_variant} />
