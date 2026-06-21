@@ -25,15 +25,6 @@ export default async function BuilderPage() {
     .eq("site_id", site.id)
     .order("order");
 
-  // Transitional: the AI ChatSidebar still posts { page_id } to ai-command until that
-  // function is generalized for self_serve (MIGRATE PR C). pages still exist (dropped
-  // in CONTRACT), so this lookup is safe and keeps AI editing working.
-  const { data: page } = await supabase
-    .from("pages")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
   // Tier-aware list, intersected with the module types we actually have renderers for.
   const supported = new Set<string>(selfServeSchema.modules.map((m) => m.type));
   const { data: allowed } = await supabase.rpc("allowed_module_types");
@@ -41,8 +32,8 @@ export default async function BuilderPage() {
 
   return (
     <BuilderCanvas
+      tenantId={tenant.id}
       site={{ id: site.id, slug: site.slug }}
-      pageId={page?.id ?? null}
       sections={sections ?? []}
       allowed={allowedList}
     />

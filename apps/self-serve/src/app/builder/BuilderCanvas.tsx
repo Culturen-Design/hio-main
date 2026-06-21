@@ -21,13 +21,13 @@ const btn: React.CSSProperties = {
 };
 
 export function BuilderCanvas({
+  tenantId,
   site,
-  pageId,
   sections,
   allowed,
 }: {
+  tenantId: string;
   site: { id: string; slug: string };
-  pageId: string | null;
   sections: Section[];
   allowed: string[];
 }) {
@@ -165,7 +165,7 @@ export function BuilderCanvas({
         ))}
       </div>
 
-      {pageId && <ChatSidebar pageId={pageId} />}
+      <ChatSidebar tenantId={tenantId} siteId={site.id} />
     </main>
   );
 }
