@@ -152,6 +152,51 @@ export type Database = {
           },
         ]
       }
+      site_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string
+          sections: Json
+          site_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string
+          sections: Json
+          site_id: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string
+          sections?: Json
+          site_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_versions_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "site_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_members: {
         Row: {
           created_at: string
@@ -308,6 +353,8 @@ export type Database = {
         Args: { p_page_id: string; p_updates: Json }
         Returns: undefined
       }
+      restore_site_version: { Args: { p_version_id: string }; Returns: undefined }
+      snapshot_site: { Args: { p_label?: string; p_site_id: string }; Returns: string }
     }
     Enums: {
       module_type:

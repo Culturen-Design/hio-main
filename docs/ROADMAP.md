@@ -52,11 +52,13 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
   tenant-aware edge function (deployed dev v5) serves both products, resolving the per-client provider by
   request shape; Studio builder got a ChatSidebar; both paths live-verified. **M4.6 (theme + public render)
   done** — `get_public_site` RPC (migration `009`) + Studio `/sites/[slug]` route applying the per-tenant
-  theme via `@hio/ui`, with a publish toggle; verified live.
-- **Next action:** **M4.7** — version history / rollback (`site_section_versions` + restore). **M4.6
-  (theme + public render by slug) is done**, as are M4.2–M4.5 — see below. Studio now has the full
-  create → build → AI-edit → publish loop on the shared engine; remaining: versions (M4.7), custom
-  domains (M4.8), then the CONTRACT phase.
+  theme via `@hio/ui`, with a publish toggle; verified live. **M4.7 (version history) done** — `site_versions`
+  whole-site snapshots (migration `010`) with `snapshot_site`/`restore_site_version` RPCs; captured on
+  publish + manual save; restore auto-snapshots first; verified live.
+- **Next action:** **M4.8** — custom domains (Netlify wildcard/edge → tenant slug lookup). **M4.7 (version
+  history / rollback) is done**, as are M4.2–M4.6 — see below. Studio now has the full create → build →
+  AI-edit → publish → version/rollback loop on the shared engine; remaining: custom domains (M4.8), then
+  the CONTRACT phase (migrate Self-Serve to the unified model, then drop `pages`/`page_id`).
 - **In parallel (widening M2):** remaining renderers (`services`, `contact`, `gallery`,
   `testimonial`, `custom`), drag-and-drop reorder, shadcn restyle.
 - **Branch model:** work happens on `integration/v2`; it becomes `main` when v2 is ready.
@@ -240,7 +242,15 @@ onto tenants too, via expand→migrate→contract), **one generalized** tenant-a
   `--site-accent`); unpublished/unknown slugs 404. A publish/unpublish toggle + public URL on the client
   settings page (RLS `sites_write_member`). Verified live on dev (themed public page rendered; toggle
   persisted; unpublished → 404). `@hio/db` types regenerated.
-- **M4.7 — Version history / rollback** ⬜ `site_section_versions` + restore.
+- **M4.7 — Version history / rollback** ✅ migration `010`: `site_versions` table (whole-site JSONB
+  snapshot of all sections), membership-gated RLS (`site_versions_select_member`; writes only via the RPCs).
+  `snapshot_site(site_id, label)` + `restore_site_version(version_id)` (SECURITY DEFINER, pinned
+  `search_path`, membership-gated, anon-revoked). **Decision (ratified):** whole-site snapshot (not
+  per-section); captured **on publish + manual "Save version"**. Restore **auto-snapshots the current state
+  first** ("Before restore"), then atomically replaces the sections — so a restore is itself reversible.
+  Studio settings: a Version history list (newest-first) with Save version + per-version Restore; publish
+  auto-captures a "Published" version. Verified live + SQL (snapshot, restore reverts + auto-snapshot,
+  publish→"Published" version, non-member → 42501, cascade delete leaves 0 orphans). `@hio/db` types regen.
 - **M4.8 — Custom domains** ⬜ Netlify wildcard/edge → tenant slug lookup.
 - **CONTRACT phase (late M4):** make `sections.tenant_id/site_id` NOT NULL and drop `pages` + the
   legacy page-based section policies + `page_id`, once Self-Serve reads the unified model.
