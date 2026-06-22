@@ -8,7 +8,7 @@ clients/users are isolated *within* an environment.
 | Env | Supabase account | Project | Used by |
 |-----|------------------|---------|---------|
 | **dev** | current account (`culturen design`) | **Hio** — ref `yfvqmzaqhayveqllchuh` | local dev + Netlify Deploy Previews |
-| **prod** | **separate account** (isolated credentials) | created in that account — ref `TBD` | Netlify production + CI `db-deploy` |
+| **prod** | **separate account** (isolated credentials) | **hio-prod** — ref `ltrigisoniqcsuamaebj` (created 2026-06-22, separate org — invisible to the dev account's token, confirmed) | Netlify production + CI `db-deploy` |
 
 Prod lives in a **different Supabase account** on purpose: a leaked dev token can't touch prod,
 and only prod-account holders can administer it. The two are linked only by the env vars/secrets
@@ -22,7 +22,7 @@ NEXT_PUBLIC_SUPABASE_URL=https://yfvqmzaqhayveqllchuh.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_...        # publishable key (safe in the browser)
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 SUPABASE_DEV_REF=yfvqmzaqhayveqllchuh
-SUPABASE_PROD_REF=<prod-ref>                            # used by the no-direct-prod-db hook
+SUPABASE_PROD_REF=ltrigisoniqcsuamaebj                  # used by the no-direct-prod-db hook
 ```
 
 **Netlify** (per site, per context — set in the Netlify UI / Supabase integration, never committed):
@@ -100,5 +100,13 @@ on Self-Serve.
 - ✅ **dev** Supabase wired (this account, `Hio` project) — `.env.local` set for both apps.
 - 🔵 **Netlify** — both monorepo sites **created + public env set** (above); repo-link, service-role
   secret, and domains are the outstanding manual steps. Old exploration sites untouched.
-- ⬜ **prod** Supabase — create the project in the separate account, then fill `SUPABASE_PROD_REF`, the
-  Netlify production env, and the GitHub secrets above. (Cannot be done from the dev account.)
+- 🔵 **prod** Supabase — **project created** in the separate account (2026-06-22, ref
+  `ltrigisoniqcsuamaebj`); `SUPABASE_PROD_REF` recorded above. **Still outstanding** (owner, can't be done
+  from the dev account): add the GitHub Actions secrets (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROD_REF`,
+  `SUPABASE_PROD_DB_PASSWORD`), set the Netlify *Production* context env (prod URL + anon key + the
+  Self-Serve service-role key), and set repo var `PROD_DB_DEPLOY_ENABLED=true`. The prod schema is empty
+  until the first merge to `main` runs `db-deploy.yml` (the 14 migrations).
+  > **MCP note:** a prod Supabase MCP should NOT be wired into the agent as a read-write `mcp__supabase`
+  > server — prod changes go through CI only (rule #1). If a prod MCP is connected at all, make it
+  > **read-only** + a **distinct name** (e.g. `supabase-prod`, not "supabase" — that collides with the dev
+  > server in `.mcp.json`) and set `SUPABASE_PROD_REF` so `no-direct-prod-db.mjs` can guard it.
