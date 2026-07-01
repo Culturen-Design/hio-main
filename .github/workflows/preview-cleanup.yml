@@ -15,7 +15,7 @@ jobs:
     # Guard: only run when branching is enabled (set this repo variable to "true").
     if: vars.SUPABASE_BRANCHING_ENABLED == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: supabase/setup-cli@v1
         with:
