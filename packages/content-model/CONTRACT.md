@@ -98,6 +98,11 @@ is the rule below + the deviation log.
 
 ### Change log
 
+- **v1.3.0 — 2026-06-22 (M2 widening, additive/minor).** Built the `services` module
+  (`serviceItemSchema` + `servicesSchema` + `ServicesContent` + `servicesModule`), a **collection**
+  module with `add_service`/`update_service`/`remove_service` AI tools (the append/update/remove ops,
+  same pattern as `calendar`). Registered in `MODULE_REGISTRY` and added to the `self-serve` bundle
+  (paid-gated by RLS, like `calendar`). No 🔒 frozen item changed; `contract.test.ts` stays green.
 - **v1.2.0 — 2026-06-22 (M2 widening, additive/minor).** Built the `contact` module
   (`contactSchema` + `ContactContent` + `contactModule`), registered it in `MODULE_REGISTRY`,
   and added it to the `self-serve` bundle — closing the free-tier gap (the DB

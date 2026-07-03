@@ -16,6 +16,7 @@ export { BioModule } from "./modules/BioModule";
 export { LinksModule } from "./modules/LinksModule";
 export { CalendarModule } from "./modules/CalendarModule";
 export { ContactModule } from "./modules/ContactModule";
+export { ServicesModule } from "./modules/ServicesModule";
 export { ModuleRenderer, type RenderableSection } from "./modules/ModuleRenderer";
 export type { StyleVariant } from "./style";
 export { type SiteTheme, parseSiteTheme, themeToStyle } from "./theme";
