@@ -210,6 +210,22 @@ export const contactSchema = z.object({
 });
 export type ContactContent = z.infer<typeof contactSchema>;
 
+/* ── Services module schema ─────────────────────────────────────────────────── */
+// Collection module: a titled list of service offerings. The AI can add/update/remove
+// items (like calendar events) plus edit the title via update_module_content.
+
+export const serviceItemSchema = z.object({
+  id: z.string(),
+  name: z.string().max(80),
+  description: z.string().max(300).optional(),
+  price: z.string().max(40).optional(), // free-form: "$50", "from £100/hr", "Free"
+});
+export const servicesSchema = z.object({
+  title: z.string(),
+  items: z.array(serviceItemSchema).max(20),
+});
+export type ServicesContent = z.infer<typeof servicesSchema>;
+
 /* ── Per-module AI tools ────────────────────────────────────────────────────── */
 // Text-field edits on any module are handled by the engine's built-in
 // `update_module_content` tool. Modules only declare tools for collection
@@ -265,6 +281,37 @@ export const calendarAiTools: AiToolDescriptor[] = [
   },
 ];
 
+const serviceInputSchema = serviceItemSchema.omit({ id: true });
+
+export const servicesAiTools: AiToolDescriptor[] = [
+  {
+    name: "add_service",
+    description:
+      "Adds a service to a services module. Requires a name; description and price optional.",
+    moduleType: "services",
+    inputSchema: z.object({ section_id: z.string(), service: serviceInputSchema }),
+    op: { kind: "appendItem", field: "items", itemKey: "service", genId: true },
+  },
+  {
+    name: "update_service",
+    description: "Updates fields of an existing service, found by its service id.",
+    moduleType: "services",
+    inputSchema: z.object({
+      section_id: z.string(),
+      service_id: z.string(),
+      updates: serviceInputSchema.partial(),
+    }),
+    op: { kind: "updateItem", field: "items", idKey: "service_id", itemKey: "updates" },
+  },
+  {
+    name: "remove_service",
+    description: "Removes a service from a services module by its service id.",
+    moduleType: "services",
+    inputSchema: z.object({ section_id: z.string(), service_id: z.string() }),
+    op: { kind: "removeItem", field: "items", idKey: "service_id" },
+  },
+];
+
 /* ── Module definitions ─────────────────────────────────────────────────────── */
 
 export const heroModule: ModuleDefinition<HeroContent> = {
@@ -312,6 +359,15 @@ export const contactModule: ModuleDefinition<ContactContent> = {
   aiTools: [],
 };
 
+export const servicesModule: ModuleDefinition<ServicesContent> = {
+  type: "services",
+  label: "Services",
+  contentSchema: servicesSchema,
+  defaults: { title: "Services", items: [] },
+  width: [4, 12],
+  aiTools: servicesAiTools,
+};
+
 /* ── Module registry & per-tenant provider resolution (M4.2) ────────────────── */
 
 /**
@@ -329,17 +385,19 @@ export const MODULE_REGISTRY: Partial<Record<ModuleType, ModuleDefinition>> = {
   links: linksModule,
   calendar: calendarModule,
   contact: contactModule,
+  services: servicesModule,
 };
 
 /** The built-in Self-Serve product surface. `hero`/`bio`/`links`/`contact` are the
- *  free-tier modules (mirrors the DB `allowed_module_types()` gate); `calendar` is in
- *  the palette but paid-gated by RLS. */
+ *  free-tier modules (mirrors the DB `allowed_module_types()` gate); `calendar` and
+ *  `services` are in the palette but paid-gated by RLS. */
 const SELF_SERVE_MODULE_TYPES: readonly ModuleType[] = [
   "hero",
   "bio",
   "links",
   "contact",
   "calendar",
+  "services",
 ];
 
 /**

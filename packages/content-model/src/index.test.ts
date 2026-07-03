@@ -116,6 +116,24 @@ describe("contact module (free-tier)", () => {
   });
 });
 
+describe("services module (collection)", () => {
+  it("is registered with add/update/remove tools and valid defaults", () => {
+    const p = resolveProvider("p", ["services"]);
+    const mod = p.getModule("services");
+    expect(mod?.type).toBe("services");
+    expect(mod?.contentSchema.safeParse(mod.defaults).success).toBe(true);
+    const toolNames = p.allTools().map((t) => t.name);
+    expect(toolNames).toEqual(
+      expect.arrayContaining(["add_service", "update_service", "remove_service"]),
+    );
+  });
+
+  it("is part of the self-serve bundle", () => {
+    expect(MODULE_BUNDLES["self-serve"]).toContain("services");
+    expect(selfServeSchema.getModule("services")?.type).toBe("services");
+  });
+});
+
 describe("resolveProvider — per-tenant provider from an enabled module set", () => {
   it("exposes ONLY the enabled modules and their tools (toolset = enabled set)", () => {
     // A studio-style tenant that enables links but NOT calendar.
@@ -136,8 +154,8 @@ describe("resolveProvider — per-tenant provider from an enabled module set", (
   });
 
   it("throws on a closed-union type that has no registered definition yet", () => {
-    // `services` is a valid ModuleType but not yet built (absent from MODULE_REGISTRY).
-    expect(() => resolveProvider("client-y", ["hero", "services"])).toThrow(
+    // `gallery` is a valid ModuleType but not yet built (absent from MODULE_REGISTRY).
+    expect(() => resolveProvider("client-y", ["hero", "gallery"])).toThrow(
       /not registered in MODULE_REGISTRY/i,
     );
   });
