@@ -599,3 +599,11 @@ export function defaultContentFor(
 ): unknown {
   return provider.getModule(type)?.defaults ?? {};
 }
+
+export {
+  type WithId,
+  type CollectionResult,
+  appendCollectionItem,
+  updateCollectionItem,
+  removeCollectionItem,
+} from "./collections";

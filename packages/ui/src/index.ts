@@ -26,3 +26,8 @@ export {
   parseSiteTheme,
   themeToStyle,
 } from "./theme";
+export { CollectionEditor, type FieldConfig, type FieldKind } from "./forms/CollectionEditor";
+export {
+  COLLECTION_FIELD_REGISTRY,
+  type CollectionFieldConfig,
+} from "./forms/collectionFields";

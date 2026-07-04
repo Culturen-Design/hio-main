@@ -8,11 +8,13 @@
  * literal class strings (outlined/filled/bold/rounded-card) that every module
  * under `./modules` calls but doesn't itself spell out — without scanning it
  * directly those utilities are never generated (caught while live-verifying
- * the per-site theming MVP's rounding preset).
+ * the per-site theming MVP's rounding preset). `./forms` holds the manual
+ * collection-editor UI (CollectionEditor.tsx) — same reason.
  */
 @import "tailwindcss";
 @source "./modules";
 @source "./variant.ts";
+@source "./forms";
 
 @theme {
   --font-sans: ui-sans-serif, system-ui, -apple-system, sans-serif;
