@@ -19,11 +19,13 @@ export function GalleryModule({
         >
           {content.images.map((img) => (
             <figure key={img.id} className="m-0">
-              <img
-                src={img.url}
-                alt={img.alt ?? img.caption ?? ""}
-                className="block aspect-square w-full rounded-[12px] object-cover"
-              />
+              <div className="rounded-[14px] border border-border bg-background p-1.5">
+                <img
+                  src={img.url}
+                  alt={img.alt ?? img.caption ?? ""}
+                  className="block aspect-square w-full rounded-[8px] object-cover"
+                />
+              </div>
               {img.caption && (
                 <figcaption className="mt-1 text-[13px] text-muted-foreground">
                   {img.caption}

@@ -34,3 +34,52 @@ body {
   color: var(--color-foreground);
   font-family: var(--font-sans);
 }
+
+/**
+ * Public-site visual identity — the default look for both products' PUBLISHED
+ * pages (Self-Serve's /[slug], Studio's /sites/[slug] and custom-domain
+ * render). Applied via `className="site-public"` on the page wrapper in each
+ * app's public route — never on builder/dashboard/admin pages in either app.
+ *
+ * Stone = warm = content. Slate = cold = structural chrome (borders, grid,
+ * meta text). Primary is left to `themeToStyle`'s inline custom properties,
+ * which always win for their own properties on this same element — nothing
+ * here needs to special-case a site's own accent/font/radius choice.
+ *
+ * "Alive" here means warm, organic colour — not motion. No transitions, no
+ * animation. Living tissue, not cold metal.
+ */
+.site-public {
+  --color-background: #fafaf9; /* stone-50 */
+  --color-foreground: #1c1917; /* stone-900 */
+  --color-muted: #f5f5f4; /* stone-100 */
+  --color-muted-foreground: #475569; /* slate-600 — 7.26:1 on stone-50 (AA) */
+  --color-border: #cbd5e1; /* slate-300 */
+  --color-primary: #292524; /* stone-800 — sane default until a site sets its own */
+  --color-primary-foreground: #fafaf9; /* stone-50 */
+
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+
+  max-width: 56rem;
+  margin-inline: auto;
+  border-inline: 1px solid var(--color-border);
+
+  /* Very light graph-paper texture — subtle, so it reads as paper grain, not
+     a stark technical overlay. Earthy first, blueprint second. */
+  background-image: linear-gradient(
+      color-mix(in oklab, var(--color-border) 45%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      color-mix(in oklab, var(--color-border) 45%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 32px 32px;
+}
+
+/* Sections stack as one system: hairline dividers, not separate floating cards. */
+.site-public section + section {
+  border-top: 1px solid var(--color-border);
+}

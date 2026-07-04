@@ -8,7 +8,12 @@ export function HeroModule({
   variant,
 }: { content: HeroContent; variant?: StyleVariant | null }) {
   return (
-    <section className={cn("px-6 py-14 text-center", cardClasses(variant))}>
+    <section
+      className={cn(
+        "border-primary border-t-[3px] bg-[radial-gradient(ellipse_at_top,var(--color-muted),transparent_70%)] px-6 py-14 text-center",
+        cardClasses(variant),
+      )}
+    >
       {content.eyebrow && (
         <p className="m-0 text-xs tracking-[1px] text-muted-foreground uppercase">
           {content.eyebrow}
