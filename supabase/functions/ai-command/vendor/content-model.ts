@@ -261,6 +261,19 @@ export const testimonialSchema = z.object({
 });
 export type TestimonialContent = z.infer<typeof testimonialSchema>;
 
+/* ── Custom module schema ───────────────────────────────────────────────────── */
+// The escape hatch (M3 decision — the module-type space is CLOSED, `custom` is the
+// one bespoke-content type). Deliberately minimal: a title + a markdown body.
+// `body` is rendered as MARKDOWN, never raw HTML — `@hio/ui`'s CustomModule never
+// uses dangerouslySetInnerHTML, so pasted HTML/script tags render as inert text.
+// No collection tools; the built-in `update_module_content` tool edits both fields.
+
+export const customSchema = z.object({
+  title: z.string().max(80),
+  body: z.string().max(5000),
+});
+export type CustomContent = z.infer<typeof customSchema>;
+
 /* ── Per-module AI tools ────────────────────────────────────────────────────── */
 // Text-field edits on any module are handled by the engine's built-in
 // `update_module_content` tool. Modules only declare tools for collection
@@ -482,6 +495,15 @@ export const testimonialModule: ModuleDefinition<TestimonialContent> = {
   aiTools: testimonialAiTools,
 };
 
+export const customModule: ModuleDefinition<CustomContent> = {
+  type: "custom",
+  label: "Custom",
+  contentSchema: customSchema,
+  defaults: { title: "Custom section", body: "Write anything here — **markdown** is supported." },
+  width: [4, 12],
+  aiTools: [],
+};
+
 /* ── Module registry & per-tenant provider resolution (M4.2) ────────────────── */
 
 /**
@@ -502,12 +524,13 @@ export const MODULE_REGISTRY: Partial<Record<ModuleType, ModuleDefinition>> = {
   services: servicesModule,
   gallery: galleryModule,
   testimonial: testimonialModule,
+  custom: customModule,
 };
 
 /** The built-in Self-Serve product surface. `hero`/`bio`/`links`/`contact` are the
  *  free-tier modules (mirrors the DB `allowed_module_types()` gate); `calendar`,
- *  `services`, `gallery`, and `testimonial` are in the palette but paid-gated by RLS.
- *  (`custom` is the only module type not yet built.) */
+ *  `services`, `gallery`, `testimonial`, and `custom` are in the palette but
+ *  paid-gated by RLS. **All 9 module types are now built.** */
 const SELF_SERVE_MODULE_TYPES: readonly ModuleType[] = [
   "hero",
   "bio",
@@ -517,6 +540,7 @@ const SELF_SERVE_MODULE_TYPES: readonly ModuleType[] = [
   "services",
   "gallery",
   "testimonial",
+  "custom",
 ];
 
 /**

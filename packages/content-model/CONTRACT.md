@@ -1,4 +1,4 @@
-# `@hio/content-model` — the frozen seam (v1.1.0)
+# `@hio/content-model` — the frozen seam (v1.5.0)
 
 This package is **the pluggable seam** between the two products and the one engine.
 `@hio/ai-engine` and both apps depend on the contract defined here. As of the **M3
@@ -98,6 +98,16 @@ is the rule below + the deviation log.
 
 ### Change log
 
+- **v1.5.0 — 2026-07-04 (M2 widening, additive/minor — the last module type).** Built the `custom`
+  module (`customSchema` + `CustomContent` + `customModule`), the escape hatch called out at the M3
+  gate. Deliberately minimal: `title` + a markdown `body` (max 5000 chars). No new AI tools — a
+  plain-text module edited via the built-in `update_module_content`, same pattern as `contact`/`bio`.
+  Registered in `MODULE_REGISTRY` and added to the `self-serve` bundle (paid-gated by RLS; the DB
+  `allowed_module_types()` already listed `custom` as paid-only since migration `004`, so no schema
+  change). `@hio/ui`'s `CustomModule` renders `body` through `react-markdown` with no `rehype-raw`
+  plugin — pasted HTML/script tags render as inert text, never execute (the module is a markdown
+  renderer, not an HTML renderer — see the component's doc comment). **All 9 module types are now
+  built.** No 🔒 frozen item changed; `contract.test.ts` stays green.
 - **v1.4.0 — 2026-06-22 (M2 widening, additive/minor).** Built the `gallery` and `testimonial`
   modules, both **collection** modules. `gallery` (`galleryImageSchema`/`gallerySchema`) is an
   image-URL grid with `add_image`/`update_image`/`remove_image` (users paste hosted URLs — no upload
