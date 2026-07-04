@@ -134,6 +134,34 @@ describe("services module (collection)", () => {
   });
 });
 
+describe("gallery + testimonial modules (collections)", () => {
+  it("gallery is registered with add/update/remove image tools and valid defaults", () => {
+    const p = resolveProvider("p", ["gallery"]);
+    const mod = p.getModule("gallery");
+    expect(mod?.type).toBe("gallery");
+    expect(mod?.contentSchema.safeParse(mod.defaults).success).toBe(true);
+    expect(p.allTools().map((t) => t.name)).toEqual(
+      expect.arrayContaining(["add_image", "update_image", "remove_image"]),
+    );
+  });
+
+  it("testimonial is registered with add/update/remove tools and valid defaults", () => {
+    const p = resolveProvider("p", ["testimonial"]);
+    const mod = p.getModule("testimonial");
+    expect(mod?.type).toBe("testimonial");
+    expect(mod?.contentSchema.safeParse(mod.defaults).success).toBe(true);
+    expect(p.allTools().map((t) => t.name)).toEqual(
+      expect.arrayContaining(["add_testimonial", "update_testimonial", "remove_testimonial"]),
+    );
+  });
+
+  it("both are part of the self-serve bundle", () => {
+    expect(MODULE_BUNDLES["self-serve"]).toEqual(
+      expect.arrayContaining(["gallery", "testimonial"]),
+    );
+  });
+});
+
 describe("resolveProvider — per-tenant provider from an enabled module set", () => {
   it("exposes ONLY the enabled modules and their tools (toolset = enabled set)", () => {
     // A studio-style tenant that enables links but NOT calendar.
@@ -154,8 +182,8 @@ describe("resolveProvider — per-tenant provider from an enabled module set", (
   });
 
   it("throws on a closed-union type that has no registered definition yet", () => {
-    // `gallery` is a valid ModuleType but not yet built (absent from MODULE_REGISTRY).
-    expect(() => resolveProvider("client-y", ["hero", "gallery"])).toThrow(
+    // `custom` is a valid ModuleType but not yet built (absent from MODULE_REGISTRY).
+    expect(() => resolveProvider("client-y", ["hero", "custom"])).toThrow(
       /not registered in MODULE_REGISTRY/i,
     );
   });

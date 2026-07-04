@@ -71,8 +71,8 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
   `SUPABASE_PROD_REF`, `SUPABASE_PROD_DB_PASSWORD`); **(4)** promote `integration/v2` → `main` so CI runs
   the 14 migrations against prod and Netlify deploys production.
 - **In parallel (widening M2) — now the active track (owner decision 2026-06-22: widen M2 before prod):**
-  `contact` ✅ done; remaining renderers (`services`, `gallery`, `testimonial`, `custom`),
-  drag-and-drop reorder, shadcn restyle.
+  `contact` ✅ · `services` ✅ · `gallery` ✅ · `testimonial` ✅ done; only `custom` remains, plus
+  drag-and-drop reorder and the shadcn restyle. **8 of 9 module types are now built** (all except `custom`).
 - **Branch model:** work happens on `integration/v2`; it becomes `main` when v2 is ready.
 
 ---
@@ -166,9 +166,14 @@ engine's `updateItem` op; paid-tier gated). `contact` ✅ done (`@hio/content-mo
 plain-text **free-tier** module — closes the gap where the DB `allowed_module_types()` listed `contact`
 free but no module existed; edited by the built-in `update_module_content`, no new AI tools; vendor
 re-bundled + ai-command redeployed **v8**; verified live: REST insert under the self_serve RLS, AI title
-edit via v8 → DB-persisted, public `/[slug]` renders it). Remaining renderers: `services`, `gallery`,
-`testimonial`, `custom`. Plus drag-and-drop reordering and the shadcn/design-system restyle of all
-renderers.
+edit via v8 → DB-persisted, public `/[slug]` renders it). `services` ✅ done (`@hio/content-model@1.3.0`;
+collection module with `add_service`/`update_service`/`remove_service`, PR #38). `gallery` + `testimonial`
+✅ done (`@hio/content-model@1.4.0`): `gallery` = image-URL grid with `add_image`/`update_image`/`remove_image`
+(no upload pipeline — Supabase Storage upload is a future enhancement); `testimonial` = quote list with
+`add_testimonial`/`update_testimonial`/`remove_testimonial`. Both paid-gated by RLS. **ai-command redeployed
+v9**; all three (services/gallery/testimonial) live-verified end-to-end on dev (REST insert → AI add-item →
+DB-persisted → public `/[slug]` renders). **Only `custom` remains unbuilt** (8 of 9 module types done). Plus
+drag-and-drop reordering and the shadcn/design-system restyle of all renderers.
 
 ### M3 — Extract, generalize & **freeze** the core ✅ (engine generalized in M2.5a; freeze + deploy reconcile done)
 The engine was made schema-driven with Vitest coverage in M2.5a. The remaining, non-skippable work

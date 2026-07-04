@@ -2,18 +2,22 @@ import type {
   BioContent,
   CalendarContent,
   ContactContent,
+  GalleryContent,
   HeroContent,
   LinksContent,
   ModuleType,
   ServicesContent,
+  TestimonialContent,
 } from "@hio/content-model";
 import type { StyleVariant } from "../style";
 import { BioModule } from "./BioModule";
 import { CalendarModule } from "./CalendarModule";
 import { ContactModule } from "./ContactModule";
+import { GalleryModule } from "./GalleryModule";
 import { HeroModule } from "./HeroModule";
 import { LinksModule } from "./LinksModule";
 import { ServicesModule } from "./ServicesModule";
+import { TestimonialModule } from "./TestimonialModule";
 
 /** Minimal shape needed to render a section (decoupled from the DB row type). */
 export interface RenderableSection {
@@ -41,6 +45,12 @@ export function ModuleRenderer({ section }: { section: RenderableSection }) {
       return <ContactModule content={section.content as ContactContent} variant={variant} />;
     case "services":
       return <ServicesModule content={section.content as ServicesContent} variant={variant} />;
+    case "gallery":
+      return <GalleryModule content={section.content as GalleryContent} variant={variant} />;
+    case "testimonial":
+      return (
+        <TestimonialModule content={section.content as TestimonialContent} variant={variant} />
+      );
     default:
       return (
         <div style={{ padding: "1rem 1.5rem", color: "#9ca3af" }}>

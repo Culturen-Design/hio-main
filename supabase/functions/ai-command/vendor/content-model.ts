@@ -226,6 +226,41 @@ export const servicesSchema = z.object({
 });
 export type ServicesContent = z.infer<typeof servicesSchema>;
 
+/* ── Gallery module schema ──────────────────────────────────────────────────── */
+// Collection module: a grid of images referenced by URL (users paste hosted image
+// URLs — no upload pipeline; Supabase Storage upload is a future enhancement). The
+// AI can add/update/remove images plus edit the title.
+
+export const galleryImageSchema = z.object({
+  id: z.string(),
+  url: z.string().url(),
+  caption: z.string().max(160).optional(),
+  alt: z.string().max(160).optional(),
+});
+export const gallerySchema = z.object({
+  title: z.string(),
+  images: z.array(galleryImageSchema).max(30),
+  columns: z.union([z.literal(2), z.literal(3), z.literal(4)]),
+});
+export type GalleryContent = z.infer<typeof gallerySchema>;
+
+/* ── Testimonial module schema ──────────────────────────────────────────────── */
+// Collection module: a list of quotes with attribution. The AI can add/update/remove
+// testimonials plus edit the title.
+
+export const testimonialItemSchema = z.object({
+  id: z.string(),
+  quote: z.string().max(500),
+  author: z.string().max(80),
+  role: z.string().max(120).optional(), // e.g. "CEO, Acme"
+  avatar_url: z.string().url().optional(),
+});
+export const testimonialSchema = z.object({
+  title: z.string(),
+  items: z.array(testimonialItemSchema).max(20),
+});
+export type TestimonialContent = z.infer<typeof testimonialSchema>;
+
 /* ── Per-module AI tools ────────────────────────────────────────────────────── */
 // Text-field edits on any module are handled by the engine's built-in
 // `update_module_content` tool. Modules only declare tools for collection
@@ -312,6 +347,67 @@ export const servicesAiTools: AiToolDescriptor[] = [
   },
 ];
 
+const galleryImageInputSchema = galleryImageSchema.omit({ id: true });
+
+export const galleryAiTools: AiToolDescriptor[] = [
+  {
+    name: "add_image",
+    description:
+      "Adds an image to a gallery module. Requires a valid image URL; caption/alt optional.",
+    moduleType: "gallery",
+    inputSchema: z.object({ section_id: z.string(), image: galleryImageInputSchema }),
+    op: { kind: "appendItem", field: "images", itemKey: "image", genId: true },
+  },
+  {
+    name: "update_image",
+    description: "Updates fields of an existing gallery image, found by its image id.",
+    moduleType: "gallery",
+    inputSchema: z.object({
+      section_id: z.string(),
+      image_id: z.string(),
+      updates: galleryImageInputSchema.partial(),
+    }),
+    op: { kind: "updateItem", field: "images", idKey: "image_id", itemKey: "updates" },
+  },
+  {
+    name: "remove_image",
+    description: "Removes an image from a gallery module by its image id.",
+    moduleType: "gallery",
+    inputSchema: z.object({ section_id: z.string(), image_id: z.string() }),
+    op: { kind: "removeItem", field: "images", idKey: "image_id" },
+  },
+];
+
+const testimonialInputSchema = testimonialItemSchema.omit({ id: true });
+
+export const testimonialAiTools: AiToolDescriptor[] = [
+  {
+    name: "add_testimonial",
+    description: "Adds a testimonial to a testimonial module. Requires a quote and an author.",
+    moduleType: "testimonial",
+    inputSchema: z.object({ section_id: z.string(), testimonial: testimonialInputSchema }),
+    op: { kind: "appendItem", field: "items", itemKey: "testimonial", genId: true },
+  },
+  {
+    name: "update_testimonial",
+    description: "Updates fields of an existing testimonial, found by its testimonial id.",
+    moduleType: "testimonial",
+    inputSchema: z.object({
+      section_id: z.string(),
+      testimonial_id: z.string(),
+      updates: testimonialInputSchema.partial(),
+    }),
+    op: { kind: "updateItem", field: "items", idKey: "testimonial_id", itemKey: "updates" },
+  },
+  {
+    name: "remove_testimonial",
+    description: "Removes a testimonial from a testimonial module by its testimonial id.",
+    moduleType: "testimonial",
+    inputSchema: z.object({ section_id: z.string(), testimonial_id: z.string() }),
+    op: { kind: "removeItem", field: "items", idKey: "testimonial_id" },
+  },
+];
+
 /* ── Module definitions ─────────────────────────────────────────────────────── */
 
 export const heroModule: ModuleDefinition<HeroContent> = {
@@ -368,6 +464,24 @@ export const servicesModule: ModuleDefinition<ServicesContent> = {
   aiTools: servicesAiTools,
 };
 
+export const galleryModule: ModuleDefinition<GalleryContent> = {
+  type: "gallery",
+  label: "Gallery",
+  contentSchema: gallerySchema,
+  defaults: { title: "Gallery", images: [], columns: 3 },
+  width: [6, 12],
+  aiTools: galleryAiTools,
+};
+
+export const testimonialModule: ModuleDefinition<TestimonialContent> = {
+  type: "testimonial",
+  label: "Testimonials",
+  contentSchema: testimonialSchema,
+  defaults: { title: "What people say", items: [] },
+  width: [4, 12],
+  aiTools: testimonialAiTools,
+};
+
 /* ── Module registry & per-tenant provider resolution (M4.2) ────────────────── */
 
 /**
@@ -386,11 +500,14 @@ export const MODULE_REGISTRY: Partial<Record<ModuleType, ModuleDefinition>> = {
   calendar: calendarModule,
   contact: contactModule,
   services: servicesModule,
+  gallery: galleryModule,
+  testimonial: testimonialModule,
 };
 
 /** The built-in Self-Serve product surface. `hero`/`bio`/`links`/`contact` are the
- *  free-tier modules (mirrors the DB `allowed_module_types()` gate); `calendar` and
- *  `services` are in the palette but paid-gated by RLS. */
+ *  free-tier modules (mirrors the DB `allowed_module_types()` gate); `calendar`,
+ *  `services`, `gallery`, and `testimonial` are in the palette but paid-gated by RLS.
+ *  (`custom` is the only module type not yet built.) */
 const SELF_SERVE_MODULE_TYPES: readonly ModuleType[] = [
   "hero",
   "bio",
@@ -398,6 +515,8 @@ const SELF_SERVE_MODULE_TYPES: readonly ModuleType[] = [
   "contact",
   "calendar",
   "services",
+  "gallery",
+  "testimonial",
 ];
 
 /**
