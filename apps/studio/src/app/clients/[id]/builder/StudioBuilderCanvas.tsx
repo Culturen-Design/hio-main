@@ -1,7 +1,7 @@
 "use client";
 
 import type { ModuleType } from "@hio/content-model";
-import { ModuleRenderer, type StyleVariant } from "@hio/ui";
+import { ModuleRenderer, type StyleVariant, cn } from "@hio/ui";
 import { useState, useTransition } from "react";
 import { ChatSidebar } from "./ChatSidebar";
 import { StudioSectionEditor } from "./StudioSectionEditor";
@@ -16,14 +16,8 @@ type Section = {
   order: number;
 };
 
-const btn: React.CSSProperties = {
-  padding: "0.3rem 0.6rem",
-  borderRadius: 6,
-  border: "1px solid #d1d5db",
-  background: "white",
-  cursor: "pointer",
-  fontSize: 13,
-};
+const btn =
+  "cursor-pointer rounded-[6px] border border-border bg-background px-[0.6rem] py-[0.3rem] text-[13px]";
 
 export function StudioBuilderCanvas({
   tenantId,
@@ -56,40 +50,23 @@ export function StudioBuilderCanvas({
     });
 
   return (
-    <main
-      style={{ fontFamily: "system-ui", maxWidth: 820, margin: "0 auto", padding: "2rem 1.5rem" }}
-    >
-      <header
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: "1rem",
-        }}
-      >
+    <main className="mx-auto max-w-[820px] px-6 py-8 font-sans">
+      <header className="flex items-center justify-between gap-4">
         <div>
-          <h1 style={{ margin: 0 }}>{clientName}</h1>
-          <p style={{ margin: "0.25rem 0 0", color: "#6b7280", fontSize: 14 }}>
+          <h1 className="m-0">{clientName}</h1>
+          <p className="mt-1 mb-0 text-sm text-muted-foreground">
             Builder · schema <code>{schemaVariant}</code>
           </p>
         </div>
-        <a href={`/clients/${tenantId}`} style={btn}>
+        <a href={`/clients/${tenantId}`} className={btn}>
           ← Client
         </a>
       </header>
 
-      <section
-        style={{
-          margin: "1.25rem 0",
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "0.5rem",
-          alignItems: "center",
-        }}
-      >
-        <span style={{ fontSize: 13, color: "#6b7280" }}>Add module:</span>
+      <section className="my-5 flex flex-wrap items-center gap-2">
+        <span className="text-[13px] text-muted-foreground">Add module:</span>
         {paletteError ? (
-          <span style={{ fontSize: 13, color: "#dc2626" }}>
+          <span className="text-[13px] text-destructive">
             Unknown schema variant “{paletteError}” — no modules available.
           </span>
         ) : (
@@ -99,7 +76,7 @@ export function StudioBuilderCanvas({
               type="button"
               disabled={pending}
               onClick={() => run(() => addSection(tenantId, m.type as ModuleType))}
-              style={{ ...btn, background: "#f3f4f6" }}
+              className={cn(btn, "bg-muted")}
             >
               + {m.label}
             </button>
@@ -108,14 +85,16 @@ export function StudioBuilderCanvas({
       </section>
 
       {error && (
-        <p role="alert" style={{ color: "#dc2626", fontSize: 13 }}>
+        <p role="alert" className="text-[13px] text-destructive">
           {error}
         </p>
       )}
 
-      {sections.length === 0 && <p style={{ color: "#9ca3af" }}>No modules yet — add one above.</p>}
+      {sections.length === 0 && (
+        <p className="text-muted-foreground">No modules yet — add one above.</p>
+      )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+      <div className="flex flex-col gap-4">
         {sections.map((s, idx) => (
           <div
             key={s.id}
@@ -131,24 +110,14 @@ export function StudioBuilderCanvas({
               setOverIndex(null);
               if (id && id !== s.id) run(() => moveSection(tenantId, id, idx));
             }}
-            style={{
-              border: overIndex === idx ? "1px solid #111827" : "1px solid #e5e7eb",
-              borderRadius: 14,
-              overflow: "hidden",
-              opacity: draggingId === s.id ? 0.5 : 1,
-            }}
+            className={cn(
+              "overflow-hidden rounded-[14px] border",
+              overIndex === idx ? "border-foreground" : "border-border",
+              draggingId === s.id && "opacity-50",
+            )}
           >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "0.5rem 0.75rem",
-                background: "#fafafa",
-                borderBottom: "1px solid #eee",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <div className="flex items-center justify-between border-[#eee] border-b bg-[#fafafa] px-3 py-2">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   aria-label={`Drag to reorder ${s.type}`}
@@ -158,33 +127,18 @@ export function StudioBuilderCanvas({
                     setDraggingId(null);
                     setOverIndex(null);
                   }}
-                  style={{
-                    cursor: "grab",
-                    color: "#9ca3af",
-                    fontSize: 14,
-                    lineHeight: 1,
-                    background: "none",
-                    border: "none",
-                    padding: 0,
-                  }}
+                  className="cursor-grab border-none bg-transparent p-0 text-sm text-muted-foreground leading-none"
                 >
                   ⠿
                 </button>
-                <span
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    textTransform: "uppercase",
-                    color: "#6b7280",
-                  }}
-                >
+                <span className="font-semibold text-muted-foreground text-xs uppercase">
                   {s.type}
                 </span>
               </div>
-              <div style={{ display: "flex", gap: "0.35rem" }}>
+              <div className="flex gap-1.5">
                 <button
                   type="button"
-                  style={btn}
+                  className={btn}
                   disabled={pending}
                   onClick={() => setEditingId(editingId === s.id ? null : s.id)}
                 >
@@ -192,7 +146,7 @@ export function StudioBuilderCanvas({
                 </button>
                 <button
                   type="button"
-                  style={{ ...btn, color: "#dc2626" }}
+                  className={cn(btn, "text-destructive")}
                   disabled={pending}
                   onClick={() => run(() => deleteSection(tenantId, s.id))}
                 >
