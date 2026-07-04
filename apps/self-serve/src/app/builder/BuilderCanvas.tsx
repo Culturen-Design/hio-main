@@ -138,6 +138,7 @@ export function BuilderCanvas({
             {editingId === s.id ? (
               <SectionEditor
                 sectionId={s.id}
+                type={s.type}
                 content={(s.content ?? {}) as Record<string, unknown>}
                 onDone={() => setEditingId(null)}
               />
