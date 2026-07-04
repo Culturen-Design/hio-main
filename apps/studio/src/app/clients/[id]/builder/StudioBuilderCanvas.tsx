@@ -44,6 +44,8 @@ export function StudioBuilderCanvas({
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [overIndex, setOverIndex] = useState<number | null>(null);
   const [pending, start] = useTransition();
 
   const run = (fn: () => Promise<{ ok: true } | { error: string }>) =>
@@ -117,7 +119,24 @@ export function StudioBuilderCanvas({
         {sections.map((s, idx) => (
           <div
             key={s.id}
-            style={{ border: "1px solid #e5e7eb", borderRadius: 14, overflow: "hidden" }}
+            onDragOver={(e) => {
+              if (draggingId === null) return;
+              e.preventDefault();
+              setOverIndex(idx);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              const id = draggingId;
+              setDraggingId(null);
+              setOverIndex(null);
+              if (id && id !== s.id) run(() => moveSection(tenantId, id, idx));
+            }}
+            style={{
+              border: overIndex === idx ? "1px solid #111827" : "1px solid #e5e7eb",
+              borderRadius: 14,
+              overflow: "hidden",
+              opacity: draggingId === s.id ? 0.5 : 1,
+            }}
           >
             <div
               style={{
@@ -129,16 +148,39 @@ export function StudioBuilderCanvas({
                 borderBottom: "1px solid #eee",
               }}
             >
-              <span
-                style={{
-                  fontSize: 12,
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                  color: "#6b7280",
-                }}
-              >
-                {s.type}
-              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <button
+                  type="button"
+                  aria-label={`Drag to reorder ${s.type}`}
+                  draggable={!pending}
+                  onDragStart={() => setDraggingId(s.id)}
+                  onDragEnd={() => {
+                    setDraggingId(null);
+                    setOverIndex(null);
+                  }}
+                  style={{
+                    cursor: "grab",
+                    color: "#9ca3af",
+                    fontSize: 14,
+                    lineHeight: 1,
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                  }}
+                >
+                  ⠿
+                </button>
+                <span
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    textTransform: "uppercase",
+                    color: "#6b7280",
+                  }}
+                >
+                  {s.type}
+                </span>
+              </div>
               <div style={{ display: "flex", gap: "0.35rem" }}>
                 <button
                   type="button"
@@ -147,22 +189,6 @@ export function StudioBuilderCanvas({
                   onClick={() => setEditingId(editingId === s.id ? null : s.id)}
                 >
                   {editingId === s.id ? "Close" : "Edit"}
-                </button>
-                <button
-                  type="button"
-                  style={btn}
-                  disabled={pending || idx === 0}
-                  onClick={() => run(() => moveSection(tenantId, s.id, "up"))}
-                >
-                  ↑
-                </button>
-                <button
-                  type="button"
-                  style={btn}
-                  disabled={pending || idx === sections.length - 1}
-                  onClick={() => run(() => moveSection(tenantId, s.id, "down"))}
-                >
-                  ↓
                 </button>
                 <button
                   type="button"
