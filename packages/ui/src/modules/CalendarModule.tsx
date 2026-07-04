@@ -1,5 +1,7 @@
 import type { CalendarContent } from "@hio/content-model";
+import { cn } from "../cn";
 import type { StyleVariant } from "../style";
+import { cardClasses, headingClasses } from "../variant";
 
 const fmtDate = (iso: string) => {
   const d = new Date(`${iso}T00:00:00`);
@@ -10,6 +12,7 @@ const fmtDate = (iso: string) => {
 
 export function CalendarModule({
   content,
+  variant,
 }: {
   content: CalendarContent;
   variant?: StyleVariant | null;
@@ -21,33 +24,24 @@ export function CalendarModule({
     .sort((a, b) => a.date.localeCompare(b.date));
 
   return (
-    <section style={{ padding: "2.5rem 1.5rem", maxWidth: 720, margin: "0 auto" }}>
-      <h2 style={{ marginTop: 0 }}>{content.title}</h2>
+    <section className={cn("mx-auto max-w-[720px] p-10", cardClasses(variant))}>
+      <h2 className={cn("mt-0 text-xl", headingClasses(variant))}>{content.title}</h2>
       {events.length === 0 ? (
-        <p style={{ color: "#9ca3af" }}>No upcoming events.</p>
+        <p className="text-muted-foreground">No upcoming events.</p>
       ) : (
-        <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: "0.75rem" }}>
+        <ul className="m-0 grid list-none gap-3 p-0">
           {events.map((e) => (
-            <li
-              key={e.id}
-              style={{
-                display: "flex",
-                gap: "1rem",
-                padding: "0.9rem 1rem",
-                border: "1px solid #e5e7eb",
-                borderRadius: 12,
-              }}
-            >
-              <div style={{ minWidth: 92, fontWeight: 600, color: "#111827" }}>
+            <li key={e.id} className="flex gap-4 rounded-[12px] border border-border px-4 py-3.5">
+              <div className="min-w-[92px] font-semibold text-foreground">
                 {fmtDate(e.date)}
                 {e.time && (
-                  <span style={{ display: "block", fontSize: 13, color: "#6b7280" }}>{e.time}</span>
+                  <span className="block text-[13px] text-muted-foreground">{e.time}</span>
                 )}
               </div>
               <div>
-                <span style={{ fontWeight: 600 }}>
+                <span className="font-semibold">
                   {e.url ? (
-                    <a href={e.url} style={{ color: "#111827" }}>
+                    <a href={e.url} className="text-foreground">
                       {e.title}
                     </a>
                   ) : (
@@ -55,14 +49,10 @@ export function CalendarModule({
                   )}
                 </span>
                 {e.location && (
-                  <span style={{ display: "block", fontSize: 13, color: "#6b7280" }}>
-                    📍 {e.location}
-                  </span>
+                  <span className="block text-[13px] text-muted-foreground">📍 {e.location}</span>
                 )}
                 {e.description && (
-                  <span style={{ display: "block", fontSize: 14, color: "#374151" }}>
-                    {e.description}
-                  </span>
+                  <span className="block text-sm text-muted-foreground">{e.description}</span>
                 )}
               </div>
             </li>

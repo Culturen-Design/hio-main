@@ -1,38 +1,32 @@
 import type { ServicesContent } from "@hio/content-model";
+import { cn } from "../cn";
 import type { StyleVariant } from "../style";
+import { cardClasses, headingClasses } from "../variant";
 
 export function ServicesModule({
   content,
+  variant,
 }: { content: ServicesContent; variant?: StyleVariant | null }) {
   return (
-    <section style={{ padding: "2.5rem 1.5rem", maxWidth: 720, margin: "0 auto" }}>
-      <h2 style={{ marginTop: 0 }}>{content.title}</h2>
+    <section className={cn("mx-auto max-w-[720px] p-10", cardClasses(variant))}>
+      <h2 className={cn("mt-0 text-xl", headingClasses(variant))}>{content.title}</h2>
       {content.items.length === 0 ? (
-        <p style={{ color: "#9ca3af" }}>No services yet.</p>
+        <p className="text-muted-foreground">No services yet.</p>
       ) : (
-        <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: "0.75rem" }}>
+        <ul className="m-0 grid list-none gap-3 p-0">
           {content.items.map((item) => (
             <li
               key={item.id}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: "1rem",
-                padding: "0.9rem 1rem",
-                border: "1px solid #e5e7eb",
-                borderRadius: 12,
-              }}
+              className="flex justify-between gap-4 rounded-[12px] border border-border px-4 py-3.5"
             >
               <div>
-                <span style={{ fontWeight: 600, color: "#111827" }}>{item.name}</span>
+                <span className="font-semibold text-foreground">{item.name}</span>
                 {item.description && (
-                  <span style={{ display: "block", fontSize: 14, color: "#374151" }}>
-                    {item.description}
-                  </span>
+                  <span className="block text-sm text-muted-foreground">{item.description}</span>
                 )}
               </div>
               {item.price && (
-                <span style={{ whiteSpace: "nowrap", fontWeight: 600, color: "#111827" }}>
+                <span className="font-semibold whitespace-nowrap text-foreground">
                   {item.price}
                 </span>
               )}

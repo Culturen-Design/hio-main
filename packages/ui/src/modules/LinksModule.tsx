@@ -1,41 +1,34 @@
 import type { LinksContent } from "@hio/content-model";
+import { cn } from "../cn";
 import type { StyleVariant } from "../style";
+import { cardClasses, headingClasses } from "../variant";
 
-export function LinksModule({ content }: { content: LinksContent; variant?: StyleVariant | null }) {
+export function LinksModule({
+  content,
+  variant,
+}: { content: LinksContent; variant?: StyleVariant | null }) {
   return (
-    <section style={{ padding: "2.5rem 1.5rem", maxWidth: 720, margin: "0 auto" }}>
-      <h2 style={{ marginTop: 0 }}>{content.title}</h2>
+    <section className={cn("mx-auto max-w-[720px] p-10", cardClasses(variant))}>
+      <h2 className={cn("mt-0 text-xl", headingClasses(variant))}>{content.title}</h2>
       {content.items.length === 0 ? (
-        <p style={{ color: "#9ca3af" }}>No links yet.</p>
+        <p className="text-muted-foreground">No links yet.</p>
       ) : (
         <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: `repeat(${content.columns}, minmax(0, 1fr))`,
-            gap: "0.75rem",
-          }}
+          className="grid gap-3"
+          style={{ gridTemplateColumns: `repeat(${content.columns}, minmax(0, 1fr))` }}
         >
           {content.items.map((item) => (
             <a
               key={item.id}
               href={item.url}
-              style={{
-                display: "block",
-                padding: "0.9rem 1rem",
-                border: "1px solid #e5e7eb",
-                borderRadius: 12,
-                textDecoration: "none",
-                color: "#111827",
-              }}
+              className="block rounded-[12px] border border-border px-4 py-3.5 text-foreground no-underline"
             >
-              <span style={{ fontWeight: 600 }}>
+              <span className="font-semibold">
                 {item.icon ? `${item.icon} ` : ""}
                 {item.title}
               </span>
               {item.description && (
-                <span style={{ display: "block", fontSize: 13, color: "#6b7280" }}>
-                  {item.description}
-                </span>
+                <span className="block text-[13px] text-muted-foreground">{item.description}</span>
               )}
             </a>
           ))}

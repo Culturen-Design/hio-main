@@ -1,20 +1,7 @@
 import type { ContactContent } from "@hio/content-model";
 import { cn } from "../cn";
 import type { StyleVariant } from "../style";
-
-/** Maps the shared `StyleVariant` to a card treatment for the outer section. */
-function cardClasses(variant?: StyleVariant | null): string {
-  switch (variant) {
-    case "outlined":
-      return "border border-border rounded-card";
-    case "filled":
-      return "bg-muted rounded-card";
-    case "bold":
-      return "border-2 border-foreground rounded-card";
-    default:
-      return "";
-  }
-}
+import { cardClasses, headingClasses } from "../variant";
 
 export function ContactModule({
   content,
@@ -29,7 +16,7 @@ export function ContactModule({
 
   return (
     <section className={cn("mx-auto max-w-xl p-10", cardClasses(variant))}>
-      <h2 className={cn("mt-0 text-xl", variant === "bold" && "font-bold")}>{content.title}</h2>
+      <h2 className={cn("mt-0 text-xl", headingClasses(variant))}>{content.title}</h2>
       {content.intro && <p className="leading-relaxed text-muted-foreground">{content.intro}</p>}
       {rows.length > 0 && (
         <dl className="mt-5 grid gap-2">
