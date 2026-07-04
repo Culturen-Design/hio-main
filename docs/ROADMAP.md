@@ -72,8 +72,11 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
   the 14 migrations against prod and Netlify deploys production.
 - **In parallel (widening M2) — now the active track (owner decision 2026-06-22: widen M2 before prod):**
   `contact` ✅ · `services` ✅ · `gallery` ✅ · `testimonial` ✅ · `custom` ✅ done. **All 9 module
-  types are now built.** Drag-and-drop reorder ✅ done (both builders, PR #42). Remaining in this
-  track: the shadcn restyle (in progress).
+  types are now built.** Drag-and-drop reorder ✅ done (both builders, PR #42). shadcn/Tailwind
+  spike ✅ done (PR #44, pipeline wired + `ContactModule` migrated) — **all three Active-track
+  items are now merged.** Remaining: migrate the other 8 renderers + builder chrome (deferred
+  enhancement, not a gate — see the Module build-out note below); next up per the roadmap is the
+  **INFRA/path-to-prod** track (see "Next action" above).
 - **Branch model:** work happens on `integration/v2`; it becomes `main` when v2 is ready.
 
 ---
@@ -187,8 +190,20 @@ step at a time to the drop index, so the DB writes are the exact same membership
 order-value updates as before — no RPC, no schema change. Self-Serve's swap logic (previously inlined
 in `actions.ts`) was factored into its own `reorder.ts` to match Studio's existing pattern; both now
 colocated-tested (12 Vitest each). Live-verified end-to-end in both apps: dragging a section to an
-arbitrary position persists (confirmed via a fresh reload), then test data reverted. Remaining in this
-track: the shadcn/design-system restyle of all renderers + builder chrome.
+arbitrary position persists (confirmed via a fresh reload), then test data reverted. shadcn/Tailwind
+spike ✅ done (PR #44): scoping found **no Tailwind/shadcn/PostCSS existed anywhere in the repo** —
+every renderer + builder chrome was 100% inline `style={{}}`; `@hio/ui`'s `cn()` was an unused
+forward-looking utility. Rather than a component swap, this bootstrapped the pipeline from scratch:
+Tailwind v4 wired via `@hio/ui/src/globals.css` (design tokens through `@theme`, exported as
+`"@hio/ui/globals.css"`, with `@source "./modules"` so Tailwind scans this package's components
+from either app) + `postcss.config.mjs` in both apps + the shared stylesheet imported in both root
+layouts. `cn()` moved to its own `cn.ts` (avoids a circular import). `ContactModule` migrated onto
+Tailwind utilities as the proof point, and `StyleVariant` (`minimal/bold/outlined/filled` —
+previously accepted by every renderer but never used) now maps to a real card treatment. Live-
+verified: both apps compile clean; the migrated renderer's computed styles confirmed correct in the
+builder and on the public `/[slug]` page. **All three Active-track items are now merged** (`custom`,
+drag-and-drop, this spike). Migrating the other 8 renderers + builder chrome is deferred follow-up
+work, done incrementally so public `/[slug]` rendering stays stable throughout — not a re-opened gate.
 
 ### M3 — Extract, generalize & **freeze** the core ✅ (engine generalized in M2.5a; freeze + deploy reconcile done)
 The engine was made schema-driven with Vitest coverage in M2.5a. The remaining, non-skippable work
