@@ -87,8 +87,13 @@ on Self-Serve.
 
 **Remaining manual steps (dashboard / OAuth — cannot be done from here):**
 1. **Link the repo** — on each site, Site configuration → Build & deploy → link `culturenteam/hio-main`
-   (authorize the Netlify GitHub App for the private repo). Set **base directory** `apps/studio` /
-   `apps/self-serve` (or let `netlify.toml` drive it) and **production branch = `integration/v2`**.
+   (authorize the Netlify GitHub App for the private repo). Use Netlify's monorepo **Package directory**
+   field (`apps/studio` / `apps/self-serve`), leaving **Base directory** at `/` (repo root — required for
+   npm workspaces to resolve). Set **production branch = `integration/v2`**. **Gotcha:** each app's
+   `netlify.toml` `publish` path must then be written **relative to the repo root** (e.g.
+   `apps/self-serve/.next`), not relative to the app dir — Netlify resolves `netlify.toml`'s relative
+   paths against Base directory, not Package directory, and a dashboard-set Publish directory is
+   overridden by whatever `netlify.toml` declares.
 2. **Self-Serve secret** — add `SUPABASE_SERVICE_ROLE_KEY` (server-only, **not** `NEXT_PUBLIC_`) from
    the dev Supabase project's API settings. Studio needs no service-role key.
 3. **Domains** — Studio: add `studio.hio.space` as the primary domain + each test client domain (e.g.
