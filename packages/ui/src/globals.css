@@ -1,0 +1,31 @@
+/**
+ * @hio/ui design tokens — the shadcn-style base both apps import.
+ *
+ * `@source` tells Tailwind v4 to scan this package's components for class
+ * names too, since it lives outside whichever app's own directory Tailwind
+ * auto-detects. Path is resolved relative to THIS file, so it works no matter
+ * which app imports it.
+ */
+@import "tailwindcss";
+@source "./modules";
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  --color-background: oklch(1 0 0);
+  --color-foreground: oklch(0.145 0 0);
+  --color-muted: oklch(0.97 0 0);
+  --color-muted-foreground: oklch(0.552 0.016 285.9);
+  --color-border: oklch(0.922 0 0);
+  --color-primary: oklch(0.205 0 0);
+  --color-primary-foreground: oklch(0.985 0 0);
+  --color-destructive: oklch(0.577 0.245 27.325);
+
+  --radius-card: 0.75rem;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+}

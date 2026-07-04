@@ -1,8 +1,24 @@
 import type { ContactContent } from "@hio/content-model";
+import { cn } from "../cn";
 import type { StyleVariant } from "../style";
+
+/** Maps the shared `StyleVariant` to a card treatment for the outer section. */
+function cardClasses(variant?: StyleVariant | null): string {
+  switch (variant) {
+    case "outlined":
+      return "border border-border rounded-card";
+    case "filled":
+      return "bg-muted rounded-card";
+    case "bold":
+      return "border-2 border-foreground rounded-card";
+    default:
+      return "";
+  }
+}
 
 export function ContactModule({
   content,
+  variant,
 }: { content: ContactContent; variant?: StyleVariant | null }) {
   const rows: Array<{ label: string; value: string; href?: string }> = [];
   if (content.email)
@@ -12,17 +28,17 @@ export function ContactModule({
   if (content.location) rows.push({ label: "Location", value: content.location });
 
   return (
-    <section style={{ padding: "2.5rem 1.5rem", maxWidth: 560, margin: "0 auto" }}>
-      <h2 style={{ marginTop: 0 }}>{content.title}</h2>
-      {content.intro && <p style={{ color: "#374151", lineHeight: 1.6 }}>{content.intro}</p>}
+    <section className={cn("mx-auto max-w-xl p-10", cardClasses(variant))}>
+      <h2 className={cn("mt-0 text-xl", variant === "bold" && "font-bold")}>{content.title}</h2>
+      {content.intro && <p className="leading-relaxed text-muted-foreground">{content.intro}</p>}
       {rows.length > 0 && (
-        <dl style={{ display: "grid", gap: "0.5rem", margin: "1.25rem 0 0" }}>
+        <dl className="mt-5 grid gap-2">
           {rows.map((r) => (
-            <div key={r.label} style={{ display: "flex", gap: "0.75rem" }}>
-              <dt style={{ width: 80, color: "#6b7280", fontSize: 14 }}>{r.label}</dt>
-              <dd style={{ margin: 0 }}>
+            <div key={r.label} className="flex gap-3">
+              <dt className="w-20 text-sm text-muted-foreground">{r.label}</dt>
+              <dd className="m-0">
                 {r.href ? (
-                  <a href={r.href} style={{ color: "#111827" }}>
+                  <a href={r.href} className="text-foreground underline-offset-2 hover:underline">
                     {r.value}
                   </a>
                 ) : (
