@@ -72,8 +72,8 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
   the 14 migrations against prod and Netlify deploys production.
 - **In parallel (widening M2) — now the active track (owner decision 2026-06-22: widen M2 before prod):**
   `contact` ✅ · `services` ✅ · `gallery` ✅ · `testimonial` ✅ · `custom` ✅ done. **All 9 module
-  types are now built.** Remaining in this track: drag-and-drop reorder (both builders, in progress)
-  and the shadcn restyle.
+  types are now built.** Drag-and-drop reorder ✅ done (both builders, PR #42). Remaining in this
+  track: the shadcn restyle (in progress).
 - **Branch model:** work happens on `integration/v2`; it becomes `main` when v2 is ready.
 
 ---
@@ -180,8 +180,15 @@ plugin, so pasted HTML/`<script>` tags render as inert text — a markdown rende
 Paid-gated by RLS; no migration (the DB `allowed_module_types()` already listed `custom`). **ai-command
 redeployed v10**; live-verified end-to-end (REST add/edit + AI title edit, both DB-persisted; an XSS probe
 with `<script>`/`<img onerror>` in the body confirmed inert — no execution, no injected DOM node). **All 9
-module types are now built.** Remaining in this track: drag-and-drop reordering (both builders) and the
-shadcn/design-system restyle of all renderers.
+module types are now built.** Drag-and-drop reorder ✅ done (PR #42): both builders replace the ↑/↓
+swap buttons with a drag handle (⠿) using native HTML5 drag events (no new dependency).
+`computeReorder(secs, sectionId, toIndex)` walks the existing `computeSwap` adjacent-swap helper one
+step at a time to the drop index, so the DB writes are the exact same membership-gated per-row
+order-value updates as before — no RPC, no schema change. Self-Serve's swap logic (previously inlined
+in `actions.ts`) was factored into its own `reorder.ts` to match Studio's existing pattern; both now
+colocated-tested (12 Vitest each). Live-verified end-to-end in both apps: dragging a section to an
+arbitrary position persists (confirmed via a fresh reload), then test data reverted. Remaining in this
+track: the shadcn/design-system restyle of all renderers + builder chrome.
 
 ### M3 — Extract, generalize & **freeze** the core ✅ (engine generalized in M2.5a; freeze + deploy reconcile done)
 The engine was made schema-driven with Vitest coverage in M2.5a. The remaining, non-skippable work
