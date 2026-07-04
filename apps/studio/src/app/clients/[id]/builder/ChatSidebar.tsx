@@ -1,6 +1,7 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
+import { cn } from "@hio/ui";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 
@@ -10,31 +11,14 @@ const newId = () => crypto.randomUUID();
 
 type CommandResponse = { ok: boolean; message: string; tool?: string };
 
-const panel: React.CSSProperties = {
-  position: "fixed",
-  top: 0,
-  right: 0,
-  bottom: 0,
-  width: 340,
-  background: "white",
-  borderLeft: "1px solid #e5e7eb",
-  display: "flex",
-  flexDirection: "column",
-  boxShadow: "-8px 0 24px rgba(0,0,0,0.04)",
-  zIndex: 50,
-};
+const panel =
+  "fixed top-0 right-0 bottom-0 z-50 flex w-[340px] flex-col border-[#e5e7eb] border-l bg-background shadow-[-8px_0_24px_rgba(0,0,0,0.04)]";
 
-const bubble = (role: ChatMessage["role"]): React.CSSProperties => ({
-  alignSelf: role === "user" ? "flex-end" : "flex-start",
-  maxWidth: "85%",
-  padding: "0.5rem 0.7rem",
-  borderRadius: 12,
-  fontSize: 14,
-  lineHeight: 1.4,
-  background: role === "user" ? "#111827" : "#f3f4f6",
-  color: role === "user" ? "white" : "#111827",
-  whiteSpace: "pre-wrap",
-});
+const bubble = (role: ChatMessage["role"]) =>
+  cn(
+    "max-w-[85%] whitespace-pre-wrap rounded-xl px-[0.7rem] py-2 text-sm leading-[1.4]",
+    role === "user" ? "self-end bg-primary text-primary-foreground" : "self-start bg-muted",
+  );
 
 /**
  * Floating AI editor for the per-client builder. Sends the prompt + the client's
@@ -99,20 +83,7 @@ export function ChatSidebar({ tenantId, siteId }: { tenantId: string; siteId: st
       <button
         type="button"
         onClick={() => setOpen(true)}
-        style={{
-          position: "fixed",
-          bottom: 20,
-          right: 20,
-          zIndex: 50,
-          padding: "0.6rem 1rem",
-          borderRadius: 999,
-          border: "none",
-          background: "#111827",
-          color: "white",
-          fontSize: 14,
-          cursor: "pointer",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-        }}
+        className="fixed right-5 bottom-5 z-50 cursor-pointer rounded-full border-none bg-primary px-4 py-[0.6rem] text-primary-foreground text-sm shadow-[0_4px_12px_rgba(0,0,0,0.15)]"
       >
         ✨ Edit with AI
       </button>
@@ -120,74 +91,43 @@ export function ChatSidebar({ tenantId, siteId }: { tenantId: string; siteId: st
   }
 
   return (
-    <aside style={panel} aria-label="AI editor">
-      <header
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "0.75rem 1rem",
-          borderBottom: "1px solid #eee",
-        }}
-      >
-        <strong style={{ fontSize: 14 }}>✨ Edit with AI</strong>
+    <aside className={panel} aria-label="AI editor">
+      <header className="flex items-center justify-between border-[#eee] border-b px-4 py-3">
+        <strong className="text-sm">✨ Edit with AI</strong>
         <button
           type="button"
           onClick={() => setOpen(false)}
           aria-label="Close AI editor"
-          style={{ border: "none", background: "none", cursor: "pointer", fontSize: 18 }}
+          className="cursor-pointer border-none bg-transparent text-lg"
         >
           ×
         </button>
       </header>
 
-      <div
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          padding: "1rem",
-          display: "flex",
-          flexDirection: "column",
-          gap: "0.5rem",
-        }}
-      >
+      <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-4">
         {messages.map((m) => (
-          <div key={m.id} style={bubble(m.role)}>
+          <div key={m.id} className={bubble(m.role)}>
             {m.text}
           </div>
         ))}
-        {pending && <div style={bubble("assistant")}>…</div>}
+        {pending && <div className={bubble("assistant")}>…</div>}
       </div>
 
-      <form
-        onSubmit={onSubmit}
-        style={{ display: "flex", gap: "0.5rem", padding: "0.75rem", borderTop: "1px solid #eee" }}
-      >
+      <form onSubmit={onSubmit} className="flex gap-2 border-[#eee] border-t px-3 py-3">
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask for a change…"
           disabled={pending}
-          style={{
-            flex: 1,
-            padding: "0.5rem 0.7rem",
-            borderRadius: 8,
-            border: "1px solid #d1d5db",
-            fontSize: 14,
-          }}
+          className="flex-1 rounded-lg border border-border px-[0.7rem] py-2 text-sm"
         />
         <button
           type="submit"
           disabled={pending || !input.trim()}
-          style={{
-            padding: "0.5rem 0.9rem",
-            borderRadius: 8,
-            border: "none",
-            background: pending || !input.trim() ? "#9ca3af" : "#111827",
-            color: "white",
-            fontSize: 14,
-            cursor: pending ? "default" : "pointer",
-          }}
+          className={cn(
+            "cursor-pointer rounded-lg border-none px-3.5 py-2 text-primary-foreground text-sm",
+            pending || !input.trim() ? "bg-muted-foreground" : "cursor-pointer bg-primary",
+          )}
         >
           Send
         </button>

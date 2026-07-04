@@ -40,12 +40,12 @@ export function StudioSectionEditor({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem", padding: "1rem" }}>
+    <div className="flex flex-col gap-[0.6rem] p-4">
       {stringKeys.length === 0 && (
-        <p style={{ color: "#6b7280", margin: 0 }}>This module has no editable text fields yet.</p>
+        <p className="m-0 text-muted-foreground">This module has no editable text fields yet.</p>
       )}
       {stringKeys.map((key) => (
-        <div key={key} style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 13 }}>
+        <div key={key} className="flex flex-col gap-1 text-[13px]">
           <label htmlFor={`field-${key}`}>{key}</label>
           {key === "body" ? (
             <textarea
@@ -53,37 +53,25 @@ export function StudioSectionEditor({
               value={values[key] ?? ""}
               onChange={(e) => setValues((v) => ({ ...v, [key]: e.target.value }))}
               rows={4}
-              style={{
-                padding: "0.5rem",
-                borderRadius: 8,
-                border: "1px solid #d1d5db",
-                font: "inherit",
-              }}
+              className="rounded-lg border border-border p-2 font-[inherit]"
             />
           ) : (
             <input
               id={`field-${key}`}
               value={values[key] ?? ""}
               onChange={(e) => setValues((v) => ({ ...v, [key]: e.target.value }))}
-              style={{ padding: "0.5rem", borderRadius: 8, border: "1px solid #d1d5db" }}
+              className="rounded-lg border border-border p-2"
             />
           )}
         </div>
       ))}
-      {error && <p style={{ color: "#dc2626", fontSize: 13, margin: 0 }}>{error}</p>}
-      <div style={{ display: "flex", gap: "0.5rem" }}>
+      {error && <p className="m-0 text-[13px] text-destructive">{error}</p>}
+      <div className="flex gap-2">
         <button
           type="button"
           onClick={save}
           disabled={pending}
-          style={{
-            padding: "0.45rem 0.9rem",
-            borderRadius: 8,
-            border: "none",
-            background: "#111827",
-            color: "white",
-            cursor: "pointer",
-          }}
+          className="cursor-pointer rounded-lg border-none bg-primary px-3.5 py-[0.45rem] text-primary-foreground"
         >
           {pending ? "Saving…" : "Save"}
         </button>
@@ -91,13 +79,7 @@ export function StudioSectionEditor({
           type="button"
           onClick={onDone}
           disabled={pending}
-          style={{
-            padding: "0.45rem 0.9rem",
-            borderRadius: 8,
-            border: "1px solid #d1d5db",
-            background: "white",
-            cursor: "pointer",
-          }}
+          className="cursor-pointer rounded-lg border border-border bg-background px-3.5 py-[0.45rem]"
         >
           Cancel
         </button>

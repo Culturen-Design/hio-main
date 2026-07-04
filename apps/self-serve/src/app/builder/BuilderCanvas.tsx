@@ -2,7 +2,7 @@
 
 import { type ModuleType, selfServeSchema } from "@hio/content-model";
 import type { Tables } from "@hio/db";
-import { ModuleRenderer } from "@hio/ui";
+import { ModuleRenderer, cn } from "@hio/ui";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { ChatSidebar } from "./ChatSidebar";
@@ -11,14 +11,8 @@ import { addModule, deleteSection, moveSection } from "./actions";
 
 type Section = Tables<"sections">;
 
-const btn: React.CSSProperties = {
-  padding: "0.3rem 0.6rem",
-  borderRadius: 6,
-  border: "1px solid #d1d5db",
-  background: "white",
-  cursor: "pointer",
-  fontSize: 13,
-};
+const btn =
+  "cursor-pointer rounded-[6px] border border-border bg-background px-[0.6rem] py-[0.3rem] text-[13px]";
 
 export function BuilderCanvas({
   tenantId,
@@ -38,59 +32,44 @@ export function BuilderCanvas({
   const run = (fn: () => Promise<unknown>) => start(() => void fn());
 
   return (
-    <main
-      style={{ fontFamily: "system-ui", maxWidth: 820, margin: "0 auto", padding: "2rem 1.5rem" }}
-    >
-      <header
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: "1rem",
-        }}
-      >
+    <main className="mx-auto max-w-[820px] px-6 py-8 font-sans">
+      <header className="flex items-center justify-between gap-4">
         <div>
-          <h1 style={{ margin: 0 }}>Builder</h1>
-          <p style={{ margin: "0.25rem 0 0", color: "#6b7280", fontSize: 14 }}>
+          <h1 className="m-0">Builder</h1>
+          <p className="mt-1 mb-0 text-sm text-muted-foreground">
             Editing <code>/{site.slug}</code>
           </p>
         </div>
-        <div style={{ display: "flex", gap: "0.5rem" }}>
-          <Link href={`/${site.slug}`} target="_blank" style={btn}>
+        <div className="flex gap-2">
+          <Link href={`/${site.slug}`} target="_blank" className={btn}>
             View public ↗
           </Link>
-          <Link href="/dashboard" style={btn}>
+          <Link href="/dashboard" className={btn}>
             Dashboard
           </Link>
         </div>
       </header>
 
-      <section
-        style={{
-          margin: "1.25rem 0",
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "0.5rem",
-          alignItems: "center",
-        }}
-      >
-        <span style={{ fontSize: 13, color: "#6b7280" }}>Add module:</span>
+      <section className="my-5 flex flex-wrap items-center gap-2">
+        <span className="text-[13px] text-muted-foreground">Add module:</span>
         {allowed.map((type) => (
           <button
             key={type}
             type="button"
             disabled={pending}
             onClick={() => run(() => addModule(type as ModuleType))}
-            style={{ ...btn, background: "#f3f4f6" }}
+            className={cn(btn, "bg-muted")}
           >
             + {selfServeSchema.getModule(type as ModuleType)?.label ?? type}
           </button>
         ))}
       </section>
 
-      {sections.length === 0 && <p style={{ color: "#9ca3af" }}>No modules yet — add one above.</p>}
+      {sections.length === 0 && (
+        <p className="text-muted-foreground">No modules yet — add one above.</p>
+      )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+      <div className="flex flex-col gap-4">
         {sections.map((s, idx) => (
           <div
             key={s.id}
@@ -106,24 +85,14 @@ export function BuilderCanvas({
               setOverIndex(null);
               if (id && id !== s.id) run(() => moveSection(id, idx));
             }}
-            style={{
-              border: overIndex === idx ? "1px solid #111827" : "1px solid #e5e7eb",
-              borderRadius: 14,
-              overflow: "hidden",
-              opacity: draggingId === s.id ? 0.5 : 1,
-            }}
+            className={cn(
+              "overflow-hidden rounded-[14px] border",
+              overIndex === idx ? "border-foreground" : "border-border",
+              draggingId === s.id && "opacity-50",
+            )}
           >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "0.5rem 0.75rem",
-                background: "#fafafa",
-                borderBottom: "1px solid #eee",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <div className="flex items-center justify-between border-[#eee] border-b bg-[#fafafa] px-3 py-2">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   aria-label={`Drag to reorder ${s.type}`}
@@ -133,33 +102,18 @@ export function BuilderCanvas({
                     setDraggingId(null);
                     setOverIndex(null);
                   }}
-                  style={{
-                    cursor: "grab",
-                    color: "#9ca3af",
-                    fontSize: 14,
-                    lineHeight: 1,
-                    background: "none",
-                    border: "none",
-                    padding: 0,
-                  }}
+                  className="cursor-grab border-none bg-transparent p-0 text-sm text-muted-foreground leading-none"
                 >
                   ⠿
                 </button>
-                <span
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    textTransform: "uppercase",
-                    color: "#6b7280",
-                  }}
-                >
+                <span className="font-semibold text-muted-foreground text-xs uppercase">
                   {s.type}
                 </span>
               </div>
-              <div style={{ display: "flex", gap: "0.35rem" }}>
+              <div className="flex gap-1.5">
                 <button
                   type="button"
-                  style={btn}
+                  className={btn}
                   disabled={pending}
                   onClick={() => setEditingId(editingId === s.id ? null : s.id)}
                 >
@@ -167,7 +121,7 @@ export function BuilderCanvas({
                 </button>
                 <button
                   type="button"
-                  style={{ ...btn, color: "#dc2626" }}
+                  className={cn(btn, "text-destructive")}
                   disabled={pending}
                   onClick={() => run(() => deleteSection(s.id))}
                 >
