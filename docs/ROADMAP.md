@@ -70,14 +70,14 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
   **(3)** arm `PROD_DB_DEPLOY_ENABLED=true` + the prod GitHub Actions secrets (`SUPABASE_ACCESS_TOKEN`,
   `SUPABASE_PROD_REF`, `SUPABASE_PROD_DB_PASSWORD`); **(4)** promote `integration/v2` → `main` so CI runs
   the 14 migrations against prod and Netlify deploys production.
-- **In parallel (widening M2) — now the active track (owner decision 2026-06-22: widen M2 before prod):**
-  `contact` ✅ · `services` ✅ · `gallery` ✅ · `testimonial` ✅ · `custom` ✅ done. **All 9 module
-  types are now built.** Drag-and-drop reorder ✅ done (both builders, PR #42). shadcn/Tailwind
-  spike ✅ done (PR #44, pipeline wired + `ContactModule` migrated) — **all three Active-track
-  items are now merged.** **Owner decision 2026-07-04:** before moving to INFRA/path-to-prod, finish
-  migrating the other 8 renderers + both builders' chrome onto Tailwind/shadcn, then build the
-  **per-site theming MVP** (see the new planned item under "Module build-out" below) — INFRA remains
-  the eventual next track (see "Next action" above) once both of those are done.
+- **In parallel (widening M2) — now complete.** `contact` ✅ · `services` ✅ · `gallery` ✅ ·
+  `testimonial` ✅ · `custom` ✅ done — **all 9 module types built.** Drag-and-drop reorder ✅ done
+  (both builders, PR #42). **shadcn/Tailwind migration ✅ fully done** (PR #44 spike + PR #47 the
+  other 8 renderers + PR #48 both apps' builder chrome) — every `@hio/ui` renderer and both
+  builders' chrome are now on Tailwind utilities, mechanical parity with the old inline-style look
+  confirmed live. **M2-widening is fully wrapped.** Next per the owner's 2026-07-04 decision: the
+  **per-site theming MVP** (see the planned item under "Module build-out" below), then
+  **INFRA/path-to-prod** (see "Next action" above).
 - **Branch model:** work happens on `integration/v2`; it becomes `main` when v2 is ready.
 
 ---
@@ -203,13 +203,24 @@ Tailwind utilities as the proof point, and `StyleVariant` (`minimal/bold/outline
 previously accepted by every renderer but never used) now maps to a real card treatment. Live-
 verified: both apps compile clean; the migrated renderer's computed styles confirmed correct in the
 builder and on the public `/[slug]` page. **All three Active-track items are now merged** (`custom`,
-drag-and-drop, this spike). **Next in this track:** migrate the other 8 renderers + both builders'
-chrome onto Tailwind/shadcn (owner decision 2026-07-04: finish this before starting the theming MVP
-below), incrementally, keeping public `/[slug]` rendering stable throughout.
+drag-and-drop, this spike). shadcn/Tailwind migration **fully complete** (PR #47 + PR #48, both
+2026-07-04): PR #47 migrated the other 8 renderers (`Hero`/`Bio`/`Links`/`Calendar`/`Services`/
+`Gallery`/`Testimonial`/`Custom`) plus `ModuleRenderer`'s fallback onto Tailwind utilities, extracting
+the `StyleVariant` → card-treatment mapping (`cardClasses`/`headingClasses`) into a shared
+`packages/ui/src/variant.ts` reused by every renderer. PR #48 did the same for both builders' chrome
+(`BuilderCanvas`/`StudioBuilderCanvas`, `SectionEditor`/`StudioSectionEditor`, both `ChatSidebar`s) —
+completing the roadmap's stated scope ("`@hio/ui` renderers + builder chrome"). Both PRs were a
+**mechanical migration, not a redesign**: pixel values map to the closest standard Tailwind scale
+where one exists, and to bracket arbitrary values (e.g. `max-w-[720px]`, `rounded-[6px]`) where the
+original number doesn't hit the standard scale — confirmed via computed-style inspection to match
+the pre-migration inline styles exactly. Live-verified end-to-end in both apps (every module type
+added to a test page/client, builder chrome — drag handles, section editor, AI chat — exercised, no
+console errors), then all test data cleaned up. **The shadcn restyle item is now fully done — nothing
+left in the M2-widening track.** Next: the **per-site theming MVP** below, then INFRA/path-to-prod.
 
-**Planned next (owner decision 2026-07-04) — per-site theming MVP, after the shadcn migration is
-complete.** Once all 9 renderers + both builders' chrome are on Tailwind/shadcn, let users choose
-their own site's look: a handful of accent colors, a font, and a rounding style — explicitly a
+**Up next (owner decision 2026-07-04) — per-site theming MVP.** The shadcn migration prerequisite is
+now done (all 9 renderers + both builders' chrome). Let users choose their own site's look: a
+handful of accent colors, a font, and a rounding style — explicitly a
 **narrow MVP the owner intends to upgrade later**, not a full design-system picker. Reuses the theme
 mechanism Studio already has (`tenants.theme` JSONB + `parseSiteTheme`/`themeToStyle`, M4.6) rather
 than inventing new storage — extended to Self-Serve too (currently Studio-only). Scope:
