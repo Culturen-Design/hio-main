@@ -75,9 +75,9 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
   (both builders, PR #42). **shadcn/Tailwind migration ✅ fully done** (PR #44 spike + PR #47 the
   other 8 renderers + PR #48 both apps' builder chrome) — every `@hio/ui` renderer and both
   builders' chrome are now on Tailwind utilities, mechanical parity with the old inline-style look
-  confirmed live. **M2-widening is fully wrapped.** Next per the owner's 2026-07-04 decision: the
-  **per-site theming MVP** (see the planned item under "Module build-out" below), then
-  **INFRA/path-to-prod** (see "Next action" above).
+  confirmed live. **Per-site theming MVP ✅ done** (PR #52 — accent/font/rounding pickers in both
+  apps, writing the existing `tenants.theme` JSONB; see "Module build-out" below for detail).
+  **M2-widening is now fully wrapped.** Next: **INFRA/path-to-prod** (see "Next action" above).
 - **Branch model:** work happens on `integration/v2`; it becomes `main` when v2 is ready.
 
 ---
@@ -216,28 +216,32 @@ original number doesn't hit the standard scale — confirmed via computed-style 
 the pre-migration inline styles exactly. Live-verified end-to-end in both apps (every module type
 added to a test page/client, builder chrome — drag handles, section editor, AI chat — exercised, no
 console errors), then all test data cleaned up. **The shadcn restyle item is now fully done — nothing
-left in the M2-widening track.** Next: the **per-site theming MVP** below, then INFRA/path-to-prod.
+left in the M2-widening track.**
 
-**Up next (owner decision 2026-07-04) — per-site theming MVP.** The shadcn migration prerequisite is
-now done (all 9 renderers + both builders' chrome). Let users choose their own site's look: a
-handful of accent colors, a font, and a rounding style — explicitly a
-**narrow MVP the owner intends to upgrade later**, not a full design-system picker. Reuses the theme
-mechanism Studio already has (`tenants.theme` JSONB + `parseSiteTheme`/`themeToStyle`, M4.6) rather
-than inventing new storage — extended to Self-Serve too (currently Studio-only). Scope:
-- **Accent color:** a small curated set of swatches drawn from Tailwind's palette (not a free color
-  picker) — stored in the theme JSONB, exposed as a CSS custom property so `@theme` tokens (and
-  every `bg-primary`/`text-primary`/etc. utility class) resolve to the user's choice at runtime,
-  without fighting Tailwind's static-class-scanning model (utility classes stay fixed; only the CSS
-  variable they reference changes per site).
-- **Font:** a short curated list of font stacks (not arbitrary upload or a Google Fonts search).
-- **Rounding:** a few presets (e.g. sharp/soft/pill) mapped to a `--radius` CSS variable consumed by
-  the `rounded-card`-style utilities already introduced in the shadcn spike.
-- **UI:** a simple picker (swatches + two dropdowns) in both builders' settings, writing to the same
-  theme JSONB Studio already has. Self-Serve needs the `tenants.theme` column/RLS write path
-  extended to it (Studio-only today).
-**Explicitly out of MVP scope** (deferred, per the owner's stated intent to iterate): a free-form
-color picker, custom font upload/search, per-module style overrides, or exposing the full Tailwind
-palette — start narrow, widen later once real usage shows what's actually wanted.
+**Per-site theming MVP ✅ done (PR #52) 2026-07-04.** Curated-only (no free color picker, no font
+upload, no per-module overrides) — deliberately narrow, per the owner's stated intent to widen later.
+Reused the theme mechanism Studio already had (`tenants.theme` JSONB + `parseSiteTheme`/`themeToStyle`,
+M4.6) rather than inventing new storage; **no migration** — the column and its `tenants_update_member`
+RLS policy already covered both tenant kinds. `@hio/ui`'s `SiteTheme` gained a `radius` preset;
+`themeToStyle` now feeds `--color-primary`/`--color-primary-foreground`/`--radius-card` so the
+existing `bg-primary`/`text-primary-foreground`/`rounded-card` utilities resolve per site at runtime
+without Tailwind regenerating any CSS. New `ACCENT_SWATCHES`/`FONT_STACKS`/`RADIUS_PRESETS`/
+`DEFAULT_THEME` exports back a picker (swatches + 2 dropdowns) added to both apps: Self-Serve got a
+new `/settings` page (linked from `/dashboard`) + a server action, the tenant's first-ever theme
+write path (Studio-only until now); Studio got a `ThemeForm` on the client settings page, reusing the
+custom-domain feature's write pattern. Self-Serve's `/[slug]` public page and `/builder` now apply the
+theme; `/[slug]` switched from a direct `sites`/`sections` query to the anon-callable `get_public_site`
+RPC (M4.6, already generic — not Studio-specific) so it can read the tenant's theme, which member-only
+`tenants` RLS hides from anon directly. **Bug found + fixed while live-verifying:**
+`packages/ui/src/globals.css`'s Tailwind `@source` scan only covered `./modules`, missing
+`variant.ts` (one directory up) — the file that actually spells out the `outlined`/`filled`/`bold`/
+`rounded-card` utility-class strings every renderer calls through `cardClasses`/`headingClasses`.
+Those utilities were silently never generated by Tailwind since the shadcn migration (PR #47/#48);
+added `@source "./variant.ts"`. Live-verified on dev (both apps' pickers persist to `tenants.theme`;
+computed styles confirmed `--color-primary`/`--radius-card` resolve on the public page and in the
+builder — a temporarily-added hero CTA button and a temporarily-outlined bio card rendered with the
+chosen accent color and pill radius respectively, proving the CSS-variable wiring end-to-end, not
+just the DB write); test data reverted after. **Next: INFRA/path-to-prod** (see "Next action" above).
 
 ### M3 — Extract, generalize & **freeze** the core ✅ (engine generalized in M2.5a; freeze + deploy reconcile done)
 The engine was made schema-driven with Vitest coverage in M2.5a. The remaining, non-skippable work
