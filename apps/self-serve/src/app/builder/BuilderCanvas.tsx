@@ -2,7 +2,7 @@
 
 import { type ModuleType, selfServeSchema } from "@hio/content-model";
 import type { Tables } from "@hio/db";
-import { ModuleRenderer, cn } from "@hio/ui";
+import { ModuleRenderer, cn, parseSiteTheme, themeToStyle } from "@hio/ui";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { ChatSidebar } from "./ChatSidebar";
@@ -19,11 +19,13 @@ export function BuilderCanvas({
   site,
   sections,
   allowed,
+  theme,
 }: {
   tenantId: string;
   site: { id: string; slug: string };
   sections: Section[];
   allowed: string[];
+  theme?: unknown;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -32,7 +34,10 @@ export function BuilderCanvas({
   const run = (fn: () => Promise<unknown>) => start(() => void fn());
 
   return (
-    <main className="mx-auto max-w-[820px] px-6 py-8 font-sans">
+    <main
+      className="mx-auto max-w-[820px] px-6 py-8 font-sans"
+      style={themeToStyle(parseSiteTheme(theme))}
+    >
       <header className="flex items-center justify-between gap-4">
         <div>
           <h1 className="m-0">Builder</h1>

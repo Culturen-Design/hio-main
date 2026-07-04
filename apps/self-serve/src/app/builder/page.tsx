@@ -13,7 +13,7 @@ export default async function BuilderPage() {
   // The caller's self_serve tenant + site (RLS-scoped to their membership).
   const { data: tenant } = await supabase
     .from("tenants")
-    .select("id, slug, sites(id, slug)")
+    .select("id, slug, theme, sites(id, slug)")
     .eq("kind", "self_serve")
     .maybeSingle();
   const site = tenant?.sites?.[0];
@@ -36,6 +36,7 @@ export default async function BuilderPage() {
       site={{ id: site.id, slug: site.slug }}
       sections={sections ?? []}
       allowed={allowedList}
+      theme={tenant.theme}
     />
   );
 }

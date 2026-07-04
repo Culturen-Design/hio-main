@@ -16,4 +16,13 @@ export { TestimonialModule } from "./modules/TestimonialModule";
 export { CustomModule } from "./modules/CustomModule";
 export { ModuleRenderer, type RenderableSection } from "./modules/ModuleRenderer";
 export type { StyleVariant } from "./style";
-export { type SiteTheme, parseSiteTheme, themeToStyle } from "./theme";
+export {
+  type SiteTheme,
+  type RadiusPreset,
+  ACCENT_SWATCHES,
+  FONT_STACKS,
+  RADIUS_PRESETS,
+  DEFAULT_THEME,
+  parseSiteTheme,
+  themeToStyle,
+} from "./theme";
