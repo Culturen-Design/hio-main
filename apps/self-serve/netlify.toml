@@ -6,9 +6,13 @@
 # In that mode, relative paths in this file — e.g. `publish` — resolve against
 # BASE directory, not the directory this file lives in. So `publish` must be the
 # full path from the repo root, not just ".next".
+#
+# `command` MUST scope Turborepo to this app (--filter) — the root "build" script
+# is unscoped `turbo run build`, which builds BOTH apps. That fails here because
+# this site's env doesn't carry Studio's vars, and vice versa on the Studio site.
 
 [build]
-  command = "npm run build"
+  command = "npm run build -- --filter=@hio/self-serve"
   publish = "apps/self-serve/.next"
 
 [build.environment]
