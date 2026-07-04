@@ -2,14 +2,21 @@ import { describe, expect, it } from "vitest";
 import { type SiteTheme, parseSiteTheme, themeToStyle } from "./theme";
 
 describe("parseSiteTheme", () => {
-  it("keeps recognised string fields", () => {
+  it("keeps recognised fields", () => {
     expect(
-      parseSiteTheme({ accent: "#f0f", background: "#000", foreground: "#fff", font: "Inter" }),
+      parseSiteTheme({
+        accent: "#f0f",
+        background: "#000",
+        foreground: "#fff",
+        font: "Inter",
+        radius: "pill",
+      }),
     ).toEqual({
       accent: "#f0f",
       background: "#000",
       foreground: "#fff",
       font: "Inter",
+      radius: "pill",
     });
   });
 
@@ -19,7 +26,12 @@ describe("parseSiteTheme", () => {
       background: undefined,
       foreground: undefined,
       font: undefined,
+      radius: undefined,
     });
+  });
+
+  it("drops an unrecognised radius preset", () => {
+    expect(parseSiteTheme({ radius: "very-round" }).radius).toBeUndefined();
   });
 
   it("degrades a non-object to an empty theme", () => {
@@ -29,18 +41,28 @@ describe("parseSiteTheme", () => {
 });
 
 describe("themeToStyle", () => {
-  it("maps set fields to inline styles + the accent custom property", () => {
+  it("maps set fields to inline styles + the accent/radius custom properties", () => {
     const theme: SiteTheme = {
-      accent: "#f0f",
+      accent: "#2563eb",
       background: "#000",
       foreground: "#fff",
       font: "Inter",
+      radius: "pill",
     };
     expect(themeToStyle(theme)).toEqual({
       background: "#000",
       color: "#fff",
       fontFamily: "Inter",
-      "--site-accent": "#f0f",
+      "--site-accent": "#2563eb",
+      "--color-primary": "#2563eb",
+      "--color-primary-foreground": "#ffffff",
+      "--radius-card": "9999px",
+    });
+  });
+
+  it("falls back to a white accent foreground for an uncurated accent value", () => {
+    expect(themeToStyle({ accent: "#abcdef" })).toMatchObject({
+      "--color-primary-foreground": "#ffffff",
     });
   });
 

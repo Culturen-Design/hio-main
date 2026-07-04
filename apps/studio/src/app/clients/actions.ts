@@ -1,9 +1,15 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import type { Json } from "@hio/db";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { newClientSchema, updateClientSchema, updateCustomDomainSchema } from "./validation";
+import {
+  newClientSchema,
+  updateClientSchema,
+  updateCustomDomainSchema,
+  updateThemeSchema,
+} from "./validation";
 
 export type ClientActionState = { error: string } | null;
 
@@ -110,6 +116,47 @@ export async function setCustomDomain(
   }
 
   revalidatePath(`/clients/${parsed.data.id}`);
+  return null;
+}
+
+/** Set a client's theme (accent/font/radius — the per-site theming MVP). Direct
+ *  update rides tenants_update_member RLS; scoped to studio_client to keep this
+ *  off self_serve tenants. Merges onto the existing theme so unrelated keys
+ *  (e.g. a future manually-set background/foreground) survive. */
+export async function updateTenantTheme(
+  _prev: ClientActionState,
+  formData: FormData,
+): Promise<ClientActionState> {
+  const parsed = updateThemeSchema.safeParse({
+    id: formData.get("id"),
+    accent: formData.get("accent"),
+    font: formData.get("font"),
+    radius: formData.get("radius"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+
+  const staff = await requireStaff();
+  if (!staff) return { error: "Not authorized: agency staff only." };
+
+  const { data: client } = await staff.supabase
+    .from("tenants")
+    .select("theme")
+    .eq("id", parsed.data.id)
+    .eq("kind", "studio_client")
+    .maybeSingle();
+  if (!client) return { error: "Client not found." };
+
+  const { id, ...theme } = parsed.data;
+  const nextTheme = { ...(client.theme as Record<string, unknown>), ...theme } as Json;
+  const { error } = await staff.supabase
+    .from("tenants")
+    .update({ theme: nextTheme })
+    .eq("id", id)
+    .eq("kind", "studio_client");
+  if (error) return { error: error.message };
+
+  revalidatePath(`/clients/${id}`);
+  revalidatePath(`/clients/${id}/builder`);
   return null;
 }
 

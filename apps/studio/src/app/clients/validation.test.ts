@@ -4,6 +4,7 @@ import {
   newClientSchema,
   updateClientSchema,
   updateCustomDomainSchema,
+  updateThemeSchema,
 } from "./validation";
 
 describe("SCHEMA_VARIANTS", () => {
@@ -104,5 +105,49 @@ describe("updateCustomDomainSchema", () => {
     expect(
       updateCustomDomainSchema.safeParse({ id: "nope", custom_domain: "acme.com" }).success,
     ).toBe(false);
+  });
+});
+
+describe("updateThemeSchema", () => {
+  const id = "11111111-1111-1111-1111-111111111111";
+
+  it("accepts a curated accent/font/radius combination", () => {
+    const r = updateThemeSchema.safeParse({
+      id,
+      accent: "#2563eb",
+      font: "ui-sans-serif, system-ui, -apple-system, sans-serif",
+      radius: "pill",
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it("rejects an accent value outside the curated swatches (no free color picker)", () => {
+    const r = updateThemeSchema.safeParse({
+      id,
+      accent: "#123456",
+      font: "ui-sans-serif, system-ui, -apple-system, sans-serif",
+      radius: "soft",
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it("rejects an unrecognised radius preset", () => {
+    const r = updateThemeSchema.safeParse({
+      id,
+      accent: "#2563eb",
+      font: "ui-sans-serif, system-ui, -apple-system, sans-serif",
+      radius: "very-round",
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it("requires a uuid id", () => {
+    const r = updateThemeSchema.safeParse({
+      id: "nope",
+      accent: "#2563eb",
+      font: "ui-sans-serif, system-ui, -apple-system, sans-serif",
+      radius: "soft",
+    });
+    expect(r.success).toBe(false);
   });
 });

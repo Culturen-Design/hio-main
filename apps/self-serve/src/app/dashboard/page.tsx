@@ -116,6 +116,18 @@ export default async function DashboardPage() {
             >
               View public page ↗
             </a>
+            <a
+              href="/settings"
+              style={{
+                padding: "0.5rem 0.9rem",
+                borderRadius: 8,
+                border: "1px solid #d1d5db",
+                color: "#111827",
+                textDecoration: "none",
+              }}
+            >
+              Site look
+            </a>
           </div>
         </div>
       ) : (

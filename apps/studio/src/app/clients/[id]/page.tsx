@@ -1,8 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
+import { DEFAULT_THEME, parseSiteTheme } from "@hio/ui";
 import { notFound, redirect } from "next/navigation";
 import { ClientSettingsForm } from "../ClientSettingsForm";
 import { CustomDomainForm } from "../CustomDomainForm";
 import { PublishControls } from "../PublishControls";
+import { ThemeForm } from "../ThemeForm";
 import { VersionList } from "../VersionList";
 
 export default async function ClientSettingsPage({
@@ -28,11 +30,13 @@ export default async function ClientSettingsPage({
   // RLS (tenants_select_member) scopes this to clients the caller manages.
   const { data: client } = await supabase
     .from("tenants")
-    .select("id, name, slug, schema_variant, plan, kind, custom_domain")
+    .select("id, name, slug, schema_variant, plan, kind, custom_domain, theme")
     .eq("id", id)
     .eq("kind", "studio_client")
     .maybeSingle();
   if (!client) notFound();
+
+  const theme = parseSiteTheme(client.theme);
 
   const { data: site } = await supabase
     .from("sites")
@@ -99,6 +103,14 @@ export default async function ClientSettingsPage({
           <VersionList tenantId={client.id} siteId={site.id} versions={versions ?? []} />
         </>
       )}
+
+      <h2 style={{ fontSize: "1.05rem", marginTop: "1.5rem" }}>Site look</h2>
+      <ThemeForm
+        id={client.id}
+        accent={theme.accent ?? DEFAULT_THEME.accent}
+        font={theme.font ?? DEFAULT_THEME.font}
+        radius={theme.radius ?? DEFAULT_THEME.radius}
+      />
 
       <h2 style={{ fontSize: "1.05rem", marginTop: "1.5rem" }}>Settings</h2>
       <ClientSettingsForm id={client.id} name={client.name} schemaVariant={client.schema_variant} />
