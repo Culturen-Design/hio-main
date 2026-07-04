@@ -2,6 +2,7 @@ import type {
   BioContent,
   CalendarContent,
   ContactContent,
+  CustomContent,
   GalleryContent,
   HeroContent,
   LinksContent,
@@ -13,6 +14,7 @@ import type { StyleVariant } from "../style";
 import { BioModule } from "./BioModule";
 import { CalendarModule } from "./CalendarModule";
 import { ContactModule } from "./ContactModule";
+import { CustomModule } from "./CustomModule";
 import { GalleryModule } from "./GalleryModule";
 import { HeroModule } from "./HeroModule";
 import { LinksModule } from "./LinksModule";
@@ -51,6 +53,8 @@ export function ModuleRenderer({ section }: { section: RenderableSection }) {
       return (
         <TestimonialModule content={section.content as TestimonialContent} variant={variant} />
       );
+    case "custom":
+      return <CustomModule content={section.content as CustomContent} variant={variant} />;
     default:
       return (
         <div style={{ padding: "1rem 1.5rem", color: "#9ca3af" }}>

@@ -3,7 +3,9 @@ import { z } from "zod";
 import {
   type AiToolDescriptor,
   MODULE_BUNDLES,
+  MODULE_REGISTRY,
   type ModuleDefinition,
+  type ModuleType,
   RESERVED_TOOL_NAMES,
   createSchemaProvider,
   defaultContentFor,
@@ -162,6 +164,30 @@ describe("gallery + testimonial modules (collections)", () => {
   });
 });
 
+describe("custom module (the escape hatch — last of 9 module types)", () => {
+  it("is registered and resolvable, with sensible defaults", () => {
+    const p = resolveProvider("p", ["custom"]);
+    const mod = p.getModule("custom");
+    expect(mod?.type).toBe("custom");
+    expect(mod?.contentSchema.safeParse(mod.defaults).success).toBe(true);
+    // Plain-text module (title + markdown body): no declared collection tools —
+    // edited via the built-in update_module_content, same as contact/bio.
+    expect(mod?.aiTools).toEqual([]);
+  });
+
+  it("rejects a body over the length cap", () => {
+    const mod = MODULE_REGISTRY.custom;
+    expect(mod?.contentSchema.safeParse({ title: "x", body: "a".repeat(5001) }).success).toBe(
+      false,
+    );
+  });
+
+  it("is part of the self-serve bundle", () => {
+    expect(MODULE_BUNDLES["self-serve"]).toContain("custom");
+    expect(selfServeSchema.getModule("custom")?.type).toBe("custom");
+  });
+});
+
 describe("resolveProvider — per-tenant provider from an enabled module set", () => {
   it("exposes ONLY the enabled modules and their tools (toolset = enabled set)", () => {
     // A studio-style tenant that enables links but NOT calendar.
@@ -181,9 +207,10 @@ describe("resolveProvider — per-tenant provider from an enabled module set", (
     expect(p.modules.map((m) => m.type)).toEqual(["links", "hero"]);
   });
 
-  it("throws on a closed-union type that has no registered definition yet", () => {
-    // `custom` is a valid ModuleType but not yet built (absent from MODULE_REGISTRY).
-    expect(() => resolveProvider("client-y", ["hero", "custom"])).toThrow(
+  it("throws on a type with no registered definition (all 9 closed-union types are now built)", () => {
+    // No real ModuleType is unregistered anymore, so force the error path with a
+    // cast — this still proves resolveProvider fails loudly rather than silently.
+    expect(() => resolveProvider("client-y", ["hero", "not-a-real-type" as ModuleType])).toThrow(
       /not registered in MODULE_REGISTRY/i,
     );
   });
