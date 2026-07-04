@@ -1,9 +1,15 @@
 # Netlify configuration — drives the 3-tier environment model.
 # The official Next.js Runtime is auto-installed by Netlify; no plugin entry needed.
+#
+# NOTE: this site uses Netlify's monorepo "Package directory" feature (set to
+# apps/self-serve in the dashboard) with Base directory left at the repo root ("/").
+# In that mode, relative paths in this file — e.g. `publish` — resolve against
+# BASE directory, not the directory this file lives in. So `publish` must be the
+# full path from the repo root, not just ".next".
 
 [build]
   command = "npm run build"
-  publish = ".next"
+  publish = "apps/self-serve/.next"
 
 [build.environment]
   NODE_VERSION = "20"
