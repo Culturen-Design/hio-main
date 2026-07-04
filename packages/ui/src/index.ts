@@ -17,6 +17,8 @@ export { LinksModule } from "./modules/LinksModule";
 export { CalendarModule } from "./modules/CalendarModule";
 export { ContactModule } from "./modules/ContactModule";
 export { ServicesModule } from "./modules/ServicesModule";
+export { GalleryModule } from "./modules/GalleryModule";
+export { TestimonialModule } from "./modules/TestimonialModule";
 export { ModuleRenderer, type RenderableSection } from "./modules/ModuleRenderer";
 export type { StyleVariant } from "./style";
 export { type SiteTheme, parseSiteTheme, themeToStyle } from "./theme";

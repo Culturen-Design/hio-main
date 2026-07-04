@@ -98,6 +98,14 @@ is the rule below + the deviation log.
 
 ### Change log
 
+- **v1.4.0 — 2026-06-22 (M2 widening, additive/minor).** Built the `gallery` and `testimonial`
+  modules, both **collection** modules. `gallery` (`galleryImageSchema`/`gallerySchema`) is an
+  image-URL grid with `add_image`/`update_image`/`remove_image` (users paste hosted URLs — no upload
+  pipeline; Supabase Storage upload is a future enhancement). `testimonial`
+  (`testimonialItemSchema`/`testimonialSchema`) is a quote list with
+  `add_testimonial`/`update_testimonial`/`remove_testimonial`. Both registered in `MODULE_REGISTRY` and
+  added to the `self-serve` bundle (paid-gated by RLS). Only `custom` remains unbuilt. No 🔒 frozen item
+  changed; `contract.test.ts` stays green.
 - **v1.3.0 — 2026-06-22 (M2 widening, additive/minor).** Built the `services` module
   (`serviceItemSchema` + `servicesSchema` + `ServicesContent` + `servicesModule`), a **collection**
   module with `add_service`/`update_service`/`remove_service` AI tools (the append/update/remove ops,
