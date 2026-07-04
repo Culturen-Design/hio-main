@@ -63,13 +63,15 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
   whole-site snapshots (migration `010`) with `snapshot_site`/`restore_site_version` RPCs; captured on
   publish + manual save; restore auto-snapshots first; verified live.
 - **Next action:** **INFRA — the path to prod** (the page→tenant rewrite is fully done; admin slug `013`
-  + CONTRACT `014` both landed). This is mostly owner accounts/decisions — propose, don't assume:
+  + CONTRACT `014` both landed). **Netlify repo-link + auto-deploy from `integration/v2` is confirmed
+  working** (both sites deploy clean on every push — verified 2026-07-04 against PR #51/#52's merges).
+  Remaining is mostly owner accounts/decisions — propose, don't assume:
   **(1)** create the **prod** Supabase project in a **separate account** (per `ENVIRONMENTS.md`), fill
-  `SUPABASE_PROD_REF`; **(2)** finish the **Netlify** connection on both monorepo sites (repo link +
-  `SUPABASE_SERVICE_ROLE_KEY` on Self-Serve + production branch + domains — see `hio-netlify-deploy`);
-  **(3)** arm `PROD_DB_DEPLOY_ENABLED=true` + the prod GitHub Actions secrets (`SUPABASE_ACCESS_TOKEN`,
-  `SUPABASE_PROD_REF`, `SUPABASE_PROD_DB_PASSWORD`); **(4)** promote `integration/v2` → `main` so CI runs
-  the 14 migrations against prod and Netlify deploys production.
+  `SUPABASE_PROD_REF`; **(2)** confirm Self-Serve's `SUPABASE_SERVICE_ROLE_KEY` server secret is set and
+  the intended production domains (`app.hio.space`/`studio.hio.space` + M4.8 client domain aliases) are
+  mapped — see `hio-netlify-deploy`; **(3)** arm `PROD_DB_DEPLOY_ENABLED=true` + the prod GitHub Actions
+  secrets (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROD_REF`, `SUPABASE_PROD_DB_PASSWORD`); **(4)** promote
+  `integration/v2` → `main` so CI runs the 14 migrations against prod and Netlify deploys production.
 - **In parallel (widening M2) — now complete.** `contact` ✅ · `services` ✅ · `gallery` ✅ ·
   `testimonial` ✅ · `custom` ✅ done — **all 9 module types built.** Drag-and-drop reorder ✅ done
   (both builders, PR #42). **shadcn/Tailwind migration ✅ fully done** (PR #44 spike + PR #47 the
