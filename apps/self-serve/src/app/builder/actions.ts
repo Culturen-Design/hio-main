@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { type ModuleType, selfServeSchema } from "@hio/content-model";
 import type { Json } from "@hio/db";
 import { revalidatePath } from "next/cache";
+import { computeReorder } from "./reorder";
 
 export type ActionResult = { ok: true } | { error: string };
 
@@ -74,7 +75,7 @@ export async function deleteSection(sectionId: string): Promise<ActionResult> {
   return { ok: true };
 }
 
-export async function moveSection(sectionId: string, dir: "up" | "down"): Promise<ActionResult> {
+export async function moveSection(sectionId: string, toIndex: number): Promise<ActionResult> {
   const { supabase, site } = await requireSite();
   const { data: secs } = await supabase
     .from("sections")
@@ -83,20 +84,22 @@ export async function moveSection(sectionId: string, dir: "up" | "down"): Promis
     .order("order");
   if (!secs) return { error: "No sections" };
 
-  const i = secs.findIndex((s) => s.id === sectionId);
-  const j = dir === "up" ? i - 1 : i + 1;
-  if (i < 0 || j < 0 || j >= secs.length) return { ok: true }; // at an edge — nothing to do
-  const a = secs[i];
-  const b = secs[j];
-  if (!a || !b) return { ok: true };
-
-  // Swap the two order values via two membership-gated updates. The page-keyed
-  // reorder_sections RPC can't be used for site rows; there is no unique (site_id,
-  // order) constraint, so the interim equal order is safe (same approach as Studio).
-  const { error: e1 } = await supabase.from("sections").update({ order: b.order }).eq("id", a.id);
-  if (e1) return { error: e1.message };
-  const { error: e2 } = await supabase.from("sections").update({ order: a.order }).eq("id", b.id);
-  if (e2) return { error: e2.message };
+  // Drag-and-drop to an arbitrary index, computed as a sequence of adjacent
+  // order-value swaps (same membership-gated per-row updates the old up/down
+  // buttons used — no RPC, no unique (site_id, order) constraint to worry about).
+  const swaps = computeReorder(secs, sectionId, toIndex);
+  for (const swap of swaps) {
+    const { error: e1 } = await supabase
+      .from("sections")
+      .update({ order: swap.aOrder })
+      .eq("id", swap.aId);
+    if (e1) return { error: e1.message };
+    const { error: e2 } = await supabase
+      .from("sections")
+      .update({ order: swap.bOrder })
+      .eq("id", swap.bId);
+    if (e2) return { error: e2.message };
+  }
 
   revalidatePath("/builder");
   return { ok: true };

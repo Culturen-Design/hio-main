@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { type ModuleType, resolveVariant } from "@hio/content-model";
 import type { Json } from "@hio/db";
 import { revalidatePath } from "next/cache";
-import { computeSwap } from "./reorder";
+import { computeReorder } from "./reorder";
 
 export type ActionResult = { ok: true } | { error: string };
 
@@ -125,7 +125,7 @@ export async function deleteSection(tenantId: string, sectionId: string): Promis
 export async function moveSection(
   tenantId: string,
   sectionId: string,
-  dir: "up" | "down",
+  toIndex: number,
 ): Promise<ActionResult> {
   const ctx = await requireClient(tenantId);
   if (!ctx.ok) return { error: ctx.error };
@@ -138,15 +138,16 @@ export async function moveSection(
     .order("order");
   if (!secs) return { error: "No sections" };
 
-  const swap = computeSwap(secs, sectionId, dir);
-  if (!swap) return { ok: true }; // at an edge — nothing to do
-
-  // Swap the two adjacent rows' order values. Two membership-gated (RLS) updates;
-  // there is no unique constraint on (site_id, order), so the interim state is safe.
-  const r1 = await supabase.from("sections").update({ order: swap.aOrder }).eq("id", swap.aId);
-  if (r1.error) return { error: r1.error.message };
-  const r2 = await supabase.from("sections").update({ order: swap.bOrder }).eq("id", swap.bId);
-  if (r2.error) return { error: r2.error.message };
+  // Drag-and-drop to an arbitrary index, computed as a sequence of adjacent
+  // order-value swaps (same membership-gated per-row updates the old up/down
+  // buttons used; no unique constraint on (site_id, order), so interim states are safe).
+  const swaps = computeReorder(secs, sectionId, toIndex);
+  for (const swap of swaps) {
+    const r1 = await supabase.from("sections").update({ order: swap.aOrder }).eq("id", swap.aId);
+    if (r1.error) return { error: r1.error.message };
+    const r2 = await supabase.from("sections").update({ order: swap.bOrder }).eq("id", swap.bId);
+    if (r2.error) return { error: r2.error.message };
+  }
 
   revalidatePath(`/clients/${tenantId}/builder`);
   return { ok: true };
