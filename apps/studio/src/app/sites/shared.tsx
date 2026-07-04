@@ -41,21 +41,20 @@ export function PublicSiteView({ site }: { site: PublicSite }) {
   const theme = parseSiteTheme(site.theme);
 
   return (
-    <main style={{ minHeight: "100vh", fontFamily: "system-ui", ...themeToStyle(theme) }}>
-      <div style={{ maxWidth: 820, margin: "0 auto", padding: "2rem 1.5rem" }}>
-        {site.sections.length === 0 ? (
-          <p style={{ opacity: 0.6 }}>This site has no content yet.</p>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-            {site.sections.map((s) => (
-              <ModuleRenderer
-                key={s.id}
-                section={{ type: s.type, content: s.content, style_variant: s.style_variant }}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+    <main
+      className="site-public"
+      style={{ minHeight: "100vh", fontFamily: "system-ui", ...themeToStyle(theme) }}
+    >
+      {site.sections.length === 0 ? (
+        <p style={{ padding: "2rem 1.5rem", opacity: 0.6 }}>This site has no content yet.</p>
+      ) : (
+        site.sections.map((s) => (
+          <ModuleRenderer
+            key={s.id}
+            section={{ type: s.type, content: s.content, style_variant: s.style_variant }}
+          />
+        ))
+      )}
     </main>
   );
 }

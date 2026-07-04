@@ -30,7 +30,7 @@ export default async function PublicPage({ params }: { params: Promise<{ slug: s
   const theme = parseSiteTheme(site.theme);
 
   return (
-    <main style={{ fontFamily: "system-ui", ...themeToStyle(theme) }}>
+    <main className="site-public" style={{ fontFamily: "system-ui", ...themeToStyle(theme) }}>
       {site.sections.map((s) => (
         <ModuleRenderer
           key={s.id}

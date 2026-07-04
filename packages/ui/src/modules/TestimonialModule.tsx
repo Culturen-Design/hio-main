@@ -15,8 +15,19 @@ export function TestimonialModule({
       ) : (
         <ul className="m-0 grid list-none gap-4 p-0">
           {content.items.map((t) => (
-            <li key={t.id} className="rounded-[12px] border border-border px-5 py-[1.1rem]">
-              <blockquote className="m-0 text-foreground leading-[1.55]">“{t.quote}”</blockquote>
+            <li
+              key={t.id}
+              className="relative rounded-[12px] border border-border px-5 py-[1.1rem]"
+            >
+              <span
+                aria-hidden="true"
+                className="absolute top-2 left-4 font-serif text-4xl text-primary/25 leading-none"
+              >
+                “
+              </span>
+              <blockquote className="relative m-0 pl-5 text-foreground leading-[1.55]">
+                {t.quote}
+              </blockquote>
               <div className="mt-3 flex items-center gap-2.5">
                 {t.avatar_url && (
                   <img

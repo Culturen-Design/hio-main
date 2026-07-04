@@ -19,7 +19,7 @@ export function BioModule({
         <img
           src={content.photo_url}
           alt={content.photo_alt ?? ""}
-          className="h-[140px] w-[140px] rounded-[16px] object-cover"
+          className="h-[140px] w-[140px] rounded-[28px] border border-border object-cover"
         />
       )}
       <div className="min-w-[240px] flex-1">

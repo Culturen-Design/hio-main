@@ -15,20 +15,23 @@ export function ServicesModule({
       ) : (
         <ul className="m-0 grid list-none gap-3 p-0">
           {content.items.map((item) => (
-            <li
-              key={item.id}
-              className="flex justify-between gap-4 rounded-[12px] border border-border px-4 py-3.5"
-            >
-              <div>
+            <li key={item.id} className="rounded-[12px] border border-border px-4 py-3.5">
+              <div className="flex items-baseline gap-2">
                 <span className="font-semibold text-foreground">{item.name}</span>
-                {item.description && (
-                  <span className="block text-sm text-muted-foreground">{item.description}</span>
+                {item.price && (
+                  <>
+                    <span
+                      aria-hidden="true"
+                      className="h-0 flex-1 border-border border-b border-dotted"
+                    />
+                    <span className="whitespace-nowrap font-semibold text-foreground">
+                      {item.price}
+                    </span>
+                  </>
                 )}
               </div>
-              {item.price && (
-                <span className="font-semibold whitespace-nowrap text-foreground">
-                  {item.price}
-                </span>
+              {item.description && (
+                <span className="mt-1 block text-sm text-muted-foreground">{item.description}</span>
               )}
             </li>
           ))}

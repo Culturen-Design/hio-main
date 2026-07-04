@@ -79,7 +79,10 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
   builders' chrome are now on Tailwind utilities, mechanical parity with the old inline-style look
   confirmed live. **Per-site theming MVP ✅ done** (PR #52 — accent/font/rounding pickers in both
   apps, writing the existing `tenants.theme` JSONB; see "Module build-out" below for detail).
-  **M2-widening is now fully wrapped.** Next: **INFRA/path-to-prod** (see "Next action" above).
+  **M2-widening is now fully wrapped.** **Public-site visual identity ✅ done** (out-of-sequence,
+  owner-directed — see the Deviation log's `2026-07-05` entry): a shared stone/slate/primary
+  default look for both products' published pages, plus content-appropriate per-module layouts.
+  Next: **INFRA/path-to-prod** (see "Next action" above).
 - **Branch model:** work happens on `integration/v2`; it becomes `main` when v2 is ready.
 
 ---
@@ -407,6 +410,19 @@ onto tenants too, via expand→migrate→contract), **one generalized** tenant-a
 ## Deviation log
 
 Every approved departure from the original plan, with its reason and cost.
+
+### 2026-07-05 — Public-site visual identity: stone/slate/primary (owner-directed, out-of-sequence)
+**Change:** new shared default look for both products' PUBLISHED pages (Self-Serve `/[slug]`,
+Studio `/sites/[slug]`/custom-domain) — a stone/slate/primary palette, subtle grid texture, and
+section dividers via one new `.site-public` class in `packages/ui/src/globals.css`, applied on
+both apps' public-page wrapper. Also gave each of the 9 module renderers a content-appropriate
+layout (calendar date-badge, price-list leader lines, mounted-print gallery frames, etc.)
+instead of a generic heading+text shape — benefits both products' public render and both
+builders' live preview. Builder/dashboard/admin pages in both apps are unchanged.
+**Why required:** owner-directed art-direction request, not sequenced in the roadmap; small,
+additive (one shared CSS class + per-module layout polish), doesn't block or reorder the INFRA
+work.
+**Cost / mitigation:** none to the INFRA path. No schema, RLS, or edge function touched.
 
 ### 2026-06-21 — M4 tenant model: unified `tenants`, big-bang, generalized fn, domains in scope
 **Change (4 decisions, human-ratified):** (1) build TENANCY.md's **unified `tenants`** model rather than
