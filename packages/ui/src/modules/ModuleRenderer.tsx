@@ -57,9 +57,7 @@ export function ModuleRenderer({ section }: { section: RenderableSection }) {
       return <CustomModule content={section.content as CustomContent} variant={variant} />;
     default:
       return (
-        <div style={{ padding: "1rem 1.5rem", color: "#9ca3af" }}>
-          Unsupported module: {section.type}
-        </div>
+        <div className="px-6 py-4 text-muted-foreground">Unsupported module: {section.type}</div>
       );
   }
 }

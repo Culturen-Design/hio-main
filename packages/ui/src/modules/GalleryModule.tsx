@@ -1,37 +1,31 @@
 import type { GalleryContent } from "@hio/content-model";
+import { cn } from "../cn";
 import type { StyleVariant } from "../style";
+import { cardClasses, headingClasses } from "../variant";
 
 export function GalleryModule({
   content,
+  variant,
 }: { content: GalleryContent; variant?: StyleVariant | null }) {
   return (
-    <section style={{ padding: "2.5rem 1.5rem", maxWidth: 960, margin: "0 auto" }}>
-      <h2 style={{ marginTop: 0 }}>{content.title}</h2>
+    <section className={cn("mx-auto max-w-[960px] p-10", cardClasses(variant))}>
+      <h2 className={cn("mt-0 text-xl", headingClasses(variant))}>{content.title}</h2>
       {content.images.length === 0 ? (
-        <p style={{ color: "#9ca3af" }}>No images yet.</p>
+        <p className="text-muted-foreground">No images yet.</p>
       ) : (
         <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: `repeat(${content.columns}, minmax(0, 1fr))`,
-            gap: "0.75rem",
-          }}
+          className="grid gap-3"
+          style={{ gridTemplateColumns: `repeat(${content.columns}, minmax(0, 1fr))` }}
         >
           {content.images.map((img) => (
-            <figure key={img.id} style={{ margin: 0 }}>
+            <figure key={img.id} className="m-0">
               <img
                 src={img.url}
                 alt={img.alt ?? img.caption ?? ""}
-                style={{
-                  width: "100%",
-                  aspectRatio: "1 / 1",
-                  objectFit: "cover",
-                  borderRadius: 12,
-                  display: "block",
-                }}
+                className="block aspect-square w-full rounded-[12px] object-cover"
               />
               {img.caption && (
-                <figcaption style={{ fontSize: 13, color: "#6b7280", marginTop: 4 }}>
+                <figcaption className="mt-1 text-[13px] text-muted-foreground">
                   {img.caption}
                 </figcaption>
               )}

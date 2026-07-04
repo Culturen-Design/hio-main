@@ -1,30 +1,30 @@
 import type { BioContent } from "@hio/content-model";
+import { cn } from "../cn";
 import type { StyleVariant } from "../style";
+import { cardClasses, headingClasses } from "../variant";
 
-export function BioModule({ content }: { content: BioContent; variant?: StyleVariant | null }) {
+export function BioModule({
+  content,
+  variant,
+}: { content: BioContent; variant?: StyleVariant | null }) {
   return (
     <section
-      style={{
-        padding: "2.5rem 1.5rem",
-        maxWidth: 720,
-        margin: "0 auto",
-        display: "flex",
-        gap: "1.5rem",
-        alignItems: "flex-start",
-        flexWrap: "wrap",
-      }}
+      className={cn(
+        "mx-auto flex max-w-[720px] flex-wrap items-start gap-6 p-10",
+        cardClasses(variant),
+      )}
     >
       {content.photo_url && (
         // biome-ignore lint/a11y/useAltText: alt is provided via photo_alt
         <img
           src={content.photo_url}
           alt={content.photo_alt ?? ""}
-          style={{ width: 140, height: 140, objectFit: "cover", borderRadius: 16 }}
+          className="h-[140px] w-[140px] rounded-[16px] object-cover"
         />
       )}
-      <div style={{ flex: 1, minWidth: 240 }}>
-        <h2 style={{ marginTop: 0 }}>{content.title}</h2>
-        <p style={{ whiteSpace: "pre-wrap", color: "#374151", lineHeight: 1.6 }}>{content.body}</p>
+      <div className="min-w-[240px] flex-1">
+        <h2 className={cn("mt-0 text-xl", headingClasses(variant))}>{content.title}</h2>
+        <p className="whitespace-pre-wrap leading-relaxed text-muted-foreground">{content.body}</p>
       </div>
     </section>
   );

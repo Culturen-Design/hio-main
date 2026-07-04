@@ -1,6 +1,8 @@
 import type { CustomContent } from "@hio/content-model";
 import Markdown from "react-markdown";
+import { cn } from "../cn";
 import type { StyleVariant } from "../style";
+import { cardClasses, headingClasses } from "../variant";
 
 /**
  * The escape-hatch module: a title + a markdown body. Renders MARKDOWN, never
@@ -10,11 +12,12 @@ import type { StyleVariant } from "../style";
  */
 export function CustomModule({
   content,
+  variant,
 }: { content: CustomContent; variant?: StyleVariant | null }) {
   return (
-    <section style={{ padding: "2.5rem 1.5rem", maxWidth: 720, margin: "0 auto" }}>
-      <h2 style={{ marginTop: 0 }}>{content.title}</h2>
-      <div style={{ color: "#374151", lineHeight: 1.6 }}>
+    <section className={cn("mx-auto max-w-[720px] p-10", cardClasses(variant))}>
+      <h2 className={cn("mt-0 text-xl", headingClasses(variant))}>{content.title}</h2>
+      <div className="leading-relaxed text-muted-foreground">
         <Markdown>{content.body}</Markdown>
       </div>
     </section>
