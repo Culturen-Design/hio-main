@@ -71,8 +71,9 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
   `SUPABASE_PROD_REF`, `SUPABASE_PROD_DB_PASSWORD`); **(4)** promote `integration/v2` → `main` so CI runs
   the 14 migrations against prod and Netlify deploys production.
 - **In parallel (widening M2) — now the active track (owner decision 2026-06-22: widen M2 before prod):**
-  `contact` ✅ · `services` ✅ · `gallery` ✅ · `testimonial` ✅ done; only `custom` remains, plus
-  drag-and-drop reorder and the shadcn restyle. **8 of 9 module types are now built** (all except `custom`).
+  `contact` ✅ · `services` ✅ · `gallery` ✅ · `testimonial` ✅ · `custom` ✅ done. **All 9 module
+  types are now built.** Remaining in this track: drag-and-drop reorder (both builders, in progress)
+  and the shadcn restyle.
 - **Branch model:** work happens on `integration/v2`; it becomes `main` when v2 is ready.
 
 ---
@@ -172,8 +173,15 @@ collection module with `add_service`/`update_service`/`remove_service`, PR #38).
 (no upload pipeline — Supabase Storage upload is a future enhancement); `testimonial` = quote list with
 `add_testimonial`/`update_testimonial`/`remove_testimonial`. Both paid-gated by RLS. **ai-command redeployed
 v9**; all three (services/gallery/testimonial) live-verified end-to-end on dev (REST insert → AI add-item →
-DB-persisted → public `/[slug]` renders). **Only `custom` remains unbuilt** (8 of 9 module types done). Plus
-drag-and-drop reordering and the shadcn/design-system restyle of all renderers.
+DB-persisted → public `/[slug]` renders). `custom` ✅ done (`@hio/content-model@1.5.0`, PR #40): the escape
+hatch — `title` + a markdown `body`, no new AI tools (edited via `update_module_content`, same as
+`contact`/`bio`). `@hio/ui`'s `CustomModule` renders `body` via `react-markdown` with no `rehype-raw`
+plugin, so pasted HTML/`<script>` tags render as inert text — a markdown renderer, not an HTML renderer.
+Paid-gated by RLS; no migration (the DB `allowed_module_types()` already listed `custom`). **ai-command
+redeployed v10**; live-verified end-to-end (REST add/edit + AI title edit, both DB-persisted; an XSS probe
+with `<script>`/`<img onerror>` in the body confirmed inert — no execution, no injected DOM node). **All 9
+module types are now built.** Remaining in this track: drag-and-drop reordering (both builders) and the
+shadcn/design-system restyle of all renderers.
 
 ### M3 — Extract, generalize & **freeze** the core ✅ (engine generalized in M2.5a; freeze + deploy reconcile done)
 The engine was made schema-driven with Vitest coverage in M2.5a. The remaining, non-skippable work
