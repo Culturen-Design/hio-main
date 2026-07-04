@@ -74,9 +74,10 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
   `contact` ✅ · `services` ✅ · `gallery` ✅ · `testimonial` ✅ · `custom` ✅ done. **All 9 module
   types are now built.** Drag-and-drop reorder ✅ done (both builders, PR #42). shadcn/Tailwind
   spike ✅ done (PR #44, pipeline wired + `ContactModule` migrated) — **all three Active-track
-  items are now merged.** Remaining: migrate the other 8 renderers + builder chrome (deferred
-  enhancement, not a gate — see the Module build-out note below); next up per the roadmap is the
-  **INFRA/path-to-prod** track (see "Next action" above).
+  items are now merged.** **Owner decision 2026-07-04:** before moving to INFRA/path-to-prod, finish
+  migrating the other 8 renderers + both builders' chrome onto Tailwind/shadcn, then build the
+  **per-site theming MVP** (see the new planned item under "Module build-out" below) — INFRA remains
+  the eventual next track (see "Next action" above) once both of those are done.
 - **Branch model:** work happens on `integration/v2`; it becomes `main` when v2 is ready.
 
 ---
@@ -202,8 +203,30 @@ Tailwind utilities as the proof point, and `StyleVariant` (`minimal/bold/outline
 previously accepted by every renderer but never used) now maps to a real card treatment. Live-
 verified: both apps compile clean; the migrated renderer's computed styles confirmed correct in the
 builder and on the public `/[slug]` page. **All three Active-track items are now merged** (`custom`,
-drag-and-drop, this spike). Migrating the other 8 renderers + builder chrome is deferred follow-up
-work, done incrementally so public `/[slug]` rendering stays stable throughout — not a re-opened gate.
+drag-and-drop, this spike). **Next in this track:** migrate the other 8 renderers + both builders'
+chrome onto Tailwind/shadcn (owner decision 2026-07-04: finish this before starting the theming MVP
+below), incrementally, keeping public `/[slug]` rendering stable throughout.
+
+**Planned next (owner decision 2026-07-04) — per-site theming MVP, after the shadcn migration is
+complete.** Once all 9 renderers + both builders' chrome are on Tailwind/shadcn, let users choose
+their own site's look: a handful of accent colors, a font, and a rounding style — explicitly a
+**narrow MVP the owner intends to upgrade later**, not a full design-system picker. Reuses the theme
+mechanism Studio already has (`tenants.theme` JSONB + `parseSiteTheme`/`themeToStyle`, M4.6) rather
+than inventing new storage — extended to Self-Serve too (currently Studio-only). Scope:
+- **Accent color:** a small curated set of swatches drawn from Tailwind's palette (not a free color
+  picker) — stored in the theme JSONB, exposed as a CSS custom property so `@theme` tokens (and
+  every `bg-primary`/`text-primary`/etc. utility class) resolve to the user's choice at runtime,
+  without fighting Tailwind's static-class-scanning model (utility classes stay fixed; only the CSS
+  variable they reference changes per site).
+- **Font:** a short curated list of font stacks (not arbitrary upload or a Google Fonts search).
+- **Rounding:** a few presets (e.g. sharp/soft/pill) mapped to a `--radius` CSS variable consumed by
+  the `rounded-card`-style utilities already introduced in the shadcn spike.
+- **UI:** a simple picker (swatches + two dropdowns) in both builders' settings, writing to the same
+  theme JSONB Studio already has. Self-Serve needs the `tenants.theme` column/RLS write path
+  extended to it (Studio-only today).
+**Explicitly out of MVP scope** (deferred, per the owner's stated intent to iterate): a free-form
+color picker, custom font upload/search, per-module style overrides, or exposing the full Tailwind
+palette — start narrow, widen later once real usage shows what's actually wanted.
 
 ### M3 — Extract, generalize & **freeze** the core ✅ (engine generalized in M2.5a; freeze + deploy reconcile done)
 The engine was made schema-driven with Vitest coverage in M2.5a. The remaining, non-skippable work
