@@ -82,10 +82,14 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
   **M2-widening is now fully wrapped.** **Public-site visual identity ✅ done** (out-of-sequence,
   owner-directed — see the Deviation log's `2026-07-05` entry): a shared stone/slate/primary
   default look for both products' published pages, plus content-appropriate per-module layouts.
-  **Manual collection-item editing 🔵 open for review** (PRs #55/#56/#57, stacked, CI green, not
-  yet merged — see the Deviation log's second `2026-07-05` entry): fixes the gap the visual-
-  identity work surfaced — the builder's "Edit" button could only touch string fields, so
-  services/gallery/testimonial/calendar/links items were only addable via AI chat.
+  **Manual collection-item editing ✅ done** (PRs #55 + #57, merged — see the Deviation log's
+  second `2026-07-05` entry): fixes the gap the visual-identity work surfaced — the builder's
+  "Edit" button could only touch string fields, so services/gallery/testimonial/calendar/links
+  items were only addable via AI chat. (PR #56 was auto-closed when its base branch, #55, was
+  deleted on merge — GitHub closes a dependent PR instead of retargeting it. Recreated as #58,
+  then closed as superseded once #57's branch was retargeted straight to `integration/v2` and
+  found to already contain the complete stack — shared pieces + both apps' wiring — merged as a
+  single commit with no duplicate content.)
   Next: **INFRA/path-to-prod** (see "Next action" above).
 - **Branch model:** work happens on `integration/v2`; it becomes `main` when v2 is ready.
 
@@ -428,8 +432,12 @@ CollectionEditor.tsx` + `collectionFields.ts` — a generic form + a per-module 
 the 5 collection types); **#56** wires it into Self-Serve's `SectionEditor`/`BuilderCanvas`/
 `actions.ts` (`updateContent` now validates via `contentSchema.safeParse` before writing); **#57**
 the Studio equivalent, resolving each client's own schema via `resolveVariant(tenant.id,
-tenant.schema_variant)` (the same pattern `addSection` already used). CI green on all three as of
-2026-07-05; **not yet merged** — update this entry once they land.
+tenant.schema_variant)` (the same pattern `addSection` already used). **Merged 2026-07-05:** #55
+and #57 landed on `integration/v2`. #57's branch had been retargeted directly to `integration/v2`
+and, once there, already contained the complete stack (shared pieces + both apps' wiring) — so
+#56 (auto-closed when its base branch #55 was deleted on merge, then recreated as #58) was closed
+as a duplicate rather than merged. No content was lost and no duplicate commit landed; verified by
+confirming `CollectionEditor` is wired into both apps' `SectionEditor` files on `integration/v2`.
 **Why required:** owner-directed, surfaced by hands-on testing of the prior visual-identity PR;
 not sequenced in the roadmap, but a real, small (three PRs, no schema/RLS change) product gap.
 **Cost / mitigation:** none to the INFRA path. A real bug was caught and fixed while live-
