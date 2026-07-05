@@ -25,8 +25,26 @@ export function BioModule({
         </div>
       )}
       <div className="min-w-[240px] flex-1">
+        {content.tagline && (
+          <p className="bp-eyebrow m-0 mb-1 text-xs text-muted-foreground uppercase tracking-[1px]">
+            {content.tagline}
+          </p>
+        )}
         <h2 className={cn("mt-0 text-xl", headingClasses(variant))}>{content.title}</h2>
         <p className="whitespace-pre-wrap leading-relaxed text-muted-foreground">{content.body}</p>
+        {content.facts && content.facts.length > 0 && (
+          <dl className="mt-5 grid gap-2.5">
+            {content.facts.map((f) => (
+              <div key={f.id} className="flex items-baseline gap-3 text-sm">
+                <dt className="shrink-0 text-[11px] text-muted-foreground uppercase tracking-wide">
+                  {f.label}
+                </dt>
+                <span className="bp-leader" aria-hidden />
+                <dd className="m-0 font-semibold text-foreground">{f.value}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
       </div>
     </section>
   );

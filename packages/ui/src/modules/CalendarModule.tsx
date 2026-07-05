@@ -48,6 +48,11 @@ export function CalendarModule({
         {events.length} {events.length === 1 ? "event" : "events"}
       </p>
       <h2 className={cn("mt-0 text-xl", headingClasses(variant))}>{content.title}</h2>
+      {content.intro && (
+        <p className="mt-1 mb-5 max-w-[560px] leading-relaxed text-muted-foreground">
+          {content.intro}
+        </p>
+      )}
       {events.length === 0 ? (
         <p className="text-muted-foreground">No upcoming events.</p>
       ) : (

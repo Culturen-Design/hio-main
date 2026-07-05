@@ -47,6 +47,17 @@ describe("parseSiteTheme", () => {
     );
   });
 
+  it("accepts every curated margin pattern and drops anything else", () => {
+    expect(parseSiteTheme({ marginPattern: "none" }).marginPattern).toBe("none");
+    expect(parseSiteTheme({ marginPattern: "dot-grid" }).marginPattern).toBe("dot-grid");
+    expect(parseSiteTheme({ marginPattern: "diagonal-hatch" }).marginPattern).toBe(
+      "diagonal-hatch",
+    );
+    expect(parseSiteTheme({ marginPattern: "pinstripe" }).marginPattern).toBe("pinstripe");
+    expect(parseSiteTheme({ marginPattern: "zebra" }).marginPattern).toBeUndefined();
+    expect(parseSiteTheme({ marginPattern: 7 }).marginPattern).toBeUndefined();
+  });
+
   it("degrades a non-object to an empty theme", () => {
     expect(parseSiteTheme(null)).toEqual({});
     expect(parseSiteTheme("nope")).toEqual({});

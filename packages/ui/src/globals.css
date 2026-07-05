@@ -149,6 +149,11 @@ body {
      Sections offset by it (their borders ARE the column lines) and the seam
      ticks extend into it. 40px at desktop, floored at 16px on small screens. */
   --bp-margin: clamp(calc(var(--bp-unit) * 2), 4vw, calc(var(--bp-unit) * 5));
+  /* Vertical breathing room between the paper's trim edge and the content
+     column. Without it the column sat flush against the frame at both ends and
+     the page read as "cut out" (owner feedback, 2026-07-05). The column's own
+     top/bottom rules + corner overshoots (below) close the drawing instead. */
+  --bp-page-pad: clamp(calc(var(--bp-unit) * 4), 6vw, calc(var(--bp-unit) * 8));
 
   --color-background: var(--bp-paper);
   --color-foreground: var(--bp-ink);
@@ -162,6 +167,115 @@ body {
 
   /* The paper's own trim edge — the outermost line of the drawing. */
   border: 1px solid var(--bp-hairline);
+  /* The breathing room (see --bp-page-pad above). `position: relative` anchors
+     the bottom corner overshoots drawn as this wrapper's own pseudo-elements. */
+  padding-block: var(--bp-page-pad);
+  position: relative;
+}
+
+/* The column's opening rule: with breathing room above it, the first section
+   must draw its own top edge or the column reads as an open-topped box. (This
+   outranks the hero's `border-top: none` below — that rule existed to kill the
+   renderer's 3px accent border when the hero sat flush against the trim edge,
+   which no section does any more.) */
+.site-style-warm-blueprint-brutalism section:first-of-type {
+  border-top: 1px solid var(--bp-hairline-strong);
+}
+
+/* Corner overshoots — the connecting device between the frame and the column.
+   At the column's four corners the VERTICAL rules extend two units past the
+   horizontal ones into the breathing space, exactly as the horizontal seam
+   ticks already extend past the verticals at every internal boundary: drafting
+   construction lines always cross, they never just stop. Top pair rides the
+   first section's (otherwise unused) pseudo-elements, pinned to its own border
+   (`left/right: -1px` = the border's exact pixel column); bottom pair rides
+   the wrapper's pseudo-elements at the same x (`--bp-margin` = the sections'
+   shared inline offset), gated on `:has(section)` so an empty page draws no
+   floating marks. */
+.site-style-warm-blueprint-brutalism section:first-of-type::before,
+.site-style-warm-blueprint-brutalism section:first-of-type::after {
+  content: "";
+  position: absolute;
+  top: calc(var(--bp-unit) * -2 - 1px);
+  width: 1px;
+  height: calc(var(--bp-unit) * 2);
+  background: var(--bp-hairline-strong);
+}
+.site-style-warm-blueprint-brutalism section:first-of-type::before {
+  left: -1px;
+}
+.site-style-warm-blueprint-brutalism section:first-of-type::after {
+  right: -1px;
+}
+.site-style-warm-blueprint-brutalism:has(section)::before,
+.site-style-warm-blueprint-brutalism:has(section)::after {
+  content: "";
+  position: absolute;
+  bottom: calc(var(--bp-page-pad) - var(--bp-unit) * 2);
+  width: 1px;
+  height: calc(var(--bp-unit) * 2);
+  background: var(--bp-hairline-strong);
+}
+.site-style-warm-blueprint-brutalism:has(section)::before {
+  left: var(--bp-margin);
+}
+.site-style-warm-blueprint-brutalism:has(section)::after {
+  right: var(--bp-margin);
+}
+
+/*
+ * Margin patterns — the curated `theme.marginPattern` dimension (`@hio/ui`'s
+ * MARGIN_PATTERN_OPTIONS; the wrapper carries `site-margin-<value>`). The
+ * pattern's job: the drafting margin is structural space the scaffold already
+ * implies, and these fills read as the drafting-table surface showing through
+ * around the paper's content column — not a new focal point. Kept deliberately
+ * faint (hairline color mixed way down).
+ *
+ * Technique: the pattern is painted across the whole wrapper, then a solid
+ * paper layer (listed FIRST = painted on top) covers exactly the content
+ * column, leaving the pattern visible only in the margins and the breathing
+ * bands' outer strips. A cover layer — not `background` on the sections —
+ * because a section background would paint over the negative-z-index
+ * `.bp-offset` outlines and erase the style's one depth technique.
+ * (A tenant-set custom `background` color is inline `background` shorthand on
+ * the wrapper, which resets background-image: patterns gracefully vanish
+ * rather than fight it. Scoped to the warm-blueprint style; other styles
+ * ignore the class by design.)
+ */
+.site-style-warm-blueprint-brutalism.site-margin-dot-grid,
+.site-style-warm-blueprint-brutalism.site-margin-diagonal-hatch,
+.site-style-warm-blueprint-brutalism.site-margin-pinstripe {
+  background-size: calc(100% - var(--bp-margin) * 2) 100%, var(--bp-pattern-size, auto);
+  background-position: var(--bp-margin) 0, 0 0;
+  background-repeat: no-repeat, repeat;
+}
+.site-style-warm-blueprint-brutalism.site-margin-dot-grid {
+  --bp-pattern-size: calc(var(--bp-unit) * 2) calc(var(--bp-unit) * 2);
+  background-image: linear-gradient(var(--bp-paper), var(--bp-paper)),
+    radial-gradient(
+      color-mix(in oklab, var(--bp-hairline-strong) 60%, transparent) 1px,
+      transparent 1.5px
+    );
+}
+.site-style-warm-blueprint-brutalism.site-margin-diagonal-hatch {
+  background-image: linear-gradient(var(--bp-paper), var(--bp-paper)),
+    repeating-linear-gradient(
+      45deg,
+      color-mix(in oklab, var(--bp-hairline) 70%, transparent) 0,
+      color-mix(in oklab, var(--bp-hairline) 70%, transparent) 1px,
+      transparent 1px,
+      transparent var(--bp-unit)
+    );
+}
+.site-style-warm-blueprint-brutalism.site-margin-pinstripe {
+  background-image: linear-gradient(var(--bp-paper), var(--bp-paper)),
+    repeating-linear-gradient(
+      90deg,
+      color-mix(in oklab, var(--bp-hairline) 70%, transparent) 0,
+      color-mix(in oklab, var(--bp-hairline) 70%, transparent) 1px,
+      transparent 1px,
+      transparent var(--bp-unit)
+    );
 }
 
 .site-style-warm-blueprint-brutalism h1,
@@ -350,4 +464,21 @@ body {
   font-family: var(--bp-mono);
   font-size: 0.6875rem;
   letter-spacing: 0.06em;
+}
+
+/* Bio quick-facts reuse the Contact spec-sheet grammar: mono labels joined to
+   their values by dotted leaders (the .bp-leader spans in the markup). Same
+   voice, lighter surface — a spec block on paper, not a second dark panel. */
+.site-style-warm-blueprint-brutalism [data-module="bio"] dt {
+  font-family: var(--bp-mono);
+}
+.site-style-warm-blueprint-brutalism [data-module="bio"] .bp-leader {
+  border-bottom-color: var(--bp-hairline-strong);
+}
+
+/* Star ratings are real content (visible under every style); under this style
+   they speak the annotation voice — mono, tracked, machine-stamped. */
+.site-style-warm-blueprint-brutalism .bp-rating {
+  font-family: var(--bp-mono);
+  letter-spacing: 0.18em;
 }

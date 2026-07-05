@@ -2,7 +2,7 @@
 
 import { cn } from "../cn";
 
-export type FieldKind = "text" | "textarea" | "url" | "date" | "time";
+export type FieldKind = "text" | "textarea" | "url" | "date" | "time" | "select";
 
 export interface FieldConfig {
   key: string;
@@ -10,6 +10,10 @@ export interface FieldConfig {
   kind: FieldKind;
   maxLength?: number;
   required?: boolean;
+  /** For kind "select": the curated choices. Form values are strings;
+   *  `valueType: "number"` is coerced back on save (see `cleanCollectionRows`). */
+  options?: ReadonlyArray<{ name: string; value: string }>;
+  valueType?: "number";
 }
 
 type Row = Record<string, unknown> & { id: string };
@@ -72,6 +76,21 @@ export function CollectionEditor({
                   rows={3}
                   className="rounded-lg border border-border p-2 font-[inherit]"
                 />
+              ) : f.kind === "select" ? (
+                <select
+                  id={`${row.id}-${f.key}`}
+                  // Stringify: an existing row may hold a number (e.g. rating).
+                  value={row[f.key] == null ? "" : String(row[f.key] as string | number)}
+                  onChange={(e) => patch(row.id, f.key, e.target.value)}
+                  className="rounded-lg border border-border p-2"
+                >
+                  {!f.required && <option value="">—</option>}
+                  {(f.options ?? []).map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.name}
+                    </option>
+                  ))}
+                </select>
               ) : (
                 <input
                   id={`${row.id}-${f.key}`}

@@ -188,6 +188,105 @@ describe("custom module (the escape hatch — last of 9 module types)", () => {
   });
 });
 
+describe("v1.6.0 content expansion — additive and backward compatible", () => {
+  it("pre-expansion rows (no new fields) still validate for every module", () => {
+    const legacyRows: Array<[ModuleType, Record<string, unknown>]> = [
+      ["hero", { headline: "Hi" }],
+      ["bio", { title: "About", body: "Text" }],
+      ["links", { title: "Links", items: [], columns: 2 }],
+      ["calendar", { title: "Events", events: [], show_past: false }],
+      ["contact", { title: "Contact" }],
+      ["services", { title: "Services", items: [{ id: "s1", name: "Cut" }] }],
+      ["gallery", { title: "Gallery", images: [], columns: 3 }],
+      ["testimonial", { title: "Quotes", items: [{ id: "t1", quote: "Nice", author: "Ann" }] }],
+      ["custom", { title: "X", body: "y" }],
+    ];
+    for (const [type, row] of legacyRows) {
+      const parsed = MODULE_REGISTRY[type]?.contentSchema.safeParse(row);
+      expect(parsed?.success, type).toBe(true);
+    }
+  });
+
+  it("accepts the new fields on each expanded module", () => {
+    expect(
+      MODULE_REGISTRY.hero?.contentSchema.safeParse({
+        headline: "Hi",
+        supporting_text: "More context.",
+        image_url: "https://img.example.com/banner.jpg",
+        image_alt: "Banner",
+      }).success,
+    ).toBe(true);
+    expect(
+      MODULE_REGISTRY.bio?.contentSchema.safeParse({
+        title: "About",
+        tagline: "Potter & teacher",
+        body: "Text",
+        facts: [{ id: "f1", label: "Experience", value: "12 years" }],
+      }).success,
+    ).toBe(true);
+    expect(
+      MODULE_REGISTRY.contact?.contentSchema.safeParse({
+        title: "Contact",
+        hours: "Tue–Sat 10–18",
+        cta_label: "Book",
+        cta_url: "https://cal.example.com",
+      }).success,
+    ).toBe(true);
+    expect(
+      MODULE_REGISTRY.services?.contentSchema.safeParse({
+        title: "Services",
+        intro: "What I offer.",
+        columns: 2,
+        items: [
+          {
+            id: "s1",
+            name: "Wheel throwing",
+            icon: "🏺",
+            image_url: "https://img.example.com/s.jpg",
+            image_alt: "Wheel",
+            link_url: "https://example.com/book",
+            link_label: "Book now",
+          },
+        ],
+      }).success,
+    ).toBe(true);
+    expect(
+      MODULE_REGISTRY.testimonial?.contentSchema.safeParse({
+        title: "Quotes",
+        intro: "Kind words.",
+        items: [{ id: "t1", quote: "Nice", author: "Ann", rating: 5 }],
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejects out-of-range values on the new fields", () => {
+    expect(
+      MODULE_REGISTRY.testimonial?.contentSchema.safeParse({
+        title: "Q",
+        items: [{ id: "t1", quote: "Nice", author: "Ann", rating: 6 }],
+      }).success,
+    ).toBe(false);
+    expect(
+      MODULE_REGISTRY.services?.contentSchema.safeParse({
+        title: "S",
+        items: [],
+        columns: 4,
+      }).success,
+    ).toBe(false);
+    expect(
+      MODULE_REGISTRY.hero?.contentSchema.safeParse({
+        headline: "Hi",
+        image_url: "not-a-url",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("bio gained its quick-facts collection tools", () => {
+    const toolNames = selfServeSchema.allTools().map((t) => t.name);
+    expect(toolNames).toEqual(expect.arrayContaining(["add_fact", "update_fact", "remove_fact"]));
+  });
+});
+
 describe("resolveProvider — per-tenant provider from an enabled module set", () => {
   it("exposes ONLY the enabled modules and their tools (toolset = enabled set)", () => {
     // A studio-style tenant that enables links but NOT calendar.

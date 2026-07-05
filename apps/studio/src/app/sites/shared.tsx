@@ -46,10 +46,11 @@ export async function fetchPublicSiteByDomain(host: string): Promise<PublicSite 
 export function PublicSiteView({ site }: { site: PublicSite }) {
   const theme = parseSiteTheme(site.theme);
   const styleId = theme.style ?? DEFAULT_THEME.style;
+  const marginPattern = theme.marginPattern ?? DEFAULT_THEME.marginPattern;
 
   return (
     <main
-      className={`site-public site-style-${styleId}`}
+      className={`site-public site-style-${styleId} site-margin-${marginPattern}`}
       style={{ minHeight: "100vh", ...themeToStyle(theme) }}
     >
       {site.sections.length === 0 ? (

@@ -424,6 +424,31 @@ onto tenants too, via expand→migrate→contract), **one generalized** tenant-a
 
 Every approved departure from the original plan, with its reason and cost.
 
+### 2026-07-05 — Per-module content expansion + page polish + margin patterns (owner-directed, out-of-sequence)
+**Change:** follows directly from the Warm-Blueprint work (PRs #60/#61); the owner asked for (a) page-
+level polish — breathing room at the top/bottom of the drawing (`--bp-page-pad`, plus the column's own
+opening rule and corner overshoots so the scaffold visibly continues into the new space) and a subtle
+geometric fill for the drafting margin, shipped as a **new curated theme dimension**
+(`tenants.theme.marginPattern` — none/dot-grid/diagonal-hatch/pinstripe — mirroring how `theme.style`
+was wired: `MARGIN_PATTERN_OPTIONS` in `@hio/ui`, a `site-margin-<value>` wrapper class, pickers in both
+apps' theme forms, defensive parse; another additive JSONB key under existing RLS, no migration); and
+(b) a **per-module content-model expansion** — every module reviewed on its own terms for what a small
+business/freelancer actually needs (`@hio/content-model` v1.6.0, all fields optional/additive — see
+CONTRACT.md's changelog for the full field list: hero banner image + supporting text, bio tagline +
+quick-facts collection with new `add_fact`/`update_fact`/`remove_fact` tools, services grid
+(columns/icon/image/link — must look intentional with or without icon/image, per the owner), contact
+hours + booking CTA, per-section intros, testimonial ratings). Manual editability moved from
+key-discovery to a shared registry (`@hio/ui`'s `MODULE_SCALAR_FIELDS` + extended
+`COLLECTION_FIELD_REGISTRY`), since discovery could never surface an optional field an existing row
+doesn't carry; a drift test pins registry keys to the Zod schemas.
+**Why required:** owner-directed (verbatim brief: think per module — "text, image, links, containers …
+the typical things a small business or freelance will need" — editable from the builder, fitting the
+shared skeleton); not roadmap-sequenced but directly unblocks real content on the new visual system.
+**Cost / mitigation:** none to the INFRA path. No DB migration (JSONB content/theme only, existing RLS).
+The ai-command vendor bundle was regenerated; the bundler now also vendors `collections.ts` and rewrites
+extensionless relative imports (the previous bundle's `from "./collections"` would have broken the next
+Deno redeploy — latent since PR #55).
+
 ### 2026-07-05 — "Warm Blueprint Brutalism" visual direction (owner-directed, out-of-sequence)
 **Change:** replaces the stone/slate/primary public-page look (the prior `2026-07-05` visual-
 identity entry below) with a technical-drawing/blueprint aesthetic per a detailed owner brief:

@@ -30,6 +30,13 @@ const PACKAGES = [
     src: "packages/content-model/src/index.ts",
     out: "content-model.ts",
   },
+  // Sibling module of content-model's index (re-exported from it). Vendored as
+  // its own file; the extension-rewrite below points the relative import at it.
+  {
+    name: "@hio/content-model (collections)",
+    src: "packages/content-model/src/collections.ts",
+    out: "collections.ts",
+  },
   { name: "@hio/ai-engine", src: "packages/ai-engine/src/index.ts", out: "ai-engine.ts" },
 ];
 
@@ -48,8 +55,12 @@ mkdirSync(vendorDir, { recursive: true });
 
 for (const { name, src, out } of PACKAGES) {
   const source = readFileSync(join(root, src), "utf8");
-  // Normalize to LF so the output is identical across platforms (CI runs on Linux).
-  const body = source.replace(/\r\n/g, "\n");
+  // Normalize to LF so the output is identical across platforms (CI runs on Linux),
+  // and give extensionless RELATIVE imports the .ts extension Deno requires
+  // (TS's bundler resolution omits it; e.g. index.ts's `from "./collections"`).
+  const body = source
+    .replace(/\r\n/g, "\n")
+    .replace(/(from\s+")(\.\.?\/[^"]+?)(?<!\.ts)(")/g, "$1$2.ts$3");
   writeFileSync(join(vendorDir, out), banner(name, src) + body);
   console.log(`vendored ${name} → supabase/functions/ai-command/vendor/${out}`);
 }

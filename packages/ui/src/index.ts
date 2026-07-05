@@ -20,10 +20,12 @@ export {
   type SiteTheme,
   type RadiusPreset,
   type SiteStyle,
+  type MarginPattern,
   ACCENT_SWATCHES,
   FONT_STACKS,
   RADIUS_PRESETS,
   STYLE_OPTIONS,
+  MARGIN_PATTERN_OPTIONS,
   DEFAULT_THEME,
   parseSiteTheme,
   themeToStyle,
@@ -32,4 +34,14 @@ export { CollectionEditor, type FieldConfig, type FieldKind } from "./forms/Coll
 export {
   COLLECTION_FIELD_REGISTRY,
   type CollectionFieldConfig,
+  cleanCollectionRows,
 } from "./forms/collectionFields";
+export {
+  MODULE_SCALAR_FIELDS,
+  type ScalarFieldKind,
+  type ScalarFieldSpec,
+  type ScalarFormValue,
+  discoverScalarSpecs,
+  initialScalarValues,
+  applyScalarValues,
+} from "./forms/moduleFields";
