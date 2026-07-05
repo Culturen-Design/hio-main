@@ -90,13 +90,28 @@ export async function addSection(tenantId: string, type: ModuleType): Promise<Ac
   return { ok: true };
 }
 
+/** `type` comes from the caller (already in scope from the section it's editing) rather
+ *  than a fresh DB lookup — it only selects which Zod schema to validate against, never
+ *  bypasses `requireClient`'s membership check, so trusting the client here is safe
+ *  (worst case is validating against the wrong-but-still-real schema). */
 export async function updateSectionContent(
   tenantId: string,
   sectionId: string,
+  type: ModuleType,
   content: Json,
 ): Promise<ActionResult> {
   const ctx = await requireClient(tenantId);
   if (!ctx.ok) return { error: ctx.error };
+
+  try {
+    const def = resolveVariant(ctx.tenant.id, ctx.tenant.schema_variant).getModule(type);
+    if (def) {
+      const parsed = def.contentSchema.safeParse(content);
+      if (!parsed.success) return { error: `Invalid content: ${parsed.error.message}` };
+    }
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Could not resolve client schema" };
+  }
 
   const { error } = await ctx.supabase
     .from("sections")

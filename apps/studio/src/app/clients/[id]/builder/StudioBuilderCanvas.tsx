@@ -159,6 +159,7 @@ export function StudioBuilderCanvas({
               <StudioSectionEditor
                 tenantId={tenantId}
                 sectionId={s.id}
+                type={s.type}
                 content={(s.content ?? {}) as Record<string, unknown>}
                 onDone={() => setEditingId(null)}
               />

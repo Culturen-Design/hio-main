@@ -59,8 +59,23 @@ export async function addModule(type: ModuleType): Promise<ActionResult> {
   return { ok: true };
 }
 
-export async function updateContent(sectionId: string, content: Json): Promise<ActionResult> {
+/** `type` comes from the caller (already in scope from the section it's editing) rather
+ *  than a fresh DB lookup — it only selects which Zod schema to validate against, never
+ *  bypasses `requireSite`'s membership/ownership check, so trusting the client here is
+ *  safe (worst case is validating against the wrong-but-still-real schema). */
+export async function updateContent(
+  sectionId: string,
+  type: ModuleType,
+  content: Json,
+): Promise<ActionResult> {
   const { supabase } = await requireSite();
+
+  const def = selfServeSchema.getModule(type);
+  if (def) {
+    const parsed = def.contentSchema.safeParse(content);
+    if (!parsed.success) return { error: `Invalid content: ${parsed.error.message}` };
+  }
+
   const { error } = await supabase.from("sections").update({ content }).eq("id", sectionId);
   if (error) return { error: error.message };
   revalidatePath("/builder");

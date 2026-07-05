@@ -82,6 +82,10 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
   **M2-widening is now fully wrapped.** **Public-site visual identity ✅ done** (out-of-sequence,
   owner-directed — see the Deviation log's `2026-07-05` entry): a shared stone/slate/primary
   default look for both products' published pages, plus content-appropriate per-module layouts.
+  **Manual collection-item editing 🔵 open for review** (PRs #55/#56/#57, stacked, CI green, not
+  yet merged — see the Deviation log's second `2026-07-05` entry): fixes the gap the visual-
+  identity work surfaced — the builder's "Edit" button could only touch string fields, so
+  services/gallery/testimonial/calendar/links items were only addable via AI chat.
   Next: **INFRA/path-to-prod** (see "Next action" above).
 - **Branch model:** work happens on `integration/v2`; it becomes `main` when v2 is ready.
 
@@ -410,6 +414,29 @@ onto tenants too, via expand→migrate→contract), **one generalized** tenant-a
 ## Deviation log
 
 Every approved departure from the original plan, with its reason and cost.
+
+### 2026-07-05 — Manual collection-item editing (owner-directed, out-of-sequence)
+**Change:** after the visual-identity work landed, the owner tested the 9 module types and found
+they still "all look the same" and asked where to add real content — the builder's "Edit" button
+only ever exposed **string** top-level fields (`Object.entries(content).filter(([, v]) => typeof
+v === "string")`, both apps, confirmed by audit), so services/gallery/testimonial/calendar/links
+array content, plus `show_past`/`columns` scalars, were completely unreachable manually; the only
+path was the AI chat sidebar. Shipped as 3 stacked PRs: **#55** shared building blocks
+(`packages/content-model/src/collections.ts` — pure append/update/remove helpers mirroring
+`ai-engine`'s `appendItem`/`updateItem`/`removeItem` op semantics exactly; `packages/ui/src/forms/
+CollectionEditor.tsx` + `collectionFields.ts` — a generic form + a per-module field registry for
+the 5 collection types); **#56** wires it into Self-Serve's `SectionEditor`/`BuilderCanvas`/
+`actions.ts` (`updateContent` now validates via `contentSchema.safeParse` before writing); **#57**
+the Studio equivalent, resolving each client's own schema via `resolveVariant(tenant.id,
+tenant.schema_variant)` (the same pattern `addSection` already used). CI green on all three as of
+2026-07-05; **not yet merged** — update this entry once they land.
+**Why required:** owner-directed, surfaced by hands-on testing of the prior visual-identity PR;
+not sequenced in the roadmap, but a real, small (three PRs, no schema/RLS change) product gap.
+**Cost / mitigation:** none to the INFRA path. A real bug was caught and fixed while live-
+verifying: `CollectionEditor` initializes every field (including optional ones) to `""` for a new
+draft row, but `z.string().url().optional()` rejects an empty string (`optional` only permits
+`undefined`) — fixed by stripping empty-string values for non-required fields before validating,
+in both apps' save paths.
 
 ### 2026-07-05 — Public-site visual identity: stone/slate/primary (owner-directed, out-of-sequence)
 **Change:** new shared default look for both products' PUBLISHED pages (Self-Serve `/[slug]`,
