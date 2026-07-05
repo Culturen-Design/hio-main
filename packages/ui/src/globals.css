@@ -98,8 +98,34 @@ body {
  * Warm, human content mounted on a precise engineering scaffold. Every line
  * has a job: it is a border, a divider, a shadow, a slot, or a label — never
  * ambient texture. One accent (the site's own `--color-primary`), one shadow
- * technique (offset-outline), one hatch (diagonal, as a section-void
- * separator), two type voices (serif content / mono annotation). No motion.
+ * technique (offset-outline), two type voices (serif content / mono
+ * annotation). No motion.
+ *
+ * THE SCAFFOLD IS REAL, NOT PAINTED (2026-07-05 rework). The first pass drew
+ * the page grid as a `background-image` on this wrapper — wallpaper whose
+ * lines never coincided with any module's actual edges, while each module
+ * kept its own historical max-width (720/576/960/none). The owner rejected
+ * it: "every section [has a] different width … modules should live inside
+ * these rules." Now the grid IS the layout:
+ *
+ *   - ONE content column. Every module `section` gets the identical box —
+ *     `margin-inline: var(--bp-margin)`, no per-module max-width — so every
+ *     section's left/right edges land on the same two x-coordinates.
+ *   - The column's vertical rules are each section's own `border-inline`.
+ *     Identical boxes stacked flush = two continuous full-height lines.
+ *     A section's edge is literally a segment of the page grid.
+ *   - Horizontal rules are the sections' real `border-top`/`border-bottom`
+ *     at real content boundaries — never a band painted at a guessed offset.
+ *   - Where a horizontal rule meets a vertical one, a short tick extends it
+ *     into the margin (drafting-table construction lines crossing). Ticks
+ *     are absolutely positioned off the section's own border (`top: -1px`),
+ *     so they are pinned to the real line by construction.
+ *
+ * Cover the content and the remaining structure — paper edge, one ruled
+ * column, rungs at every section boundary, one dark panel — reads as a
+ * single coherent drawing. (The first pass's ghost cells, "+" registration
+ * marks, and hatch seam bands were cut: they were decoration performing no
+ * structural job the real grid doesn't already perform.)
  *
  * Signature element for this variation: the INSTRUMENT PANEL — the Contact
  * module renders as one dark slate panel per page (`[data-module="contact"]`
@@ -119,6 +145,10 @@ body {
   --bp-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
   --bp-serif: ui-serif, Georgia, "Iowan Old Style", "Times New Roman", serif;
   --bp-unit: 8px;
+  /* The drafting margin: the single measurement the whole scaffold hangs on.
+     Sections offset by it (their borders ARE the column lines) and the seam
+     ticks extend into it. 40px at desktop, floored at 16px on small screens. */
+  --bp-margin: clamp(calc(var(--bp-unit) * 2), 4vw, calc(var(--bp-unit) * 5));
 
   --color-background: var(--bp-paper);
   --color-foreground: var(--bp-ink);
@@ -128,21 +158,10 @@ body {
   --color-primary: #292524; /* sane default until a site sets its own accent */
   --color-primary-foreground: var(--bp-paper);
 
-  position: relative;
   font-family: var(--bp-serif);
 
-  /* The page frame, inset from the wrapper's own edge. */
-  outline: 1px solid var(--bp-hairline-strong);
-  outline-offset: 7px;
-
-  /* The scaffold: a sparse page-level line grid (3 verticals, a horizontal
-     rule every module row) that containers borrow from rather than owning
-     their own borders. */
-  background-image: repeating-linear-gradient(
-      90deg,
-      var(--bp-hairline) 0 1px,
-      transparent 1px calc(100% / 3)
-    ), repeating-linear-gradient(var(--bp-hairline) 0 1px, transparent 1px calc(var(--bp-unit) * 8));
+  /* The paper's own trim edge — the outermost line of the drawing. */
+  border: 1px solid var(--bp-hairline);
 }
 
 .site-style-warm-blueprint-brutalism h1,
@@ -151,40 +170,51 @@ body {
   letter-spacing: -0.01em;
 }
 
-/* Registration marks: a couple of "+" ticks pinned to the page-frame corners
-   (a few per page, at the frame's own joints) — not scattered decoration. */
-.site-style-warm-blueprint-brutalism::before,
-.site-style-warm-blueprint-brutalism::after {
-  content: "+";
-  position: absolute;
-  font-family: var(--bp-mono);
-  font-size: 14px;
-  line-height: 1;
-  color: var(--bp-hairline-strong);
-}
-.site-style-warm-blueprint-brutalism::before {
-  top: -1px;
-  left: -1px;
-  transform: translate(-50%, -50%);
-}
-.site-style-warm-blueprint-brutalism::after {
-  bottom: -1px;
-  right: -1px;
-  transform: translate(50%, 50%);
+/* The content column: one box, shared by all nine modules. Overrides each
+   renderer's historical Tailwind width (`max-w-[720px]`/`max-w-xl`/
+   `max-w-[960px]`/none + `mx-auto`) — unlayered CSS beats the utility layer,
+   so no component change is needed. `border-inline` here is the scaffold's
+   pair of vertical rules: because every section is the identical box and
+   sections stack flush, the segments join into two continuous lines running
+   the full height of the drawing. */
+.site-style-warm-blueprint-brutalism section {
+  position: relative;
+  max-width: none;
+  margin-inline: var(--bp-margin);
+  border-inline: 1px solid var(--bp-hairline-strong);
 }
 
-/* Section seams: a diagonal hatch band replaces the plain hairline — void
-   space between sections, not a floating divider. */
+/* Horizontal rules of the grid: each internal section boundary is the lower
+   section's real border-top; the drawing closes with the last section's
+   border-bottom. Rules sit exactly where content meets content — there is no
+   separately painted divider to drift out of register. */
 .site-style-warm-blueprint-brutalism section + section {
-  border-top: none;
+  border-top: 1px solid var(--bp-hairline-strong);
+}
+.site-style-warm-blueprint-brutalism section:last-of-type {
+  border-bottom: 1px solid var(--bp-hairline-strong);
+}
+
+/* Construction-line crossings: at every internal boundary the horizontal
+   rule extends two units past each vertical rule into the margin (drafting
+   lines crossing at an intersection). Pinned to the section's own border-top
+   (`top: -1px` = the border's exact pixel row; `±(2 units + 1px)` starts
+   just outside the section's own 1px vertical border), so the tick and the
+   rule it extends are the same line by construction. */
+.site-style-warm-blueprint-brutalism section + section::before,
+.site-style-warm-blueprint-brutalism section + section::after {
+  content: "";
+  position: absolute;
+  top: -1px;
+  width: calc(var(--bp-unit) * 2);
+  height: 1px;
+  background: var(--bp-hairline-strong);
 }
 .site-style-warm-blueprint-brutalism section + section::before {
-  content: "";
-  display: block;
-  height: 14px;
-  border-top: 1px solid var(--bp-hairline-strong);
-  border-bottom: 1px solid var(--bp-hairline-strong);
-  background-image: repeating-linear-gradient(45deg, var(--bp-hairline) 0 1px, transparent 1px 9px);
+  left: calc(var(--bp-unit) * -2 - 1px);
+}
+.site-style-warm-blueprint-brutalism section + section::after {
+  right: calc(var(--bp-unit) * -2 - 1px);
 }
 
 /* Border-grammar + depth utilities. Hidden by default (they only exist to be
@@ -222,32 +252,11 @@ body {
   font-family: var(--bp-mono);
 }
 
-/* Ghost grid: a few unpopulated module-grid cells (corner ticks only) tucked
-   into the hero's whitespace — the empty grid sharing the hero's own
-   coordinate system, not background texture. */
-.site-style-warm-blueprint-brutalism .bp-ghost-cell {
-  display: block;
-  position: absolute;
-  width: calc(var(--bp-unit) * 4);
-  height: calc(var(--bp-unit) * 4);
-  background:
-    linear-gradient(var(--bp-hairline-strong), var(--bp-hairline-strong)) top left / 9px 1px
-    no-repeat,
-    linear-gradient(var(--bp-hairline-strong), var(--bp-hairline-strong)) top left / 1px 9px
-    no-repeat,
-    linear-gradient(var(--bp-hairline-strong), var(--bp-hairline-strong)) top right / 9px 1px
-    no-repeat,
-    linear-gradient(var(--bp-hairline-strong), var(--bp-hairline-strong)) top right / 1px 9px
-    no-repeat,
-    linear-gradient(var(--bp-hairline-strong), var(--bp-hairline-strong)) bottom left / 9px 1px
-    no-repeat,
-    linear-gradient(var(--bp-hairline-strong), var(--bp-hairline-strong)) bottom left / 1px 9px
-    no-repeat,
-    linear-gradient(var(--bp-hairline-strong), var(--bp-hairline-strong)) bottom right / 9px 1px
-    no-repeat,
-    linear-gradient(var(--bp-hairline-strong), var(--bp-hairline-strong)) bottom right / 1px 9px
-    no-repeat;
-}
+/* (The first pass showed `.bp-ghost-cell` corner-tick cells in the hero here.
+   Cut in the grid-coherence rework: with the scaffold now made of real
+   borders, free-floating empty cells were the last elements not sitting ON
+   the grid — decoration with no structural job. The spans stay in the
+   markup, `display: none` by default, for any future style that wants them. */
 
 /* Depth, one technique only: offset-outline — a duplicated hairline rectangle
    shifted a few px, like print misregistration. No blur, anywhere. */
@@ -278,10 +287,13 @@ body {
 /* Signature element — the instrument panel. One dark slate surface per page,
    the machine's window into the warm paper around it. Layering by color role
    (a flat second surface), not blur. */
-.site-style-warm-blueprint-brutalism [data-module="contact"] {
+.site-style-warm-blueprint-brutalism section[data-module="contact"] {
   /* Re-point the shared bg-muted/border-border/text-muted-foreground
      utilities the dt badge already uses — no per-utility overrides needed,
-     the panel's own descendants just inherit dark-surface tokens. */
+     the panel's own descendants just inherit dark-surface tokens.
+     (`section[data-module…]`, not bare `[data-module…]`: the extra type
+     selector lets the panel's slate `border` outrank `section:last-of-type`'s
+     closing rule when Contact is the last section on the page.) */
   --color-muted: var(--bp-slate-700);
   --color-border: var(--bp-slate-600);
   --color-muted-foreground: #9aa7b5;
@@ -295,6 +307,19 @@ body {
 .site-style-warm-blueprint-brutalism [data-module="contact"] .bp-leader {
   border-bottom-color: var(--bp-slate-600);
 }
+/* The panel occupies its cells of the same grid: its box is the shared
+   column box, so its slate border sits pixel-for-pixel on the column's
+   vertical rules and the boundary rules above/below it — the lines simply
+   change voice (warm → slate) while passing through. The panel's own
+   border-bottom IS the boundary rule below it, so the next section must not
+   draw a second one. */
+.site-style-warm-blueprint-brutalism [data-module="contact"] + section {
+  border-top: none;
+}
+/* Spec-sheet labels speak the annotation voice. */
+.site-style-warm-blueprint-brutalism [data-module="contact"] dt {
+  font-family: var(--bp-mono);
+}
 
 /* No rounded-corner card soup for this style (radius 0-2px max) — flattens
    the shared renderers' arbitrary-radius corners (rounded-card responds to
@@ -305,11 +330,16 @@ body {
   border-radius: 2px !important;
 }
 
-/* Hero: no gradient-as-mood, no colored top border — the ghost grid + the
-   accent CTA button are the only "alive" touches this style permits here. */
+/* Hero: no gradient-as-mood, no colored top border — the accent CTA button
+   is the only "alive" touch this style permits here. (`border-top: none`
+   kills the renderer's own `border-t-[3px] border-primary`; the next rule
+   restores the plain grid rule for the rare page where hero isn't first.) */
 .site-style-warm-blueprint-brutalism [data-module="hero"] {
   background-image: none;
   border-top: none;
+}
+.site-style-warm-blueprint-brutalism section + [data-module="hero"] {
+  border-top: 1px solid var(--bp-hairline-strong);
 }
 
 /* Metadata voice: figure captions and secondary attribution read as dashed —
