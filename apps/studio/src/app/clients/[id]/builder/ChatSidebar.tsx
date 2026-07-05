@@ -36,7 +36,7 @@ export function ChatSidebar({ tenantId, siteId }: { tenantId: string; siteId: st
     {
       id: "intro",
       role: "assistant",
-      text: "Tell me what to change — e.g. “make the headline say Welcome to Acme”.",
+      text: "Tell me what to change — e.g. “make the headline say Welcome to Acme” or “add a services section” (it arrives fully populated with sample content). I can also remove a section on request.",
     },
   ]);
 

@@ -17,6 +17,7 @@ import {
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import {
+  ADD_SECTION_TOOL,
   type SectionRecord,
   type SectionStore,
   UPDATE_CONTENT_TOOL,
@@ -93,6 +94,46 @@ describe("seam freeze — swapping the provider changes the toolset, not the eng
     expect(r.ok).toBe(true);
     const photos = (sections[0]?.content as { photos: { id: string; url: string }[] }).photos;
     expect(photos).toEqual([{ id: "photo-1", url: "https://cdn.test/a.jpg", caption: "A" }]);
+  });
+
+  it("scopes the built-in add_section to the ACTIVE provider's module set", async () => {
+    // The client provider carries only "gallery" — its add_section enum says so…
+    const addSection = buildClaudeTools(clientProvider).find((t) => t.name === ADD_SECTION_TOOL);
+    const props = (addSection?.input_schema.properties ?? {}) as Record<
+      string,
+      { enum?: string[] }
+    >;
+    expect(props.type?.enum).toEqual(["gallery"]);
+
+    // …and executing it with a type another product carries is rejected.
+    const sections: SectionRecord[] = [];
+    const inserted: string[] = [];
+    const store: SectionStore = {
+      async updateContent() {
+        return true;
+      },
+      async insertSection(type) {
+        inserted.push(type);
+        return true;
+      },
+    };
+    const rejected = await executeTool(
+      clientProvider,
+      ADD_SECTION_TOOL,
+      { type: "hero", content: { headline: "Hi" } },
+      sections,
+      store,
+    );
+    expect(rejected.ok).toBe(false);
+    const accepted = await executeTool(
+      clientProvider,
+      ADD_SECTION_TOOL,
+      { type: "gallery", content: { title: "Shots", photos: [] } },
+      sections,
+      store,
+    );
+    expect(accepted.ok).toBe(true);
+    expect(inserted).toEqual(["gallery"]);
   });
 
   it("validates the new provider's tool input server-side (bad URL rejected)", () => {

@@ -21,9 +21,10 @@ import {
   type SectionStore,
   buildClaudeTools,
   buildPageContext,
+  buildSchemaContext,
   executeTool,
 } from "@hio/ai-engine";
-import { type SchemaProvider, resolveVariant } from "@hio/content-model";
+import { type ModuleType, type SchemaProvider, resolveVariant } from "@hio/content-model";
 import { type SupabaseClient, createClient } from "@supabase/supabase-js";
 
 const CORS = {
@@ -50,6 +51,8 @@ function env(name: string): string {
 interface EditTarget {
   provider: SchemaProvider;
   sections: SectionRecord[];
+  tenantId: string;
+  siteId: string;
 }
 
 /**
@@ -107,7 +110,12 @@ async function resolveTarget(
     } catch {
       return json({ ok: false, message: "This client's schema is misconfigured." }, 500);
     }
-    return { provider, sections: await sectionsFor(ids.site_id) };
+    return {
+      provider,
+      sections: await sectionsFor(ids.site_id),
+      tenantId: ids.tenant_id,
+      siteId: ids.site_id,
+    };
   }
 
   return json({ ok: false, message: "Missing tenant_id + site_id." }, 400);
@@ -151,18 +159,22 @@ Deno.serve(async (req: Request) => {
     // returns a Response; success returns the provider + the rows to edit.
     const target = await resolveTarget(admin, user.id, { tenant_id, site_id });
     if (target instanceof Response) return target;
-    const { provider, sections } = target;
+    const { provider, sections, tenantId, siteId } = target;
 
-    // The engine builds Claude's tools from the schema; we never hard-code them here.
+    // The engine builds Claude's tools from the schema; we never hard-code them
+    // here. The schema context teaches the model each module type's FULL field
+    // surface (needed to fully populate add_section and to reach optional
+    // fields absent from the current rows). max_tokens allows a completely
+    // filled collection section in one tool call.
     const tools = buildClaudeTools(provider);
     const anthropic = new Anthropic({ apiKey });
     const response = await anthropic.messages.create({
       model: Deno.env.get("ANTHROPIC_MODEL") ?? DEFAULT_MODEL,
-      max_tokens: 1024,
+      max_tokens: 4096,
       system: [
         {
           type: "text",
-          text: `${SYSTEM_PROMPT}\n\n${buildPageContext(sections)}`,
+          text: `${SYSTEM_PROMPT}\n\n${buildSchemaContext(provider)}\n\n${buildPageContext(sections)}`,
           cache_control: { type: "ephemeral" },
         },
         // biome-ignore lint/suspicious/noExplicitAny: cache_control isn't in the SDK's base param type
@@ -182,10 +194,36 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, message: text ?? "I didn't understand that request." });
     }
 
+    // Section CRUD deliberately writes through the USER-scoped client (anon key
+    // + caller's JWT), not the service-role client: RLS then enforces exactly
+    // what the manual "+ Module"/Delete builder actions enforce — tenant
+    // membership on both products AND the Self-Serve tier gate
+    // (allowed_module_types) on insert. A gated/foreign write fails or affects
+    // 0 rows instead of silently succeeding with service-role power.
     const store: SectionStore = {
       async updateContent(sectionId, content) {
         const { error } = await admin.from("sections").update({ content }).eq("id", sectionId);
         return !error;
+      },
+      async insertSection(type, content) {
+        const def = provider.getModule(type as ModuleType);
+        const { error } = await userClient.from("sections").insert({
+          tenant_id: tenantId,
+          site_id: siteId,
+          type,
+          content,
+          width: def?.width[1] ?? 12,
+          order: sections.length,
+        });
+        return !error;
+      },
+      async deleteSection(sectionId) {
+        const { error, count } = await userClient
+          .from("sections")
+          .delete({ count: "exact" })
+          .eq("id", sectionId)
+          .eq("site_id", siteId);
+        return !error && (count ?? 0) > 0;
       },
     };
 

@@ -152,11 +152,16 @@ export interface SchemaProvider {
 /**
  * Tool names the engine reserves for its built-in, module-agnostic tools. A
  * provider may not declare a tool with one of these names (it would be shadowed
- * and never dispatched). Mirrors `UPDATE_CONTENT_TOOL` in `@hio/ai-engine`;
- * duplicated here to keep the seam free of an engine dependency (the engine
- * depends on this package, never the reverse).
+ * and never dispatched). Mirrors `UPDATE_CONTENT_TOOL` / `ADD_SECTION_TOOL` /
+ * `REMOVE_SECTION_TOOL` in `@hio/ai-engine`; duplicated here to keep the seam
+ * free of an engine dependency (the engine depends on this package, never the
+ * reverse).
  */
-export const RESERVED_TOOL_NAMES: readonly string[] = ["update_module_content"];
+export const RESERVED_TOOL_NAMES: readonly string[] = [
+  "update_module_content",
+  "add_section",
+  "remove_section",
+];
 
 /**
  * Build a provider from a module list, enforcing the seam's invariants up front:

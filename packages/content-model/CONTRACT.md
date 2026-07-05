@@ -1,4 +1,4 @@
-# `@hio/content-model` — the frozen seam (v1.6.0)
+# `@hio/content-model` — the frozen seam (v1.7.0)
 
 This package is **the pluggable seam** between the two products and the one engine.
 `@hio/ai-engine` and both apps depend on the contract defined here. As of the **M3
@@ -98,6 +98,17 @@ is the rule below + the deviation log.
 
 ### Change log
 
+- **v1.7.0 — 2026-07-05 (M2 widening, additive/minor — AI section CRUD reservations).** The engine
+  gained two new BUILT-IN tools, `add_section` and `remove_section` (owner-directed: the AI helper must
+  be able to add/remove whole sections and populate new ones across every field). This package's only
+  change: both names appended to `RESERVED_TOOL_NAMES` so no provider can shadow them — the same
+  reservation `update_module_content` has had since v1.0.0. Engine-side (`@hio/ai-engine` 0.2.0,
+  documented here because the consumption contract is part of the freeze): `SectionStore` gained
+  **optional** `insertSection`/`deleteSection` methods (a store that omits them makes the new tools
+  report "not supported"; existing stores compile unchanged), `buildClaudeTools` emits the two new
+  built-ins with the type enum drawn from the ACTIVE provider's module set, and a new
+  `buildSchemaContext(provider)` renders each enabled module's content JSON Schema for the system
+  prompt. Additive on every axis; no 🔒 frozen item changed shape; `contract.test.ts` stays green.
 - **v1.6.0 — 2026-07-05 (M2 widening, additive/minor — per-module content expansion).** Owner-directed
   pass over all 9 module types, adding the content fields a small business/freelancer actually needs —
   **every new field optional**, so existing rows keep validating unchanged. `hero`: `supporting_text`,
