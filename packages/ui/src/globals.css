@@ -40,18 +40,37 @@ body {
 /**
  * Public-site visual identity — the default look for both products' PUBLISHED
  * pages (Self-Serve's /[slug], Studio's /sites/[slug] and custom-domain
- * render). Applied via `className="site-public"` on the page wrapper in each
- * app's public route — never on builder/dashboard/admin pages in either app.
- *
- * Stone = warm = content. Slate = cold = structural chrome (borders, grid,
- * meta text). Primary is left to `themeToStyle`'s inline custom properties,
- * which always win for their own properties on this same element — nothing
- * here needs to special-case a site's own accent/font/radius choice.
- *
- * "Alive" here means warm, organic colour — not motion. No transitions, no
- * animation. Living tissue, not cold metal.
+ * render). Applied via `className="site-public site-style-<id>"` on the page
+ * wrapper in each app's public route — never on builder/dashboard/admin pages
+ * in either app. `.site-public` alone is the shared reset (box + section
+ * stacking); each `.site-style-<id>` block below is a self-contained "look" —
+ * swapping the id swaps the whole system with zero `@hio/ui` component change.
+ * A style may only ADD markup that is invisible by default (see the
+ * `.bp-*` decorative classes at the bottom) so a module component never
+ * branches in JS on which style is active.
  */
 .site-public {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  max-width: 56rem;
+  margin-inline: auto;
+}
+
+/* Sections stack as one system by default: a hairline divider, not floating cards. */
+.site-public section + section {
+  border-top: 1px solid var(--color-border);
+}
+
+/*
+ * Style: Stone & Slate (classic) — the original 2026-07-05 visual-identity
+ * look, kept as the picker's second option (proof that the style dimension
+ * really swaps, not just a single hardcoded default).
+ *
+ * Stone = warm = content. Slate = cold = structural chrome (borders, grid,
+ * meta text). Primary is left to `themeToStyle`'s inline custom properties.
+ * "Alive" here means warm, organic colour — not motion. No transitions.
+ */
+.site-style-stone-slate {
   --color-background: #fafaf9; /* stone-50 */
   --color-foreground: #1c1917; /* stone-900 */
   --color-muted: #f5f5f4; /* stone-100 */
@@ -60,15 +79,8 @@ body {
   --color-primary: #292524; /* stone-800 — sane default until a site sets its own */
   --color-primary-foreground: #fafaf9; /* stone-50 */
 
-  background-color: var(--color-background);
-  color: var(--color-foreground);
-
-  max-width: 56rem;
-  margin-inline: auto;
   border-inline: 1px solid var(--color-border);
 
-  /* Very light graph-paper texture — subtle, so it reads as paper grain, not
-     a stark technical overlay. Earthy first, blueprint second. */
   background-image: linear-gradient(
       color-mix(in oklab, var(--color-border) 45%, transparent) 1px,
       transparent 1px
@@ -81,7 +93,231 @@ body {
   background-size: 32px 32px;
 }
 
-/* Sections stack as one system: hairline dividers, not separate floating cards. */
-.site-public section + section {
-  border-top: 1px solid var(--color-border);
+/*
+ * Style: Warm Blueprint Brutalism (default) — a technical drawing of itself.
+ * Warm, human content mounted on a precise engineering scaffold. Every line
+ * has a job: it is a border, a divider, a shadow, a slot, or a label — never
+ * ambient texture. One accent (the site's own `--color-primary`), one shadow
+ * technique (offset-outline), one hatch (diagonal, as a section-void
+ * separator), two type voices (serif content / mono annotation). No motion.
+ *
+ * Signature element for this variation: the INSTRUMENT PANEL — the Contact
+ * module renders as one dark slate panel per page (`[data-module="contact"]`
+ * below), the machine's window into an otherwise warm paper page.
+ */
+.site-style-warm-blueprint-brutalism {
+  --bp-paper: #faf8f4;
+  --bp-paper-panel: #efe8d8;
+  --bp-ink: #2a2420;
+  --bp-muted-ink: #6b5f4f;
+  --bp-hairline: #d8cfbc; /* stone-300-ish, warm */
+  --bp-hairline-strong: #b7a98f; /* stone-400-ish, warm */
+  --bp-slate-900: #1c232e;
+  --bp-slate-700: #38414f;
+  --bp-slate-600: #4c5866;
+  --bp-slate-ink: #e7e2d6; /* warm-tinted light text on the dark instrument panel */
+  --bp-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --bp-serif: ui-serif, Georgia, "Iowan Old Style", "Times New Roman", serif;
+  --bp-unit: 8px;
+
+  --color-background: var(--bp-paper);
+  --color-foreground: var(--bp-ink);
+  --color-muted: var(--bp-paper-panel);
+  --color-muted-foreground: var(--bp-muted-ink);
+  --color-border: var(--bp-hairline);
+  --color-primary: #292524; /* sane default until a site sets its own accent */
+  --color-primary-foreground: var(--bp-paper);
+
+  position: relative;
+  font-family: var(--bp-serif);
+
+  /* The page frame, inset from the wrapper's own edge. */
+  outline: 1px solid var(--bp-hairline-strong);
+  outline-offset: 7px;
+
+  /* The scaffold: a sparse page-level line grid (3 verticals, a horizontal
+     rule every module row) that containers borrow from rather than owning
+     their own borders. */
+  background-image: repeating-linear-gradient(
+      90deg,
+      var(--bp-hairline) 0 1px,
+      transparent 1px calc(100% / 3)
+    ), repeating-linear-gradient(var(--bp-hairline) 0 1px, transparent 1px calc(var(--bp-unit) * 8));
+}
+
+.site-style-warm-blueprint-brutalism h1,
+.site-style-warm-blueprint-brutalism h2 {
+  font-family: var(--bp-serif);
+  letter-spacing: -0.01em;
+}
+
+/* Registration marks: a couple of "+" ticks pinned to the page-frame corners
+   (a few per page, at the frame's own joints) — not scattered decoration. */
+.site-style-warm-blueprint-brutalism::before,
+.site-style-warm-blueprint-brutalism::after {
+  content: "+";
+  position: absolute;
+  font-family: var(--bp-mono);
+  font-size: 14px;
+  line-height: 1;
+  color: var(--bp-hairline-strong);
+}
+.site-style-warm-blueprint-brutalism::before {
+  top: -1px;
+  left: -1px;
+  transform: translate(-50%, -50%);
+}
+.site-style-warm-blueprint-brutalism::after {
+  bottom: -1px;
+  right: -1px;
+  transform: translate(50%, 50%);
+}
+
+/* Section seams: a diagonal hatch band replaces the plain hairline — void
+   space between sections, not a floating divider. */
+.site-style-warm-blueprint-brutalism section + section {
+  border-top: none;
+}
+.site-style-warm-blueprint-brutalism section + section::before {
+  content: "";
+  display: block;
+  height: 14px;
+  border-top: 1px solid var(--bp-hairline-strong);
+  border-bottom: 1px solid var(--bp-hairline-strong);
+  background-image: repeating-linear-gradient(45deg, var(--bp-hairline) 0 1px, transparent 1px 9px);
+}
+
+/* Border-grammar + depth utilities. Hidden by default (they only exist to be
+   shown under a style that asks for them) so a module component never needs
+   a style-aware conditional — see the module files for how these are used. */
+.bp-ghost-cell,
+.bp-count,
+.bp-leader {
+  display: none;
+}
+
+.site-style-warm-blueprint-brutalism .bp-count {
+  display: block;
+  font-family: var(--bp-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+  margin: 0 0 0.5rem;
+}
+.site-style-warm-blueprint-brutalism .bp-count::before {
+  content: "[ ";
+}
+.site-style-warm-blueprint-brutalism .bp-count::after {
+  content: " ]";
+}
+
+.site-style-warm-blueprint-brutalism .bp-eyebrow::before {
+  content: "[ ";
+}
+.site-style-warm-blueprint-brutalism .bp-eyebrow::after {
+  content: " ]";
+}
+.site-style-warm-blueprint-brutalism .bp-eyebrow {
+  font-family: var(--bp-mono);
+}
+
+/* Ghost grid: a few unpopulated module-grid cells (corner ticks only) tucked
+   into the hero's whitespace — the empty grid sharing the hero's own
+   coordinate system, not background texture. */
+.site-style-warm-blueprint-brutalism .bp-ghost-cell {
+  display: block;
+  position: absolute;
+  width: calc(var(--bp-unit) * 4);
+  height: calc(var(--bp-unit) * 4);
+  background:
+    linear-gradient(var(--bp-hairline-strong), var(--bp-hairline-strong)) top left / 9px 1px
+    no-repeat,
+    linear-gradient(var(--bp-hairline-strong), var(--bp-hairline-strong)) top left / 1px 9px
+    no-repeat,
+    linear-gradient(var(--bp-hairline-strong), var(--bp-hairline-strong)) top right / 9px 1px
+    no-repeat,
+    linear-gradient(var(--bp-hairline-strong), var(--bp-hairline-strong)) top right / 1px 9px
+    no-repeat,
+    linear-gradient(var(--bp-hairline-strong), var(--bp-hairline-strong)) bottom left / 9px 1px
+    no-repeat,
+    linear-gradient(var(--bp-hairline-strong), var(--bp-hairline-strong)) bottom left / 1px 9px
+    no-repeat,
+    linear-gradient(var(--bp-hairline-strong), var(--bp-hairline-strong)) bottom right / 9px 1px
+    no-repeat,
+    linear-gradient(var(--bp-hairline-strong), var(--bp-hairline-strong)) bottom right / 1px 9px
+    no-repeat;
+}
+
+/* Depth, one technique only: offset-outline — a duplicated hairline rectangle
+   shifted a few px, like print misregistration. No blur, anywhere. */
+.site-style-warm-blueprint-brutalism .bp-offset {
+  position: relative;
+}
+.site-style-warm-blueprint-brutalism .bp-offset::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--bp-hairline-strong);
+  transform: translate(5px, 5px);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Dotted leader line: connects a mono label to the value it annotates —
+   used by the Contact instrument panel's spec-sheet rows. */
+.site-style-warm-blueprint-brutalism .bp-leader {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 12px;
+  height: 0;
+  margin-bottom: 4px;
+  border-bottom: 1px dotted var(--bp-slate-600);
+}
+
+/* Signature element — the instrument panel. One dark slate surface per page,
+   the machine's window into the warm paper around it. Layering by color role
+   (a flat second surface), not blur. */
+.site-style-warm-blueprint-brutalism [data-module="contact"] {
+  /* Re-point the shared bg-muted/border-border/text-muted-foreground
+     utilities the dt badge already uses — no per-utility overrides needed,
+     the panel's own descendants just inherit dark-surface tokens. */
+  --color-muted: var(--bp-slate-700);
+  --color-border: var(--bp-slate-600);
+  --color-muted-foreground: #9aa7b5;
+  background: var(--bp-slate-900);
+  color: var(--bp-slate-ink);
+  border: 1px solid var(--bp-slate-700);
+}
+.site-style-warm-blueprint-brutalism [data-module="contact"] a {
+  color: inherit;
+}
+.site-style-warm-blueprint-brutalism [data-module="contact"] .bp-leader {
+  border-bottom-color: var(--bp-slate-600);
+}
+
+/* No rounded-corner card soup for this style (radius 0-2px max) — flattens
+   the shared renderers' arbitrary-radius corners (rounded-card responds to
+   --radius-card already; these are the fixed arbitrary values that don't).
+   Circular avatars (rounded-full) are a real content shape, not card soup —
+   excluded. */
+.site-style-warm-blueprint-brutalism [class*="rounded-"]:not([class*="rounded-full"]) {
+  border-radius: 2px !important;
+}
+
+/* Hero: no gradient-as-mood, no colored top border — the ghost grid + the
+   accent CTA button are the only "alive" touches this style permits here. */
+.site-style-warm-blueprint-brutalism [data-module="hero"] {
+  background-image: none;
+  border-top: none;
+}
+
+/* Metadata voice: figure captions and secondary attribution read as dashed —
+   metadata about the content, not the content itself. */
+.site-style-warm-blueprint-brutalism [data-module="gallery"] figcaption {
+  border-top: 1px dashed var(--bp-hairline-strong);
+  padding-top: 0.35rem;
+  font-family: var(--bp-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
 }

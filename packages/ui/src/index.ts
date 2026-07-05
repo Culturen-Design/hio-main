@@ -19,9 +19,11 @@ export type { StyleVariant } from "./style";
 export {
   type SiteTheme,
   type RadiusPreset,
+  type SiteStyle,
   ACCENT_SWATCHES,
   FONT_STACKS,
   RADIUS_PRESETS,
+  STYLE_OPTIONS,
   DEFAULT_THEME,
   parseSiteTheme,
   themeToStyle,

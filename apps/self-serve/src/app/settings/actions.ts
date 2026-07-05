@@ -18,6 +18,7 @@ export async function updateTheme(
     accent: formData.get("accent"),
     font: formData.get("font"),
     radius: formData.get("radius"),
+    style: formData.get("style"),
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
 

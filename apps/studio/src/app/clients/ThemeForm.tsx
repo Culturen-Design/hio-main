@@ -1,6 +1,6 @@
 "use client";
 
-import { ACCENT_SWATCHES, FONT_STACKS, RADIUS_PRESETS } from "@hio/ui";
+import { ACCENT_SWATCHES, FONT_STACKS, RADIUS_PRESETS, STYLE_OPTIONS } from "@hio/ui";
 import { useActionState, useState } from "react";
 import { type ClientActionState, updateTenantTheme } from "./actions";
 
@@ -12,11 +12,13 @@ export function ThemeForm({
   accent,
   font,
   radius,
+  style,
 }: {
   id: string;
   accent: string;
   font: string;
   radius: string;
+  style: string;
 }) {
   const [state, formAction, pending] = useActionState<ClientActionState, FormData>(
     updateTenantTheme,
@@ -79,6 +81,17 @@ export function ThemeForm({
           {RADIUS_PRESETS.map((r) => (
             <option key={r.value} value={r.value}>
               {r.name}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label style={labelStyle}>
+        Page style
+        <select name="style" defaultValue={style} style={selectStyle}>
+          {STYLE_OPTIONS.map((s) => (
+            <option key={s.value} value={s.value}>
+              {s.name}
             </option>
           ))}
         </select>

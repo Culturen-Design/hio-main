@@ -1,5 +1,5 @@
 import { MODULE_BUNDLES } from "@hio/content-model";
-import { ACCENT_SWATCHES, FONT_STACKS, RADIUS_PRESETS } from "@hio/ui";
+import { ACCENT_SWATCHES, FONT_STACKS, RADIUS_PRESETS, STYLE_OPTIONS } from "@hio/ui";
 import { z } from "zod";
 
 /** The schema_variant bundles a client may be assigned — the keys of the
@@ -54,6 +54,7 @@ export type UpdateCustomDomainInput = z.infer<typeof updateCustomDomainSchema>;
 const accentValues = ACCENT_SWATCHES.map((s) => s.value) as [string, ...string[]];
 const fontValues = FONT_STACKS.map((f) => f.value) as [string, ...string[]];
 const radiusValues = RADIUS_PRESETS.map((r) => r.value) as [string, ...string[]];
+const styleValues = STYLE_OPTIONS.map((s) => s.value) as [string, ...string[]];
 
 /** Input for the per-site theming MVP (curated-only — the picker offers exactly
  *  these values, so anything else is a tampered request, not a custom choice). */
@@ -62,5 +63,6 @@ export const updateThemeSchema = z.object({
   accent: z.enum(accentValues),
   font: z.enum(fontValues),
   radius: z.enum(radiusValues),
+  style: z.enum(styleValues),
 });
 export type UpdateThemeInput = z.infer<typeof updateThemeSchema>;

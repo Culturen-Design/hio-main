@@ -1,6 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import type { ModuleType } from "@hio/content-model";
-import { ModuleRenderer, type StyleVariant, parseSiteTheme, themeToStyle } from "@hio/ui";
+import {
+  DEFAULT_THEME,
+  ModuleRenderer,
+  type StyleVariant,
+  parseSiteTheme,
+  themeToStyle,
+} from "@hio/ui";
 import { notFound } from "next/navigation";
 
 type PublicSection = {
@@ -28,9 +34,10 @@ export default async function PublicPage({ params }: { params: Promise<{ slug: s
   if (!data) notFound();
   const site = data as unknown as PublicSite;
   const theme = parseSiteTheme(site.theme);
+  const styleId = theme.style ?? DEFAULT_THEME.style;
 
   return (
-    <main className="site-public" style={{ fontFamily: "system-ui", ...themeToStyle(theme) }}>
+    <main className={`site-public site-style-${styleId}`} style={themeToStyle(theme)}>
       {site.sections.map((s) => (
         <ModuleRenderer
           key={s.id}

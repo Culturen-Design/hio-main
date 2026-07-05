@@ -9,13 +9,17 @@ export function HeroModule({
 }: { content: HeroContent; variant?: StyleVariant | null }) {
   return (
     <section
+      data-module="hero"
       className={cn(
-        "border-primary border-t-[3px] bg-[radial-gradient(ellipse_at_top,var(--color-muted),transparent_70%)] px-6 py-14 text-center",
+        "relative border-primary border-t-[3px] bg-[radial-gradient(ellipse_at_top,var(--color-muted),transparent_70%)] px-6 py-14 text-center",
         cardClasses(variant),
       )}
     >
+      <span className="bp-ghost-cell" aria-hidden style={{ top: 14, left: 14 }} />
+      <span className="bp-ghost-cell" aria-hidden style={{ top: 14, right: 14 }} />
+      <span className="bp-ghost-cell" aria-hidden style={{ bottom: 14, left: 14 }} />
       {content.eyebrow && (
-        <p className="m-0 text-xs tracking-[1px] text-muted-foreground uppercase">
+        <p className="bp-eyebrow m-0 text-xs tracking-[1px] text-muted-foreground uppercase">
           {content.eyebrow}
         </p>
       )}
@@ -33,7 +37,7 @@ export function HeroModule({
       {content.cta_label && content.cta_url && (
         <a
           href={content.cta_url}
-          className="mt-5 inline-block rounded-[8px] bg-primary px-6 py-3 font-semibold text-primary-foreground no-underline"
+          className="bp-offset mt-5 inline-block rounded-[8px] bg-primary px-6 py-3 font-semibold text-primary-foreground no-underline"
         >
           {content.cta_label}
         </a>

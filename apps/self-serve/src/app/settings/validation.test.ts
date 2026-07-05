@@ -7,6 +7,7 @@ describe("updateThemeSchema", () => {
       accent: "#2563eb",
       font: "ui-sans-serif, system-ui, -apple-system, sans-serif",
       radius: "pill",
+      style: "warm-blueprint-brutalism",
     });
     expect(r.success).toBe(true);
   });
@@ -16,6 +17,7 @@ describe("updateThemeSchema", () => {
       accent: "#123456",
       font: "ui-sans-serif, system-ui, -apple-system, sans-serif",
       radius: "soft",
+      style: "stone-slate",
     });
     expect(r.success).toBe(false);
   });
@@ -25,6 +27,7 @@ describe("updateThemeSchema", () => {
       accent: "#2563eb",
       font: "Comic Sans MS",
       radius: "soft",
+      style: "stone-slate",
     });
     expect(r.success).toBe(false);
   });
@@ -34,6 +37,17 @@ describe("updateThemeSchema", () => {
       accent: "#2563eb",
       font: "ui-sans-serif, system-ui, -apple-system, sans-serif",
       radius: "very-round",
+      style: "stone-slate",
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it("rejects an unrecognised page style", () => {
+    const r = updateThemeSchema.safeParse({
+      accent: "#2563eb",
+      font: "ui-sans-serif, system-ui, -apple-system, sans-serif",
+      radius: "soft",
+      style: "cyberpunk",
     });
     expect(r.success).toBe(false);
   });

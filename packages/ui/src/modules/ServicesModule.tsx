@@ -8,7 +8,13 @@ export function ServicesModule({
   variant,
 }: { content: ServicesContent; variant?: StyleVariant | null }) {
   return (
-    <section className={cn("mx-auto max-w-[720px] p-10", cardClasses(variant))}>
+    <section
+      data-module="services"
+      className={cn("mx-auto max-w-[720px] p-10", cardClasses(variant))}
+    >
+      <p className="bp-count" aria-hidden>
+        {content.items.length} {content.items.length === 1 ? "service" : "services"}
+      </p>
       <h2 className={cn("mt-0 text-xl", headingClasses(variant))}>{content.title}</h2>
       {content.items.length === 0 ? (
         <p className="text-muted-foreground">No services yet.</p>

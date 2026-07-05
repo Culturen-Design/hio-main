@@ -1,6 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import type { ModuleType } from "@hio/content-model";
-import { ModuleRenderer, type StyleVariant, parseSiteTheme, themeToStyle } from "@hio/ui";
+import {
+  DEFAULT_THEME,
+  ModuleRenderer,
+  type StyleVariant,
+  parseSiteTheme,
+  themeToStyle,
+} from "@hio/ui";
 
 export type PublicSection = {
   id: string;
@@ -39,11 +45,12 @@ export async function fetchPublicSiteByDomain(host: string): Promise<PublicSite 
  *  host route so both products of M4.6/M4.8 render identically. */
 export function PublicSiteView({ site }: { site: PublicSite }) {
   const theme = parseSiteTheme(site.theme);
+  const styleId = theme.style ?? DEFAULT_THEME.style;
 
   return (
     <main
-      className="site-public"
-      style={{ minHeight: "100vh", fontFamily: "system-ui", ...themeToStyle(theme) }}
+      className={`site-public site-style-${styleId}`}
+      style={{ minHeight: "100vh", ...themeToStyle(theme) }}
     >
       {site.sections.length === 0 ? (
         <p style={{ padding: "2rem 1.5rem", opacity: 0.6 }}>This site has no content yet.</p>

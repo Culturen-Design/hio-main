@@ -15,16 +15,20 @@ export function ContactModule({
   if (content.location) rows.push({ label: "Location", value: content.location });
 
   return (
-    <section className={cn("mx-auto max-w-xl p-10", cardClasses(variant))}>
+    <section data-module="contact" className={cn("mx-auto max-w-xl p-10", cardClasses(variant))}>
+      <p className="bp-count" aria-hidden>
+        contact
+      </p>
       <h2 className={cn("mt-0 text-xl", headingClasses(variant))}>{content.title}</h2>
       {content.intro && <p className="leading-relaxed text-muted-foreground">{content.intro}</p>}
       {rows.length > 0 && (
         <dl className="mt-5 grid gap-3">
           {rows.map((r) => (
-            <div key={r.label} className="flex items-center gap-3">
+            <div key={r.label} className="flex items-baseline gap-3">
               <dt className="w-20 shrink-0 rounded-card border border-border bg-muted px-2 py-1 text-center text-[11px] text-muted-foreground uppercase tracking-wide">
                 {r.label}
               </dt>
+              <span className="bp-leader" aria-hidden />
               <dd className="m-0">
                 {r.href ? (
                   <a href={r.href} className="text-foreground underline-offset-2 hover:underline">
