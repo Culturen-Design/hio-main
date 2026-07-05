@@ -4,6 +4,22 @@ import type { CSSProperties } from "react";
 export type RadiusPreset = "sharp" | "soft" | "pill";
 
 /**
+ * The page-level "look system" a site can pick — a distinct theme dimension from
+ * accent/font/radius above. Each value is a self-contained CSS system in
+ * `globals.css` scoped under `.site-style-<value>`; swapping styles is purely a
+ * new CSS block + a registry entry here, never an `@hio/ui` component change
+ * (module renderers carry only `data-module` hooks + always-rendered, hidden-by-
+ * default annotation markup — see the module files for detail).
+ */
+export type SiteStyle = "warm-blueprint-brutalism" | "stone-slate";
+
+/** Curated style options for the picker, in display order. */
+export const STYLE_OPTIONS: ReadonlyArray<{ name: string; value: SiteStyle }> = [
+  { name: "Warm Blueprint (default)", value: "warm-blueprint-brutalism" },
+  { name: "Stone & Slate (classic)", value: "stone-slate" },
+];
+
+/**
  * Per-tenant visual theme, stored as the `tenants.theme` JSONB column. It is
  * presentation-only, so it lives in `@hio/ui` (the M3 seam-freeze decision keeps
  * `@hio/content-model` presentation-free). Every field is optional — a missing
@@ -21,6 +37,8 @@ export interface SiteTheme {
   font?: string;
   /** Rounding preset, feeding `--radius-card` (the `rounded-card` utility). */
   radius?: RadiusPreset;
+  /** Page-level look system (see `SiteStyle`). */
+  style?: SiteStyle;
 }
 
 /** Curated accent swatches (not a free color picker) — each pairs a Tailwind-
@@ -45,10 +63,11 @@ export const FONT_STACKS: ReadonlyArray<{ name: string; value: string }> = [
 /** The picker's fallback selection for a tenant with no theme set yet — the
  *  first entry of each curated list, named so callers don't index into the
  *  arrays themselves (arrays are indexable-undefined under strict TS). */
-export const DEFAULT_THEME: Required<Pick<SiteTheme, "accent" | "font" | "radius">> = {
+export const DEFAULT_THEME: Required<Pick<SiteTheme, "accent" | "font" | "radius" | "style">> = {
   accent: ACCENT_SWATCHES[0]?.value ?? "#0f172a",
   font: FONT_STACKS[0]?.value ?? "ui-sans-serif, system-ui, -apple-system, sans-serif",
   radius: "soft",
+  style: "warm-blueprint-brutalism",
 };
 
 /** Rounding presets offered in the picker, mapped to the `--radius-card` value. */
@@ -75,12 +94,14 @@ export function parseSiteTheme(value: unknown): SiteTheme {
   const pick = (k: "accent" | "background" | "foreground" | "font") =>
     typeof v[k] === "string" ? (v[k] as string) : undefined;
   const radius = v.radius;
+  const style = v.style;
   return {
     accent: pick("accent"),
     background: pick("background"),
     foreground: pick("foreground"),
     font: pick("font"),
     radius: radius === "sharp" || radius === "soft" || radius === "pill" ? radius : undefined,
+    style: style === "warm-blueprint-brutalism" || style === "stone-slate" ? style : undefined,
   };
 }
 

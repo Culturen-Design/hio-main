@@ -15,7 +15,10 @@ export function CustomModule({
   variant,
 }: { content: CustomContent; variant?: StyleVariant | null }) {
   return (
-    <section className={cn("mx-auto max-w-[720px] p-10", cardClasses(variant))}>
+    <section
+      data-module="custom"
+      className={cn("mx-auto max-w-[720px] p-10", cardClasses(variant))}
+    >
       <h2 className={cn("mt-0 text-xl", headingClasses(variant))}>{content.title}</h2>
       <div className="leading-relaxed text-muted-foreground">
         <Markdown>{content.body}</Markdown>

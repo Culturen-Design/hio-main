@@ -9,18 +9,20 @@ export function BioModule({
 }: { content: BioContent; variant?: StyleVariant | null }) {
   return (
     <section
+      data-module="bio"
       className={cn(
         "mx-auto flex max-w-[720px] flex-wrap items-start gap-6 p-10",
         cardClasses(variant),
       )}
     >
       {content.photo_url && (
-        // biome-ignore lint/a11y/useAltText: alt is provided via photo_alt
-        <img
-          src={content.photo_url}
-          alt={content.photo_alt ?? ""}
-          className="h-[140px] w-[140px] rounded-[28px] border border-border object-cover"
-        />
+        <div className="bp-offset shrink-0">
+          <img
+            src={content.photo_url}
+            alt={content.photo_alt ?? ""}
+            className="h-[140px] w-[140px] rounded-[28px] border border-border object-cover"
+          />
+        </div>
       )}
       <div className="min-w-[240px] flex-1">
         <h2 className={cn("mt-0 text-xl", headingClasses(variant))}>{content.title}</h2>

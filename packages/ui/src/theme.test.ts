@@ -10,6 +10,7 @@ describe("parseSiteTheme", () => {
         foreground: "#fff",
         font: "Inter",
         radius: "pill",
+        style: "stone-slate",
       }),
     ).toEqual({
       accent: "#f0f",
@@ -17,6 +18,7 @@ describe("parseSiteTheme", () => {
       foreground: "#fff",
       font: "Inter",
       radius: "pill",
+      style: "stone-slate",
     });
   });
 
@@ -27,11 +29,22 @@ describe("parseSiteTheme", () => {
       foreground: undefined,
       font: undefined,
       radius: undefined,
+      style: undefined,
     });
   });
 
   it("drops an unrecognised radius preset", () => {
     expect(parseSiteTheme({ radius: "very-round" }).radius).toBeUndefined();
+  });
+
+  it("drops an unrecognised style", () => {
+    expect(parseSiteTheme({ style: "cyberpunk" }).style).toBeUndefined();
+  });
+
+  it("accepts the warm-blueprint-brutalism style", () => {
+    expect(parseSiteTheme({ style: "warm-blueprint-brutalism" }).style).toBe(
+      "warm-blueprint-brutalism",
+    );
   });
 
   it("degrades a non-object to an empty theme", () => {

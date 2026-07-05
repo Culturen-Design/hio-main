@@ -8,7 +8,13 @@ export function GalleryModule({
   variant,
 }: { content: GalleryContent; variant?: StyleVariant | null }) {
   return (
-    <section className={cn("mx-auto max-w-[960px] p-10", cardClasses(variant))}>
+    <section
+      data-module="gallery"
+      className={cn("mx-auto max-w-[960px] p-10", cardClasses(variant))}
+    >
+      <p className="bp-count" aria-hidden>
+        {content.images.length} {content.images.length === 1 ? "image" : "images"}
+      </p>
       <h2 className={cn("mt-0 text-xl", headingClasses(variant))}>{content.title}</h2>
       {content.images.length === 0 ? (
         <p className="text-muted-foreground">No images yet.</p>
@@ -19,7 +25,7 @@ export function GalleryModule({
         >
           {content.images.map((img) => (
             <figure key={img.id} className="m-0">
-              <div className="rounded-[14px] border border-border bg-background p-1.5">
+              <div className="bp-offset rounded-[14px] border border-border bg-background p-1.5">
                 <img
                   src={img.url}
                   alt={img.alt ?? img.caption ?? ""}

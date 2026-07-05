@@ -90,6 +90,11 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
   then closed as superseded once #57's branch was retargeted straight to `integration/v2` and
   found to already contain the complete stack — shared pieces + both apps' wiring — merged as a
   single commit with no duplicate content.)
+  **"Warm Blueprint Brutalism" visual direction ✅ done** (out-of-sequence, owner-directed —
+  see the Deviation log's third `2026-07-05` entry): replaces the stone/slate/primary public-page
+  look from the visual-identity PR with a technical-drawing scaffold system, and introduces
+  `tenants.theme.style` as a swappable "look system" dimension (the old look survives as the
+  picker's second option, `stone-slate`).
   Next: **INFRA/path-to-prod** (see "Next action" above).
 - **Branch model:** work happens on `integration/v2`; it becomes `main` when v2 is ready.
 
@@ -418,6 +423,37 @@ onto tenants too, via expand→migrate→contract), **one generalized** tenant-a
 ## Deviation log
 
 Every approved departure from the original plan, with its reason and cost.
+
+### 2026-07-05 — "Warm Blueprint Brutalism" visual direction (owner-directed, out-of-sequence)
+**Change:** replaces the stone/slate/primary public-page look (the prior `2026-07-05` visual-
+identity entry below) with a technical-drawing/blueprint aesthetic per a detailed owner brief:
+a page-level hairline scaffold (containers borrow scaffold segments rather than owning their own
+borders), a border grammar (solid = real content, dashed = metadata, diagonal hatch = section-void
+separator), one depth technique (offset-outline — no blur anywhere), two typographic voices (serif
+headings as the content voice, mono uppercase-tracked as the annotation voice), a sparse ghost grid
+of corner-tick cells in the Hero, and ONE signature element per the owner's explicit instruction not
+to combine them: the **instrument panel** — the Contact module renders as a single dark slate panel
+per page (the machine's window), with mono spec-sheet label/value rows joined by dotted leader lines.
+**Architecture (owner-requested, for future swappability):** introduces `SiteStyle` /
+`tenants.theme.style` in `@hio/ui`'s `theme.ts` as a new, independent theme dimension (alongside the
+existing accent/font/radius pickers) — a curated picker, defaulting to `warm-blueprint-brutalism`.
+The old stone/slate/primary look is kept as the picker's second option, `stone-slate` — concrete
+proof the dimension actually swaps, not a single hardcoded default renamed. **Implementation choice:**
+zero prop-threading through `ModuleRenderer`/module components. Every module renderer gained a
+`data-module="<type>"` attribute and a handful of always-rendered, class-gated annotation elements
+(item-count chips, ghost cells, leader lines) that are `display: none` by default; the entire look
+lives in `globals.css`, scoped under `.site-style-<id>` ancestor selectors. A future third style is
+purely a new CSS block + a `STYLE_OPTIONS` entry — never an `@hio/ui` component change. Verified this
+holds by toggling a live test site between both style values via SQL and confirming the DOM/CSS
+swapped correctly with no component code involved.
+**Why required:** owner-directed art-direction request with a fully specified brief, not sequenced in
+the roadmap; supersedes the prior visual-identity styling (same scope: both products' PUBLISHED pages
+only, builder/dashboard/admin chrome untouched) rather than adding new scope.
+**Cost / mitigation:** none to the INFRA path. No schema/RLS/edge-function change — `theme.style` is
+an additive JSONB key covered by the existing `tenants_update_member` RLS policy, same as
+accent/font/radius. Radius flattened to 0–2px for this style only (`[class*="rounded-"]` override,
+excluding `rounded-full` so circular avatars are unaffected) since the brief explicitly prohibits
+"rounded-corner card soup" for this look.
 
 ### 2026-07-05 — Manual collection-item editing (owner-directed, out-of-sequence)
 **Change:** after the visual-identity work landed, the owner tested the 9 module types and found

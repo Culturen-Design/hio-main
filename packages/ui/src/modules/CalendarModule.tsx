@@ -40,7 +40,13 @@ export function CalendarModule({
     .sort((a, b) => a.date.localeCompare(b.date));
 
   return (
-    <section className={cn("mx-auto max-w-[720px] p-10", cardClasses(variant))}>
+    <section
+      data-module="calendar"
+      className={cn("mx-auto max-w-[720px] p-10", cardClasses(variant))}
+    >
+      <p className="bp-count" aria-hidden>
+        {events.length} {events.length === 1 ? "event" : "events"}
+      </p>
       <h2 className={cn("mt-0 text-xl", headingClasses(variant))}>{content.title}</h2>
       {events.length === 0 ? (
         <p className="text-muted-foreground">No upcoming events.</p>

@@ -32,6 +32,7 @@ export default async function SettingsPage() {
         accent={theme.accent ?? DEFAULT_THEME.accent}
         font={theme.font ?? DEFAULT_THEME.font}
         radius={theme.radius ?? DEFAULT_THEME.radius}
+        style={theme.style ?? DEFAULT_THEME.style}
       />
     </main>
   );
