@@ -455,6 +455,25 @@ accent/font/radius. Radius flattened to 0–2px for this style only (`[class*="r
 excluding `rounded-full` so circular avatars are unaffected) since the brief explicitly prohibits
 "rounded-corner card soup" for this look.
 
+**Addendum 2026-07-05 — grid-coherence rework (owner rejected the first pass):** reviewing the live
+page, the owner found it "inconsistent, like a bunch of elements thrown away … every section
+\[has a\] different width; these background grid cells are not connected with the content of the
+modules." Root cause confirmed in code: the scaffold was a decorative `background-image`
+(`repeating-linear-gradient` at 33%/66% of the wrapper) — wallpaper behind the content — while every
+module renderer kept its pre-existing, mutually inconsistent max-width (`720px` for most, `576px`
+Contact, `960px` Gallery, none for Hero), so the painted lines never coincided with any real edge;
+the brief's own success test ("cover the content — the empty structure alone should read as one
+coherent drawing") failed. Reworked (same PR-scoped CSS block, still zero component changes): the
+background-image scaffold was deleted and the grid is now the layout itself — one shared content
+column (`margin-inline: var(--bp-margin)` on every module `section`, overriding the per-module
+Tailwind widths for this style only), vertical rules drawn as each section's real `border-inline`
+(identical boxes stacked flush join into two continuous full-height lines), horizontal rules as the
+sections' real `border-top`/`border-bottom` at real content boundaries, with short construction-line
+ticks extending each rule past the verticals into the margin (pinned at `top: -1px` off the same
+border — coincident by construction). The first pass's hero ghost cells, "+" registration marks, and
+hatch seam bands were cut per the brief's own "if it has no job, delete it" (their markup remains,
+hidden by default). `stone-slate` and all builder/dashboard/admin pages untouched.
+
 ### 2026-07-05 — Manual collection-item editing (owner-directed, out-of-sequence)
 **Change:** after the visual-identity work landed, the owner tested the 9 module types and found
 they still "all look the same" and asked where to add real content — the builder's "Edit" button
