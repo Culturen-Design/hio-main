@@ -34,6 +34,11 @@ export interface ClaudeTool {
 
 /** Name of the engine's built-in, module-agnostic content-edit tool. */
 export const UPDATE_CONTENT_TOOL = "update_module_content";
+/** Built-in section-CRUD tools (M2 widening, 2026-07-05): add a new, fully
+ *  populated section of any provider-enabled type / remove a section. Names
+ *  reserved in `RESERVED_TOOL_NAMES` alongside `update_module_content`. */
+export const ADD_SECTION_TOOL = "add_section";
+export const REMOVE_SECTION_TOOL = "remove_section";
 
 /** Fields the AI may never write — they govern identity, layout, and style. */
 export const PROTECTED_FIELDS = [
@@ -51,13 +56,13 @@ export const SYSTEM_PROMPT = `You are a page editor assistant. You help users ma
 
 RULES:
 - Make changes ONLY by calling tools. Never describe a change without calling a tool.
-- Modify content fields only. You cannot change module types, layout, or style variants.
+- You can edit a module's content fields, ADD a new section (add_section), and REMOVE a section (remove_section). You cannot change colours, fonts, layout, section order, or style variants — explain briefly that those are handled through the visual controls, not chat.
+- When ADDING a section, fill EVERY field of that module's schema (see MODULE SCHEMAS) with realistic, well-written sample content the user can tweak afterwards — never an empty placeholder. Give collection modules 2–4 fleshed-out items. Where an image URL field exists and the user didn't provide one, use https://picsum.photos/seed/<one-word>/800/600 (vary the seed word per image). Sample content on a brand-new section is expected; everywhere else, never fabricate facts about the user's real business.
+- Removing a section is destructive: call remove_section only when the user clearly asked to remove/delete that section, and target it by its section id from the page context.
 - Before acting on ambiguous requests, ask one clarifying question.
 - After calling a tool, confirm what changed in one or two plain sentences.
 - Keep responses short unless the user asks for detail.
-- If asked to do something outside your scope (change colours, add modules, change layout), explain briefly that those are handled through the visual controls, not chat.
-- Dates must be ISO 8601 (YYYY-MM-DD). Resolve relative dates like "next Friday" to the actual date before calling a tool.
-- Never fabricate content.`;
+- Dates must be ISO 8601 (YYYY-MM-DD). Resolve relative dates like "next Friday" to the actual date before calling a tool.`;
 
 /* ── Persistence port ───────────────────────────────────────────────────────── */
 
@@ -68,10 +73,18 @@ export interface SectionRecord {
   content: Record<string, unknown> | null;
 }
 
-/** How the engine persists a mutated section. Implemented by the caller. */
+/** How the engine persists a mutated section. Implemented by the caller.
+ *  `insertSection`/`deleteSection` are OPTIONAL (additive, 2026-07-05): a store
+ *  that omits them simply makes the section-CRUD tools report "not supported"
+ *  — existing stores keep compiling unchanged. */
 export interface SectionStore {
   /** Persist new content for a section. Returns true on success. */
   updateContent(sectionId: string, content: Record<string, unknown>): Promise<boolean>;
+  /** Insert a new section of `type` with `content`. The caller owns placement
+   *  (tenant/site ids, order, width). Returns true on success. */
+  insertSection?(type: string, content: Record<string, unknown>): Promise<boolean>;
+  /** Delete a section by id. Returns true only if a row was actually removed. */
+  deleteSection?(sectionId: string): Promise<boolean>;
 }
 
 export interface ToolResult {
@@ -93,11 +106,14 @@ function jsonSchema(schema: z.ZodTypeAny): Record<string, unknown> {
 }
 
 /**
- * Build the Claude tool array: the built-in `update_module_content` (works for
- * every module) plus every collection tool the active provider declares.
+ * Build the Claude tool array: the built-ins — `update_module_content` (works
+ * for every module) and the section-CRUD pair `add_section`/`remove_section`
+ * (typed against the ACTIVE provider's module set, so a tenant can only be
+ * offered types its own provider carries) — plus every collection tool the
+ * provider declares.
  */
 export function buildClaudeTools(provider: SchemaProvider): ClaudeTool[] {
-  const builtIn: ClaudeTool = {
+  const update: ClaudeTool = {
     name: UPDATE_CONTENT_TOOL,
     description:
       "Updates one or more text/content fields of a module. Use for headlines, body copy, titles, descriptions, labels. Pass the section id and a partial object containing ONLY the fields to change.",
@@ -114,16 +130,64 @@ export function buildClaudeTools(provider: SchemaProvider): ClaudeTool[] {
     },
   };
 
+  const addSection: ClaudeTool = {
+    name: ADD_SECTION_TOOL,
+    description:
+      "Adds a new section/module to the end of the page, fully populated. Pass the module type and a COMPLETE content object matching that module's schema (see MODULE SCHEMAS in the system prompt) — fill every field with realistic sample content. Ids of collection items may be omitted (they are generated).",
+    input_schema: {
+      type: "object",
+      properties: {
+        type: {
+          type: "string",
+          enum: provider.modules.map((m) => m.type),
+          description: "Module type to add.",
+        },
+        content: {
+          type: "object",
+          description: "Complete content for the new section, matching the module's schema.",
+        },
+      },
+      required: ["type", "content"],
+    },
+  };
+
+  const removeSection: ClaudeTool = {
+    name: REMOVE_SECTION_TOOL,
+    description:
+      "Removes an entire section/module from the page by its section id. Destructive — only call when the user explicitly asked to remove/delete a section.",
+    input_schema: {
+      type: "object",
+      properties: {
+        section_id: { type: "string", description: "Id of the section to remove." },
+      },
+      required: ["section_id"],
+    },
+  };
+
   const declared = provider.allTools().map((t: AiToolDescriptor) => ({
     name: t.name,
     description: t.description,
     input_schema: jsonSchema(t.inputSchema),
   }));
 
-  return [builtIn, ...declared];
+  return [update, addSection, removeSection, ...declared];
 }
 
 /* ── Page context for the system prompt ─────────────────────────────────────── */
+
+/**
+ * Render each enabled module's content JSON Schema for the system prompt, so
+ * the model knows the FULL field surface of every type — including optional
+ * fields the current rows don't carry (it otherwise only ever sees the keys
+ * present in the page context) — both to populate a new section completely
+ * (add_section) and to set optional fields via update_module_content.
+ */
+export function buildSchemaContext(provider: SchemaProvider): string {
+  const lines = provider.modules.map(
+    (m) => `- ${m.type} ("${m.label}"): ${JSON.stringify(jsonSchema(m.contentSchema))}`,
+  );
+  return `MODULE SCHEMAS (the content shape of each module type):\n${lines.join("\n")}`;
+}
 
 /** Render the current page state Claude needs to target the right section. */
 export function buildPageContext(sections: SectionRecord[]): string {
@@ -139,15 +203,28 @@ const updateInputSchema = z.object({
   section_id: z.string(),
   updates: z.record(z.unknown()),
 });
+const addSectionInputSchema = z.object({
+  type: z.string(),
+  content: z.record(z.unknown()).optional(),
+});
+const removeSectionInputSchema = z.object({
+  section_id: z.string(),
+});
 
-/** Validate a tool's input server-side. Covers the built-in tool and provider tools. */
+/** Validate a tool's input server-side. Covers the built-in tools and provider tools. */
 export function validateToolInput(
   provider: SchemaProvider,
   toolName: string,
   input: unknown,
 ): { ok: true; data: unknown } | { ok: false; error: string } {
-  if (toolName === UPDATE_CONTENT_TOOL) {
-    const parsed = updateInputSchema.safeParse(input);
+  const builtIns: Record<string, z.ZodTypeAny> = {
+    [UPDATE_CONTENT_TOOL]: updateInputSchema,
+    [ADD_SECTION_TOOL]: addSectionInputSchema,
+    [REMOVE_SECTION_TOOL]: removeSectionInputSchema,
+  };
+  const builtIn = builtIns[toolName];
+  if (builtIn) {
+    const parsed = builtIn.safeParse(input);
     return parsed.success
       ? { ok: true, data: parsed.data }
       : { ok: false, error: parsed.error.message };
@@ -208,6 +285,71 @@ export async function executeTool(
     const saved = await store.updateContent(section.id, newContent);
     if (!saved) return { ok: false, message: "Failed to save changes." };
     return { ok: true, message: `Updated the ${section.type} module.` };
+  }
+
+  /* Built-in section CRUD (2026-07-05). The provider is the type authority —
+     a type it doesn't carry is rejected here; product-level enforcement
+     (Self-Serve tier gate, Studio membership) rides the caller's store, which
+     persists through an RLS-gated client exactly like the manual "+ Module"
+     server actions. */
+  if (toolName === ADD_SECTION_TOOL) {
+    const input = valid.data as z.infer<typeof addSectionInputSchema>;
+    const def = provider.getModule(input.type as ModuleType);
+    if (!def) {
+      const allowed = provider.modules.map((m) => m.type).join(", ");
+      return {
+        ok: false,
+        message: `Module type "${input.type}" isn't available (try: ${allowed}).`,
+      };
+    }
+    if (!store.insertSection) {
+      return { ok: false, message: "Adding sections isn't supported here." };
+    }
+
+    const merged: Record<string, unknown> = {
+      ...(def.defaults as Record<string, unknown>),
+      ...(input.content ?? {}),
+    };
+    // Assign ids the model omitted on collection items (any object element of
+    // any top-level array), mirroring the appendItem op's genId behaviour.
+    for (const value of Object.values(merged)) {
+      if (!Array.isArray(value)) continue;
+      for (const el of value) {
+        if (
+          el &&
+          typeof el === "object" &&
+          typeof (el as Record<string, unknown>).id !== "string"
+        ) {
+          (el as Record<string, unknown>).id = genId();
+        }
+      }
+    }
+
+    const parsed = def.contentSchema.safeParse(merged);
+    if (!parsed.success) {
+      return { ok: false, message: `That content isn't valid: ${parsed.error.message}` };
+    }
+
+    const saved = await store.insertSection(def.type, parsed.data as Record<string, unknown>);
+    if (!saved) {
+      return {
+        ok: false,
+        message: "Couldn't add that section — it may not be available on this plan.",
+      };
+    }
+    return { ok: true, message: `Added a new ${def.type} section.` };
+  }
+
+  if (toolName === REMOVE_SECTION_TOOL) {
+    const input = valid.data as z.infer<typeof removeSectionInputSchema>;
+    const section = sections.find((s) => s.id === input.section_id);
+    if (!section) return { ok: false, message: "Section not found." };
+    if (!store.deleteSection) {
+      return { ok: false, message: "Removing sections isn't supported here." };
+    }
+    const removed = await store.deleteSection(section.id);
+    if (!removed) return { ok: false, message: "Failed to remove that section." };
+    return { ok: true, message: `Removed the ${section.type} section.` };
   }
 
   /* Provider-declared collection tool — interpret its op. */

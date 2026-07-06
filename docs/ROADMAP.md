@@ -424,6 +424,31 @@ onto tenants too, via expand→migrate→contract), **one generalized** tenant-a
 
 Every approved departure from the original plan, with its reason and cost.
 
+### 2026-07-05 — AI section add/remove/populate (owner-directed, out-of-sequence)
+**Change:** scope addition the owner made after seeing the content-expansion plan: "the AI helper
+should be able to edit the content for the user, including adding and removing sections on request and
+populating them with all possible entries." Audit confirmed the gap: section CRUD existed only as
+manual builder server actions; the engine's `SectionStore` had `updateContent` only and the system
+prompt explicitly told the model module-adding was out of scope. Shipped as a legitimate new
+engine-level capability (unlike simple field additions): two new BUILT-IN tools in `@hio/ai-engine`
+0.2.0 — `add_section` (type enum drawn from the ACTIVE provider's module set; content merged over
+`defaults`, collection-item ids generated, validated against the module's `contentSchema` before
+persisting) and `remove_section` — plus **optional** `insertSection`/`deleteSection` on the
+`SectionStore` port (stores that omit them make the tools report "not supported"; additive, existing
+stores compile unchanged), both names appended to `RESERVED_TOOL_NAMES` (`@hio/content-model` v1.7.0).
+A new `buildSchemaContext(provider)` puts every enabled module's content JSON Schema in the system
+prompt so the model can populate ALL fields (including v1.6.0 optionals invisible in the page
+context); the prompt now instructs realistic full-field sample content (picsum.photos placeholder
+image URLs) on newly added sections. In `ai-command`, section inserts/deletes deliberately write
+through the USER-scoped client (anon key + caller JWT), not service-role, so RLS enforces the same
+membership + Self-Serve tier gate as the manual "+ Module" buttons. Vendor bundle regenerated and
+redeployed to the dev project.
+**Why required:** owner-directed (verbatim, added scope); closes the last asymmetry between the manual
+and AI editing paths on the expanded content model.
+**Cost / mitigation:** none to the INFRA path; no migration, no RLS change (reuses existing policies
+by construction). `max_tokens` raised to 4096 so one tool call can carry a fully populated collection
+section.
+
 ### 2026-07-05 — Per-module content expansion + page polish + margin patterns (owner-directed, out-of-sequence)
 **Change:** follows directly from the Warm-Blueprint work (PRs #60/#61); the owner asked for (a) page-
 level polish — breathing room at the top/bottom of the drawing (`--bp-page-pad`, plus the column's own

@@ -73,6 +73,17 @@ describe("createSchemaProvider — seam invariants", () => {
       ]),
     ).toThrow(/reserved engine tool name/i);
   });
+
+  it("reserves the engine's section-CRUD tool names too (v1.7.0)", () => {
+    expect(RESERVED_TOOL_NAMES).toEqual(
+      expect.arrayContaining(["update_module_content", "add_section", "remove_section"]),
+    );
+    for (const name of ["add_section", "remove_section"]) {
+      expect(() => createSchemaProvider("res2", [fakeModule({ aiTools: [tool(name)] })])).toThrow(
+        /reserved engine tool name/i,
+      );
+    }
+  });
 });
 
 describe("defaultContentFor", () => {

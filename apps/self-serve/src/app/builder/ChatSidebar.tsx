@@ -35,7 +35,7 @@ export function ChatSidebar({ tenantId, siteId }: { tenantId: string; siteId: st
     {
       id: "intro",
       role: "assistant",
-      text: "Tell me what to change — e.g. “make the headline say Welcome” or “add a link to my shop”.",
+      text: "Tell me what to change — e.g. “make the headline say Welcome”, “add a link to my shop”, or “add a testimonials section” (I'll fill it with sample content you can tweak). I can also remove a section if you ask.",
     },
   ]);
 
