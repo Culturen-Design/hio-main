@@ -31,111 +31,161 @@ export function SettingsForm({
     null,
   );
   const [selectedAccent, setSelectedAccent] = useState(accent);
+  const [selectedFont, setSelectedFont] = useState(font);
+  const [selectedRadius, setSelectedRadius] = useState(radius);
+  const [selectedStyle, setSelectedStyle] = useState(style);
+  const [selectedMargin, setSelectedMargin] = useState(marginPattern);
+
+  const previewParams = new URLSearchParams({
+    accent: selectedAccent,
+    font: selectedFont,
+    radius: selectedRadius,
+    style: selectedStyle,
+    marginPattern: selectedMargin,
+  });
 
   return (
-    <form
-      action={formAction}
-      style={{ display: "flex", flexDirection: "column", gap: "1.1rem", maxWidth: 420 }}
-    >
-      <fieldset style={{ border: "none", padding: 0, margin: 0 }}>
-        <legend style={{ fontSize: 13, marginBottom: 6 }}>Accent color</legend>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-          {ACCENT_SWATCHES.map((s) => (
-            <label key={s.value} style={{ cursor: "pointer" }}>
-              <input
-                type="radio"
-                name="accent"
-                value={s.value}
-                checked={selectedAccent === s.value}
-                onChange={() => setSelectedAccent(s.value)}
-                style={{ position: "absolute", opacity: 0, width: 0, height: 0 }}
-              />
-              <span
-                title={s.name}
-                style={{
-                  display: "block",
-                  width: 32,
-                  height: 32,
-                  borderRadius: "50%",
-                  background: s.value,
-                  border:
-                    selectedAccent === s.value ? "2px solid #111827" : "2px solid transparent",
-                  boxShadow: "0 0 0 1px #e5e7eb",
-                }}
-              />
-            </label>
-          ))}
-        </div>
-      </fieldset>
-
-      <label style={labelStyle}>
-        Font
-        <select name="font" defaultValue={font} style={selectStyle}>
-          {FONT_STACKS.map((f) => (
-            <option key={f.value} value={f.value}>
-              {f.name}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <label style={labelStyle}>
-        Rounding
-        <select name="radius" defaultValue={radius} style={selectStyle}>
-          {RADIUS_PRESETS.map((r) => (
-            <option key={r.value} value={r.value}>
-              {r.name}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <label style={labelStyle}>
-        Page style
-        <select name="style" defaultValue={style} style={selectStyle}>
-          {STYLE_OPTIONS.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <label style={labelStyle}>
-        Margin pattern
-        <select name="marginPattern" defaultValue={marginPattern} style={selectStyle}>
-          {MARGIN_PATTERN_OPTIONS.map((p) => (
-            <option key={p.value} value={p.value}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      {state && "error" in state && (
-        <p role="alert" style={{ color: "#dc2626", fontSize: 13, margin: 0 }}>
-          {state.error}
-        </p>
-      )}
-      {state === null && <output style={{ color: "#16a34a", fontSize: 13 }} aria-live="polite" />}
-
-      <button
-        type="submit"
-        disabled={pending}
-        style={{
-          padding: "0.65rem 1.1rem",
-          borderRadius: 8,
-          border: "none",
-          background: "#111827",
-          color: "white",
-          fontWeight: 600,
-          cursor: pending ? "default" : "pointer",
-          opacity: pending ? 0.6 : 1,
-          alignSelf: "flex-start",
-        }}
+    <div style={{ display: "flex", gap: "2rem", flexWrap: "wrap" }}>
+      <form
+        action={formAction}
+        style={{ display: "flex", flexDirection: "column", gap: "1.1rem", maxWidth: 420 }}
       >
-        {pending ? "Saving…" : "Save changes"}
-      </button>
-    </form>
+        <fieldset style={{ border: "none", padding: 0, margin: 0 }}>
+          <legend style={{ fontSize: 13, marginBottom: 6 }}>Accent color</legend>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+            {ACCENT_SWATCHES.map((s) => (
+              <label key={s.value} style={{ cursor: "pointer" }}>
+                <input
+                  type="radio"
+                  name="accent"
+                  value={s.value}
+                  checked={selectedAccent === s.value}
+                  onChange={() => setSelectedAccent(s.value)}
+                  style={{ position: "absolute", opacity: 0, width: 0, height: 0 }}
+                />
+                <span
+                  title={s.name}
+                  style={{
+                    display: "block",
+                    width: 32,
+                    height: 32,
+                    borderRadius: "50%",
+                    background: s.value,
+                    border:
+                      selectedAccent === s.value ? "2px solid #111827" : "2px solid transparent",
+                    boxShadow: "0 0 0 1px #e5e7eb",
+                  }}
+                />
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        <label style={labelStyle}>
+          Font
+          <select
+            name="font"
+            value={selectedFont}
+            onChange={(e) => setSelectedFont(e.target.value)}
+            style={selectStyle}
+          >
+            {FONT_STACKS.map((f) => (
+              <option key={f.value} value={f.value}>
+                {f.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label style={labelStyle}>
+          Rounding
+          <select
+            name="radius"
+            value={selectedRadius}
+            onChange={(e) => setSelectedRadius(e.target.value)}
+            style={selectStyle}
+          >
+            {RADIUS_PRESETS.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label style={labelStyle}>
+          Page style
+          <select
+            name="style"
+            value={selectedStyle}
+            onChange={(e) => setSelectedStyle(e.target.value)}
+            style={selectStyle}
+          >
+            {STYLE_OPTIONS.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label style={labelStyle}>
+          Margin pattern
+          <select
+            name="marginPattern"
+            value={selectedMargin}
+            onChange={(e) => setSelectedMargin(e.target.value)}
+            style={selectStyle}
+          >
+            {MARGIN_PATTERN_OPTIONS.map((p) => (
+              <option key={p.value} value={p.value}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {state && "error" in state && (
+          <p role="alert" style={{ color: "#dc2626", fontSize: 13, margin: 0 }}>
+            {state.error}
+          </p>
+        )}
+        {state === null && <output style={{ color: "#16a34a", fontSize: 13 }} aria-live="polite" />}
+
+        <button
+          type="submit"
+          disabled={pending}
+          style={{
+            padding: "0.65rem 1.1rem",
+            borderRadius: 8,
+            border: "none",
+            background: "#111827",
+            color: "white",
+            fontWeight: 600,
+            cursor: pending ? "default" : "pointer",
+            opacity: pending ? 0.6 : 1,
+            alignSelf: "flex-start",
+          }}
+        >
+          {pending ? "Saving…" : "Save changes"}
+        </button>
+      </form>
+
+      <div style={{ flex: "1 1 380px", minWidth: 320 }}>
+        <p style={{ fontSize: 13, color: "#6b7280", margin: "0 0 0.5rem" }}>
+          Live preview — updates as you change a control above, before you save.
+        </p>
+        <iframe
+          title="Site look preview"
+          src={`/settings/preview?${previewParams.toString()}`}
+          style={{
+            width: "100%",
+            height: 520,
+            border: "1px solid #e5e7eb",
+            borderRadius: 12,
+          }}
+        />
+      </div>
+    </div>
   );
 }

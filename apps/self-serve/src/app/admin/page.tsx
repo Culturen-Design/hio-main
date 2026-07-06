@@ -61,7 +61,7 @@ export default async function AdminPage() {
         modules to a free user.
       </p>
 
-      <AdminTable rows={rows} moduleTypes={[...MODULE_TYPES]} />
+      <AdminTable rows={rows} moduleTypes={[...MODULE_TYPES]} currentUserId={user.id} />
     </main>
   );
 }
