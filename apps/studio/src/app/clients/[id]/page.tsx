@@ -55,7 +55,7 @@ export default async function ClientSettingsPage({
 
   return (
     <main
-      style={{ fontFamily: "system-ui", maxWidth: 760, margin: "0 auto", padding: "3rem 1.5rem" }}
+      style={{ fontFamily: "system-ui", maxWidth: 960, margin: "0 auto", padding: "3rem 1.5rem" }}
     >
       <a href="/dashboard" style={{ fontSize: 13, color: "#6b7280", textDecoration: "none" }}>
         ← Back to clients

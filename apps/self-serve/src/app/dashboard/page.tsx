@@ -59,15 +59,28 @@ export default async function DashboardPage() {
 
       <p style={{ color: "#6b7280" }}>
         Signed in as <strong>{user.email}</strong>
-        {settings?.is_admin && (
-          <>
-            {" · "}
-            <a href="/admin" style={{ color: "#7c3aed", fontWeight: 600 }}>
-              Admin console
-            </a>
-          </>
-        )}
       </p>
+
+      {settings?.is_admin && (
+        <a
+          href="/admin"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "0.5rem 0.9rem",
+            borderRadius: 8,
+            background: "#7c3aed",
+            color: "white",
+            textDecoration: "none",
+            fontWeight: 600,
+            fontSize: 14,
+            marginTop: "0.5rem",
+          }}
+        >
+          ⚙ Admin console
+        </a>
+      )}
 
       {site ? (
         <div

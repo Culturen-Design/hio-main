@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { ModuleType } from "@hio/content-model";
 import type { Json } from "@hio/db";
 import { revalidatePath } from "next/cache";
-import { moduleOverridesSchema, normalizeOverrides, tierSchema } from "./validation";
+import { assertNotSelf, moduleOverridesSchema, normalizeOverrides, tierSchema } from "./validation";
 
 export type ActionResult = { ok: true } | { error: string };
 
@@ -58,6 +58,41 @@ export async function setModuleOverrides(
     .from("user_settings")
     // null ⇒ fall back to tier defaults; an array ⇒ grant those extra modules.
     .update({ module_overrides: overrides as Json })
+    .eq("user_id", userId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+/** Toggle a user's `is_locked` flag (gates write access via `is_active_user()`).
+ *  An admin may not lock their own account — that would be a self-lockout with
+ *  no one left to undo it through this console. */
+export async function setLocked(userId: string, locked: boolean): Promise<ActionResult> {
+  const { supabase, adminId } = await requireAdmin();
+  const guard = assertNotSelf(adminId, userId, "lock");
+  if (guard) return guard;
+
+  const { error } = await supabase
+    .from("user_settings")
+    .update({ is_locked: locked })
+    .eq("user_id", userId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+/** Toggle a user's `is_disabled` flag (gates write access via `is_active_user()`).
+ *  Same self-action guard as `setLocked`. */
+export async function setDisabled(userId: string, disabled: boolean): Promise<ActionResult> {
+  const { supabase, adminId } = await requireAdmin();
+  const guard = assertNotSelf(adminId, userId, "disable");
+  if (guard) return guard;
+
+  const { error } = await supabase
+    .from("user_settings")
+    .update({ is_disabled: disabled })
     .eq("user_id", userId);
   if (error) return { error: error.message };
 

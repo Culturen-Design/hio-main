@@ -424,6 +424,45 @@ onto tenants too, via expand→migrate→contract), **one generalized** tenant-a
 
 Every approved departure from the original plan, with its reason and cost.
 
+### 2026-07-06 — Admin console improvements (owner-directed, out-of-sequence)
+**Change:** owner asked for a small audit of Self-Serve's `/admin` console (access, reaction,
+styling-picker usability) after using it; approved acting on the resulting plan. Shipped:
+(1) `setLocked`/`setDisabled` server actions + Lock/Unlock/Disable/Enable buttons in `AdminTable`
+— `is_locked`/`is_disabled` existed in the schema and were displayed as read-only badges since
+M2.1 but had no admin-UI path to actually set them (SQL-only); a new `assertNotSelf` guard blocks
+an admin from locking/disabling their own account (no recovery path through the console otherwise).
+(2) Module-override checkboxes now autosave on toggle instead of requiring a separate "Save
+overrides" button, matching the tier `<select>`'s existing autosave behavior — the two controls in
+the same row used to behave inconsistently. (3) A confirmation prompt before downgrading a paid
+user to free, since it silently walls off any paid-only modules already on their page. (4) The
+`/admin` entry point on `/dashboard` promoted from an inline text link to a proper button. (5) A
+live-updating `<iframe>` preview of the "Page style"/"Margin pattern" pickers in both apps'
+theme-settings forms (`SettingsForm`/`ThemeForm`), backed by a new unauthenticated preview route per
+app (`/settings/preview`, `/clients/preview`) that renders sample Hero+Contact content against the
+query-string theme values — previously these two (the newest, most visually dramatic) options had
+no live preview at all, unlike accent/font/radius which already previewed live in the builder.
+**Why an iframe, not an inline mini-preview:** the Warm Blueprint scaffold's spacing uses
+`vw`-relative `clamp()`s: rendering it at a shrunk scale inside the settings page's own layout would
+throw off the margin/scaffold proportions relative to what a visitor actually sees, since `vw` is
+relative to the real browser viewport, not a containing element. An iframe gets its own independent
+viewport, so the preview renders at correct proportions regardless of its embedded size.
+**Why required:** owner-directed, following directly from a requested audit; a real, scoped
+functional gap (lock/disable) plus usability polish, not a schema or seam change.
+**Cost / mitigation:** none to the INFRA path. No migration (both flags already existed since
+migration `001`). Live-verified on dev: self-lockout guard confirmed client-side (disabled buttons
+on the caller's own row); tier-downgrade confirm/cancel both confirmed via DB (cancel leaves the
+row unchanged, confirming persists); overrides autosave confirmed (no "Save" button remains,
+toggling one checkbox persists immediately); both apps' live preview iframes confirmed rendering
+the current theme and updating instantly on a control change, before saving. **Explicitly not
+verified live:** `setLocked`/`setDisabled` themselves — the auto-mode permission classifier
+correctly blocked locking/disabling a real user's account (`primallift`) as an unrequested,
+unilateral action on shared state, and a fresh throwaway signup couldn't be used either (the dev
+project requires email confirmation, and there's no reachable inbox). Confidence instead rests on
+the action being structurally identical to the already-proven `setTier` (same `requireAdmin` +
+single-row `UPDATE` + RLS pattern) and on Postgres RLS being row-scoped, not column-scoped — if
+`settings_update_admin` already permits an admin's `UPDATE` on tier for a row, the same policy
+covers `is_locked`/`is_disabled` on that row too.
+
 ### 2026-07-05 — AI section add/remove/populate (owner-directed, out-of-sequence)
 **Change:** scope addition the owner made after seeing the content-expansion plan: "the AI helper
 should be able to edit the content for the user, including adding and removing sections on request and

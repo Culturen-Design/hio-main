@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { moduleOverridesSchema, normalizeOverrides, tierSchema } from "./validation";
+import { assertNotSelf, moduleOverridesSchema, normalizeOverrides, tierSchema } from "./validation";
 
 describe("tierSchema", () => {
   it("accepts the two valid tiers", () => {
@@ -35,5 +35,20 @@ describe("normalizeOverrides", () => {
 
   it("de-duplicates and preserves a non-empty selection", () => {
     expect(normalizeOverrides(["gallery", "gallery", "custom"])).toEqual(["gallery", "custom"]);
+  });
+});
+
+describe("assertNotSelf", () => {
+  it("blocks an admin from locking/disabling their own account", () => {
+    expect(assertNotSelf("u1", "u1", "lock")).toEqual({
+      error: "You can't lock your own account.",
+    });
+    expect(assertNotSelf("u1", "u1", "disable")).toEqual({
+      error: "You can't disable your own account.",
+    });
+  });
+
+  it("allows acting on a different user", () => {
+    expect(assertNotSelf("u1", "u2", "lock")).toBeNull();
   });
 });

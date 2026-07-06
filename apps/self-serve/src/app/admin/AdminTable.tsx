@@ -2,7 +2,7 @@
 
 import { FREE_MODULE_TYPES, type ModuleType } from "@hio/content-model";
 import { useState, useTransition } from "react";
-import { type ActionResult, setModuleOverrides, setTier } from "./actions";
+import { type ActionResult, setDisabled, setLocked, setModuleOverrides, setTier } from "./actions";
 
 export type AdminUserRow = {
   userId: string;
@@ -35,9 +35,11 @@ const badge = (label: string, color: string): React.CSSProperties => ({
 export function AdminTable({
   rows,
   moduleTypes,
+  currentUserId,
 }: {
   rows: AdminUserRow[];
   moduleTypes: ModuleType[];
+  currentUserId: string;
 }) {
   // Free modules are always available; overrides only grant the *extra* ones.
   const extraModules = moduleTypes.filter((t) => !FREE_MODULE_TYPES.includes(t));
@@ -49,38 +51,105 @@ export function AdminTable({
           <th style={cell}>User</th>
           <th style={cell}>Tier</th>
           <th style={cell}>Extra modules (overrides)</th>
+          <th style={cell}>Access</th>
         </tr>
       </thead>
       <tbody>
         {rows.map((row) => (
-          <AdminRow key={row.userId} row={row} extraModules={extraModules} />
+          <AdminRow
+            key={row.userId}
+            row={row}
+            extraModules={extraModules}
+            isSelf={row.userId === currentUserId}
+          />
         ))}
       </tbody>
     </table>
   );
 }
 
-function AdminRow({ row, extraModules }: { row: AdminUserRow; extraModules: ModuleType[] }) {
+const statusStyle = (kind: "saving" | "saved" | "error"): React.CSSProperties => ({
+  fontSize: 12,
+  marginTop: 4,
+  color: kind === "error" ? "#dc2626" : kind === "saving" ? "#9ca3af" : "#16a34a",
+});
+
+const accessBtn = (active: boolean, color: string): React.CSSProperties => ({
+  padding: "0.25rem 0.6rem",
+  borderRadius: 6,
+  border: `1px solid ${active ? color : "#d1d5db"}`,
+  background: active ? color : "white",
+  color: active ? "white" : "#374151",
+  fontSize: 12,
+  cursor: "pointer",
+});
+
+function AdminRow({
+  row,
+  extraModules,
+  isSelf,
+}: {
+  row: AdminUserRow;
+  extraModules: ModuleType[];
+  isSelf: boolean;
+}) {
   const extraSet = new Set(extraModules as string[]);
   const [selected, setSelected] = useState<Set<string>>(
     () => new Set(row.overrides.filter((t) => extraSet.has(t))),
   );
+  const [tier, setTierState] = useState(row.tier);
+  const [locked, setLockedState] = useState(row.isLocked);
+  const [disabled, setDisabledState] = useState(row.isDisabled);
   const [pending, start] = useTransition();
-  const [msg, setMsg] = useState<string | null>(null);
+  const [status, setStatus] = useState<{ kind: "saving" | "saved" | "error"; text: string } | null>(
+    null,
+  );
 
-  const run = (fn: () => Promise<ActionResult>, okMsg: string) =>
+  // A single save pattern for every control in this row: fire immediately on
+  // change, show "Saving…" while pending, then "Saved"/the server error —
+  // no separate "Save" button anywhere (tier used to autosave while overrides
+  // needed an explicit click; this closes that inconsistency).
+  const run = (fn: () => Promise<ActionResult>, savedText: string) => {
+    setStatus({ kind: "saving", text: "Saving…" });
     start(async () => {
       const res = await fn();
-      setMsg("error" in res ? res.error : okMsg);
+      setStatus(
+        "error" in res ? { kind: "error", text: res.error } : { kind: "saved", text: savedText },
+      );
     });
+  };
 
-  const toggle = (type: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(type)) next.delete(type);
-      else next.add(type);
-      return next;
-    });
+  const toggleModule = (type: string) => {
+    const next = new Set(selected);
+    if (next.has(type)) next.delete(type);
+    else next.add(type);
+    setSelected(next);
+    run(() => setModuleOverrides(row.userId, [...next] as ModuleType[]), "Overrides saved");
+  };
+
+  const changeTier = (next: string) => {
+    // Downgrading a paid user silently walls off any paid-only modules
+    // already on their page — confirm before it's irreversible-feeling.
+    if (row.tier === "paid" && next === "free") {
+      const ok = window.confirm(
+        "Downgrade this user to the free tier? Any paid-only modules already on their page will stop being editable until they're upgraded again.",
+      );
+      if (!ok) return;
+    }
+    setTierState(next as "free" | "paid");
+    run(() => setTier(row.userId, next), "Tier updated");
+  };
+
+  const toggleLocked = () => {
+    const next = !locked;
+    setLockedState(next);
+    run(() => setLocked(row.userId, next), next ? "Locked" : "Unlocked");
+  };
+
+  const toggleDisabled = () => {
+    const next = !disabled;
+    setDisabledState(next);
+    run(() => setDisabled(row.userId, next), next ? "Disabled" : "Enabled");
   };
 
   return (
@@ -89,18 +158,17 @@ function AdminRow({ row, extraModules }: { row: AdminUserRow; extraModules: Modu
         <div style={{ fontWeight: 600 }}>
           {row.slug ? `/${row.slug}` : "—"}
           {row.isAdmin && <span style={badge("admin", "#7c3aed")}>admin</span>}
-          {row.isLocked && <span style={badge("locked", "#dc2626")}>locked</span>}
-          {row.isDisabled && <span style={badge("disabled", "#6b7280")}>disabled</span>}
+          {isSelf && <span style={badge("you", "#2563eb")}>you</span>}
         </div>
         <div style={{ fontSize: 11, color: "#9ca3af", fontFamily: "monospace" }}>{row.userId}</div>
-        {msg && <div style={{ fontSize: 12, color: "#2563eb", marginTop: 4 }}>{msg}</div>}
+        {status && <div style={statusStyle(status.kind)}>{status.text}</div>}
       </td>
 
       <td style={cell}>
         <select
-          defaultValue={row.tier}
+          value={tier}
           disabled={pending}
-          onChange={(e) => run(() => setTier(row.userId, e.target.value), "Tier updated")}
+          onChange={(e) => changeTier(e.target.value)}
           style={{ padding: "0.3rem 0.5rem", borderRadius: 6, border: "1px solid #d1d5db" }}
         >
           <option value="free">free</option>
@@ -119,33 +187,35 @@ function AdminRow({ row, extraModules }: { row: AdminUserRow; extraModules: Modu
                 type="checkbox"
                 checked={selected.has(type)}
                 disabled={pending}
-                onChange={() => toggle(type)}
+                onChange={() => toggleModule(type)}
               />
               {type}
             </label>
           ))}
         </div>
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() =>
-            run(
-              () => setModuleOverrides(row.userId, [...selected] as ModuleType[]),
-              "Overrides saved",
-            )
-          }
-          style={{
-            marginTop: 8,
-            padding: "0.3rem 0.7rem",
-            borderRadius: 6,
-            border: "1px solid #d1d5db",
-            background: "white",
-            cursor: pending ? "default" : "pointer",
-            fontSize: 13,
-          }}
-        >
-          Save overrides
-        </button>
+      </td>
+
+      <td style={cell}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start" }}>
+          <button
+            type="button"
+            disabled={pending || isSelf}
+            title={isSelf ? "You can't lock your own account" : undefined}
+            onClick={toggleLocked}
+            style={{ ...accessBtn(locked, "#dc2626"), opacity: isSelf ? 0.5 : 1 }}
+          >
+            {locked ? "Unlock" : "Lock"}
+          </button>
+          <button
+            type="button"
+            disabled={pending || isSelf}
+            title={isSelf ? "You can't disable your own account" : undefined}
+            onClick={toggleDisabled}
+            style={{ ...accessBtn(disabled, "#6b7280"), opacity: isSelf ? 0.5 : 1 }}
+          >
+            {disabled ? "Enable" : "Disable"}
+          </button>
+        </div>
       </td>
     </tr>
   );
