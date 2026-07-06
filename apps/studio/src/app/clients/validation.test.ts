@@ -118,8 +118,21 @@ describe("updateThemeSchema", () => {
       font: "ui-sans-serif, system-ui, -apple-system, sans-serif",
       radius: "pill",
       style: "warm-blueprint-brutalism",
+      marginPattern: "diagonal-hatch",
     });
     expect(r.success).toBe(true);
+  });
+
+  it("rejects an unrecognised margin pattern", () => {
+    const r = updateThemeSchema.safeParse({
+      id,
+      accent: "#2563eb",
+      font: "ui-sans-serif, system-ui, -apple-system, sans-serif",
+      radius: "soft",
+      style: "warm-blueprint-brutalism",
+      marginPattern: "zebra",
+    });
+    expect(r.success).toBe(false);
   });
 
   it("rejects an accent value outside the curated swatches (no free color picker)", () => {

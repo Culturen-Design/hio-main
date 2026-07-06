@@ -13,6 +13,11 @@ export function LinksModule({
         {content.items.length} {content.items.length === 1 ? "link" : "links"}
       </p>
       <h2 className={cn("mt-0 text-xl", headingClasses(variant))}>{content.title}</h2>
+      {content.intro && (
+        <p className="mt-1 mb-5 max-w-[560px] leading-relaxed text-muted-foreground">
+          {content.intro}
+        </p>
+      )}
       {content.items.length === 0 ? (
         <p className="text-muted-foreground">No links yet.</p>
       ) : (

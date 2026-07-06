@@ -133,6 +133,7 @@ export async function updateTenantTheme(
     font: formData.get("font"),
     radius: formData.get("radius"),
     style: formData.get("style"),
+    marginPattern: formData.get("marginPattern"),
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
 

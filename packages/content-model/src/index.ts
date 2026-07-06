@@ -49,6 +49,11 @@ export const heroSchema = z.object({
   eyebrow: z.string().max(40).optional(),
   cta_label: z.string().max(30).optional(),
   cta_url: z.string().url().optional(),
+  /** Longer supporting paragraph under the subheadline (v1.6.0). */
+  supporting_text: z.string().max(400).optional(),
+  /** Hero banner image — a pasted hosted-image URL, like Gallery (v1.6.0). */
+  image_url: z.string().url().optional(),
+  image_alt: z.string().max(160).optional(),
 });
 
 export const linkItemSchema = z.object({
@@ -60,6 +65,8 @@ export const linkItemSchema = z.object({
 });
 export const linksSchema = z.object({
   title: z.string(),
+  /** Short lead-in paragraph under the title (v1.6.0). */
+  intro: z.string().max(240).optional(),
   items: z.array(linkItemSchema).max(12),
   columns: z.union([z.literal(2), z.literal(3), z.literal(4)]),
 });
@@ -75,6 +82,8 @@ export const calendarEventSchema = z.object({
 });
 export const calendarSchema = z.object({
   title: z.string(),
+  /** Short lead-in paragraph under the title (v1.6.0). */
+  intro: z.string().max(240).optional(),
   events: z.array(calendarEventSchema),
   show_past: z.boolean(),
 });
@@ -183,11 +192,23 @@ export function createSchemaProvider(id: string, modules: ModuleDefinition[]): S
 
 /* ── Bio module schema ──────────────────────────────────────────────────────── */
 
+/** A "quick fact" spec row — years of experience, certifications, base city …
+ *  the résumé-style at-a-glance data a small business/freelancer leads with. */
+export const bioFactSchema = z.object({
+  id: z.string(),
+  label: z.string().max(40),
+  value: z.string().max(120),
+});
 export const bioSchema = z.object({
   title: z.string().max(60),
+  /** Short role/tagline over the title, e.g. "Potter & ceramics teacher" (v1.6.0). */
+  tagline: z.string().max(80).optional(),
   body: z.string().max(800),
   photo_url: z.string().url().optional(),
   photo_alt: z.string().optional(),
+  /** Quick-facts spec list (v1.6.0) — a small collection, AI-editable via
+   *  add_fact/update_fact/remove_fact like every other collection module. */
+  facts: z.array(bioFactSchema).max(8).optional(),
 });
 export type BioContent = z.infer<typeof bioSchema>;
 
@@ -201,6 +222,11 @@ export const contactSchema = z.object({
   email: z.string().email().optional(),
   phone: z.string().max(40).optional(),
   location: z.string().max(120).optional(),
+  /** Opening hours, free-form, e.g. "Tue–Sat, 10:00–18:00" (v1.6.0). */
+  hours: z.string().max(160).optional(),
+  /** Booking/enquiry call-to-action, e.g. "Book a session" → a scheduling URL (v1.6.0). */
+  cta_label: z.string().max(30).optional(),
+  cta_url: z.string().url().optional(),
 });
 export type ContactContent = z.infer<typeof contactSchema>;
 
@@ -213,10 +239,24 @@ export const serviceItemSchema = z.object({
   name: z.string().max(80),
   description: z.string().max(300).optional(),
   price: z.string().max(40).optional(), // free-form: "$50", "from £100/hr", "Free"
+  /** Small glyph/emoji marker, like a link item's icon (v1.6.0). */
+  icon: z.string().max(8).optional(),
+  /** Per-service image — a pasted hosted-image URL (v1.6.0). Items must look
+   *  equally intentional with or without it (owner requirement). */
+  image_url: z.string().url().optional(),
+  image_alt: z.string().max(160).optional(),
+  /** Optional "learn more"/booking link per service (v1.6.0). */
+  link_url: z.string().url().optional(),
+  link_label: z.string().max(40).optional(),
 });
 export const servicesSchema = z.object({
   title: z.string(),
+  /** Short lead-in paragraph under the title (v1.6.0). */
+  intro: z.string().max(300).optional(),
   items: z.array(serviceItemSchema).max(20),
+  /** Grid columns (v1.6.0). Optional: rows saved before it exists render as the
+   *  historical single-column list (1). */
+  columns: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
 });
 export type ServicesContent = z.infer<typeof servicesSchema>;
 
@@ -233,6 +273,8 @@ export const galleryImageSchema = z.object({
 });
 export const gallerySchema = z.object({
   title: z.string(),
+  /** Short lead-in paragraph under the title (v1.6.0). */
+  intro: z.string().max(240).optional(),
   images: z.array(galleryImageSchema).max(30),
   columns: z.union([z.literal(2), z.literal(3), z.literal(4)]),
 });
@@ -248,9 +290,13 @@ export const testimonialItemSchema = z.object({
   author: z.string().max(80),
   role: z.string().max(120).optional(), // e.g. "CEO, Acme"
   avatar_url: z.string().url().optional(),
+  /** Star rating 1–5 (v1.6.0). */
+  rating: z.number().int().min(1).max(5).optional(),
 });
 export const testimonialSchema = z.object({
   title: z.string(),
+  /** Short lead-in paragraph under the title (v1.6.0). */
+  intro: z.string().max(240).optional(),
   items: z.array(testimonialItemSchema).max(20),
 });
 export type TestimonialContent = z.infer<typeof testimonialSchema>;
@@ -272,6 +318,37 @@ export type CustomContent = z.infer<typeof customSchema>;
 // Text-field edits on any module are handled by the engine's built-in
 // `update_module_content` tool. Modules only declare tools for collection
 // (array) mutations the AI should be able to perform.
+
+const bioFactInputSchema = bioFactSchema.omit({ id: true });
+
+export const bioAiTools: AiToolDescriptor[] = [
+  {
+    name: "add_fact",
+    description:
+      "Adds a quick-fact row (label + value, e.g. 'Experience' / '12 years') to a bio module.",
+    moduleType: "bio",
+    inputSchema: z.object({ section_id: z.string(), fact: bioFactInputSchema }),
+    op: { kind: "appendItem", field: "facts", itemKey: "fact", genId: true },
+  },
+  {
+    name: "update_fact",
+    description: "Updates fields of an existing bio quick-fact, found by its fact id.",
+    moduleType: "bio",
+    inputSchema: z.object({
+      section_id: z.string(),
+      fact_id: z.string(),
+      updates: bioFactInputSchema.partial(),
+    }),
+    op: { kind: "updateItem", field: "facts", idKey: "fact_id", itemKey: "updates" },
+  },
+  {
+    name: "remove_fact",
+    description: "Removes a quick-fact from a bio module by its fact id.",
+    moduleType: "bio",
+    inputSchema: z.object({ section_id: z.string(), fact_id: z.string() }),
+    op: { kind: "removeItem", field: "facts", idKey: "fact_id" },
+  },
+];
 
 const linkInputSchema = linkItemSchema.omit({ id: true });
 
@@ -432,7 +509,7 @@ export const bioModule: ModuleDefinition<BioContent> = {
   contentSchema: bioSchema,
   defaults: { title: "About me", body: "Tell visitors a little about yourself." },
   width: [4, 12],
-  aiTools: [],
+  aiTools: bioAiTools,
 };
 
 export const linksModule: ModuleDefinition<LinksContent> = {

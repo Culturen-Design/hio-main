@@ -34,6 +34,11 @@ export function HeroModule({
       {content.subheadline && (
         <p className="mx-auto max-w-[560px] text-lg text-muted-foreground">{content.subheadline}</p>
       )}
+      {content.supporting_text && (
+        <p className="mx-auto mt-3 max-w-[560px] leading-relaxed text-muted-foreground">
+          {content.supporting_text}
+        </p>
+      )}
       {content.cta_label && content.cta_url && (
         <a
           href={content.cta_url}
@@ -41,6 +46,15 @@ export function HeroModule({
         >
           {content.cta_label}
         </a>
+      )}
+      {content.image_url && (
+        <div className="bp-offset mx-auto mt-8 max-w-[720px] rounded-[14px] border border-border bg-background p-1.5">
+          <img
+            src={content.image_url}
+            alt={content.image_alt ?? ""}
+            className="block aspect-[2/1] w-full rounded-[8px] object-cover"
+          />
+        </div>
       )}
     </section>
   );

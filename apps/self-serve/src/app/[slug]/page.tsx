@@ -35,9 +35,13 @@ export default async function PublicPage({ params }: { params: Promise<{ slug: s
   const site = data as unknown as PublicSite;
   const theme = parseSiteTheme(site.theme);
   const styleId = theme.style ?? DEFAULT_THEME.style;
+  const marginPattern = theme.marginPattern ?? DEFAULT_THEME.marginPattern;
 
   return (
-    <main className={`site-public site-style-${styleId}`} style={themeToStyle(theme)}>
+    <main
+      className={`site-public site-style-${styleId} site-margin-${marginPattern}`}
+      style={themeToStyle(theme)}
+    >
       {site.sections.map((s) => (
         <ModuleRenderer
           key={s.id}

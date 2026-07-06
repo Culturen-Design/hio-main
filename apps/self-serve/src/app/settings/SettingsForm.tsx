@@ -1,6 +1,12 @@
 "use client";
 
-import { ACCENT_SWATCHES, FONT_STACKS, RADIUS_PRESETS, STYLE_OPTIONS } from "@hio/ui";
+import {
+  ACCENT_SWATCHES,
+  FONT_STACKS,
+  MARGIN_PATTERN_OPTIONS,
+  RADIUS_PRESETS,
+  STYLE_OPTIONS,
+} from "@hio/ui";
 import { useActionState, useState } from "react";
 import { type SettingsActionState, updateTheme } from "./actions";
 
@@ -12,11 +18,13 @@ export function SettingsForm({
   font,
   radius,
   style,
+  marginPattern,
 }: {
   accent: string;
   font: string;
   radius: string;
   style: string;
+  marginPattern: string;
 }) {
   const [state, formAction, pending] = useActionState<SettingsActionState, FormData>(
     updateTheme,
@@ -88,6 +96,17 @@ export function SettingsForm({
           {STYLE_OPTIONS.map((s) => (
             <option key={s.value} value={s.value}>
               {s.name}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label style={labelStyle}>
+        Margin pattern
+        <select name="marginPattern" defaultValue={marginPattern} style={selectStyle}>
+          {MARGIN_PATTERN_OPTIONS.map((p) => (
+            <option key={p.value} value={p.value}>
+              {p.name}
             </option>
           ))}
         </select>

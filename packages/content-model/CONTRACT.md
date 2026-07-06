@@ -1,4 +1,4 @@
-# `@hio/content-model` — the frozen seam (v1.5.0)
+# `@hio/content-model` — the frozen seam (v1.6.0)
 
 This package is **the pluggable seam** between the two products and the one engine.
 `@hio/ai-engine` and both apps depend on the contract defined here. As of the **M3
@@ -98,6 +98,19 @@ is the rule below + the deviation log.
 
 ### Change log
 
+- **v1.6.0 — 2026-07-05 (M2 widening, additive/minor — per-module content expansion).** Owner-directed
+  pass over all 9 module types, adding the content fields a small business/freelancer actually needs —
+  **every new field optional**, so existing rows keep validating unchanged. `hero`: `supporting_text`,
+  `image_url`/`image_alt` (banner image — pasted URL, same no-upload precedent as Gallery). `bio`:
+  `tagline`, plus a `facts` quick-facts collection (`bioFactSchema`, label+value, max 8) with
+  `add_fact`/`update_fact`/`remove_fact` AI tools (`bioAiTools` — bio's first collection, standard
+  append/update/remove ops). `links`/`calendar`/`gallery`/`testimonial`/`services`: an optional `intro`
+  lead-in paragraph. `contact`: `hours` + `cta_label`/`cta_url` (booking CTA). `services`: section-level
+  `columns` (1|2|3 — optional, absent = the historical single-column list) and per-item `icon`,
+  `image_url`/`image_alt`, `link_url`/`link_label` (grid items must read as intentional with or without
+  icon/image — owner requirement). `testimonial` items: `rating` (1–5 int). `custom` deliberately
+  unchanged (title + markdown body already covers bespoke content — markdown handles images/links).
+  No 🔒 frozen item changed; `contract.test.ts` stays green.
 - **v1.5.0 — 2026-07-04 (M2 widening, additive/minor — the last module type).** Built the `custom`
   module (`customSchema` + `CustomContent` + `customModule`), the escape hatch called out at the M3
   gate. Deliberately minimal: `title` + a markdown `body` (max 5000 chars). No new AI tools — a

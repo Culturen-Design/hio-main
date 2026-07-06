@@ -13,6 +13,7 @@ export function ContactModule({
   if (content.phone)
     rows.push({ label: "Phone", value: content.phone, href: `tel:${content.phone}` });
   if (content.location) rows.push({ label: "Location", value: content.location });
+  if (content.hours) rows.push({ label: "Hours", value: content.hours });
 
   return (
     <section data-module="contact" className={cn("mx-auto max-w-xl p-10", cardClasses(variant))}>
@@ -41,6 +42,14 @@ export function ContactModule({
             </div>
           ))}
         </dl>
+      )}
+      {content.cta_label && content.cta_url && (
+        <a
+          href={content.cta_url}
+          className="bp-offset mt-6 inline-block rounded-[8px] bg-primary px-5 py-2.5 font-semibold text-primary-foreground no-underline"
+        >
+          {content.cta_label}
+        </a>
       )}
     </section>
   );

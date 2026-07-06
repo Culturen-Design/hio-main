@@ -111,6 +111,7 @@ export default async function ClientSettingsPage({
         font={theme.font ?? DEFAULT_THEME.font}
         radius={theme.radius ?? DEFAULT_THEME.radius}
         style={theme.style ?? DEFAULT_THEME.style}
+        marginPattern={theme.marginPattern ?? DEFAULT_THEME.marginPattern}
       />
 
       <h2 style={{ fontSize: "1.05rem", marginTop: "1.5rem" }}>Settings</h2>

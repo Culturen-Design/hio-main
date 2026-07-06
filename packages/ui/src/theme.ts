@@ -20,6 +20,26 @@ export const STYLE_OPTIONS: ReadonlyArray<{ name: string; value: SiteStyle }> = 
 ];
 
 /**
+ * Geometric fill for the page margin — the structural strip between the shared
+ * content column and the outer page frame. A second curated theme dimension,
+ * mirroring how `style` works: each value maps to a `site-margin-<value>` class
+ * on the public-page wrapper, and each class is pure CSS in `globals.css`
+ * (currently interpreted by the warm-blueprint style only; other styles simply
+ * ignore it). "none" leaves the margin as clean paper.
+ */
+export type MarginPattern = "none" | "dot-grid" | "diagonal-hatch" | "pinstripe";
+
+/** Curated margin-pattern options for the picker, in display order. */
+export const MARGIN_PATTERN_OPTIONS: ReadonlyArray<{ name: string; value: MarginPattern }> = [
+  { name: "None (default)", value: "none" },
+  { name: "Dot grid", value: "dot-grid" },
+  { name: "Diagonal hatch", value: "diagonal-hatch" },
+  { name: "Pinstripe rules", value: "pinstripe" },
+];
+
+const MARGIN_PATTERN_VALUES: readonly string[] = MARGIN_PATTERN_OPTIONS.map((o) => o.value);
+
+/**
  * Per-tenant visual theme, stored as the `tenants.theme` JSONB column. It is
  * presentation-only, so it lives in `@hio/ui` (the M3 seam-freeze decision keeps
  * `@hio/content-model` presentation-free). Every field is optional — a missing
@@ -39,6 +59,8 @@ export interface SiteTheme {
   radius?: RadiusPreset;
   /** Page-level look system (see `SiteStyle`). */
   style?: SiteStyle;
+  /** Geometric fill for the page margin (see `MarginPattern`). */
+  marginPattern?: MarginPattern;
 }
 
 /** Curated accent swatches (not a free color picker) — each pairs a Tailwind-
@@ -63,11 +85,14 @@ export const FONT_STACKS: ReadonlyArray<{ name: string; value: string }> = [
 /** The picker's fallback selection for a tenant with no theme set yet — the
  *  first entry of each curated list, named so callers don't index into the
  *  arrays themselves (arrays are indexable-undefined under strict TS). */
-export const DEFAULT_THEME: Required<Pick<SiteTheme, "accent" | "font" | "radius" | "style">> = {
+export const DEFAULT_THEME: Required<
+  Pick<SiteTheme, "accent" | "font" | "radius" | "style" | "marginPattern">
+> = {
   accent: ACCENT_SWATCHES[0]?.value ?? "#0f172a",
   font: FONT_STACKS[0]?.value ?? "ui-sans-serif, system-ui, -apple-system, sans-serif",
   radius: "soft",
   style: "warm-blueprint-brutalism",
+  marginPattern: "none",
 };
 
 /** Rounding presets offered in the picker, mapped to the `--radius-card` value. */
@@ -95,6 +120,7 @@ export function parseSiteTheme(value: unknown): SiteTheme {
     typeof v[k] === "string" ? (v[k] as string) : undefined;
   const radius = v.radius;
   const style = v.style;
+  const marginPattern = v.marginPattern;
   return {
     accent: pick("accent"),
     background: pick("background"),
@@ -102,6 +128,10 @@ export function parseSiteTheme(value: unknown): SiteTheme {
     font: pick("font"),
     radius: radius === "sharp" || radius === "soft" || radius === "pill" ? radius : undefined,
     style: style === "warm-blueprint-brutalism" || style === "stone-slate" ? style : undefined,
+    marginPattern:
+      typeof marginPattern === "string" && MARGIN_PATTERN_VALUES.includes(marginPattern)
+        ? (marginPattern as MarginPattern)
+        : undefined,
   };
 }
 

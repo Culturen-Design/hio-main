@@ -33,6 +33,7 @@ export default async function SettingsPage() {
         font={theme.font ?? DEFAULT_THEME.font}
         radius={theme.radius ?? DEFAULT_THEME.radius}
         style={theme.style ?? DEFAULT_THEME.style}
+        marginPattern={theme.marginPattern ?? DEFAULT_THEME.marginPattern}
       />
     </main>
   );
