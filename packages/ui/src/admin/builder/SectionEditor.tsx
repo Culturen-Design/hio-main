@@ -1,39 +1,38 @@
 "use client";
 
 import type { ModuleType } from "@hio/content-model";
-import type { Json } from "@hio/db";
+import { useState, useTransition } from "react";
+import { CollectionEditor } from "../../forms/CollectionEditor";
+import { COLLECTION_FIELD_REGISTRY, cleanCollectionRows } from "../../forms/collectionFields";
 import {
-  COLLECTION_FIELD_REGISTRY,
-  CollectionEditor,
   MODULE_SCALAR_FIELDS,
   type ScalarFormValue,
   applyScalarValues,
-  cleanCollectionRows,
   discoverScalarSpecs,
   initialScalarValues,
-} from "@hio/ui";
-import { useState, useTransition } from "react";
-import { updateSectionContent } from "./actions";
+} from "../../forms/moduleFields";
+import { Button } from "../Button";
+import { Field, Input, Select, Textarea } from "../Field";
 
 /**
- * Editor for a section's content, driven by the shared field registries in
- * `@hio/ui` (`MODULE_SCALAR_FIELDS` for top-level fields — so OPTIONAL fields
- * a row doesn't carry yet are still editable — and `COLLECTION_FIELD_REGISTRY`
- * for the array field of the 6 collection modules). Mirrors Self-Serve's
- * editor but writes through the Studio, membership-gated action. Discovery
- * survives only as the fallback for a module type missing from the registry.
+ * Manual editor for a module's content — the SECONDARY editing path (chat is
+ * primary), inline in the section card. Driven by the shared field registries:
+ * `MODULE_SCALAR_FIELDS` declares every top-level field per module (so OPTIONAL
+ * fields a row doesn't carry yet — banner images, intros, CTAs — are still
+ * editable) and `COLLECTION_FIELD_REGISTRY` drives the array field of the 6
+ * collection modules. Discovery survives only as the fallback for a module
+ * type missing from the registry. The write goes through the `onSave` prop —
+ * each app binds its own membership-gated server action.
  */
-export function StudioSectionEditor({
-  tenantId,
-  sectionId,
+export function SectionEditor({
   type,
   content,
+  onSave,
   onDone,
 }: {
-  tenantId: string;
-  sectionId: string;
   type: ModuleType;
   content: Record<string, unknown>;
+  onSave: (next: Record<string, unknown>) => Promise<{ ok: true } | { error: string }>;
   onDone: () => void;
 }) {
   const specs = MODULE_SCALAR_FIELDS[type] ?? discoverScalarSpecs(content);
@@ -64,20 +63,20 @@ export function StudioSectionEditor({
         next[collectionCfg.arrayKey] = cleanCollectionRows(collectionCfg.fields, items);
       }
 
-      const res = await updateSectionContent(tenantId, sectionId, type, next as Json);
+      const res = await onSave(next);
       if ("error" in res) setError(res.error);
       else onDone();
     });
   }
 
   return (
-    <div className="flex flex-col gap-[0.6rem] p-4">
+    <div className="flex flex-col gap-3 p-4">
       {nothingEditable && (
-        <p className="m-0 text-muted-foreground">This module has no editable fields yet.</p>
+        <p className="m-0 text-sm text-muted-foreground">This module has no editable fields yet.</p>
       )}
       {specs.map((f) =>
         f.kind === "toggle" ? (
-          <label key={f.key} className="flex items-center gap-2 text-[13px]">
+          <label key={f.key} className="flex items-center gap-2 text-xs font-medium">
             <input
               type="checkbox"
               checked={values[f.key] === true}
@@ -86,26 +85,18 @@ export function StudioSectionEditor({
             {f.label}
           </label>
         ) : (
-          <div key={f.key} className="flex flex-col gap-1 text-[13px]">
-            <label htmlFor={`field-${f.key}`}>
-              {f.label}
-              {f.required && " *"}
-            </label>
+          <Field key={f.key} label={f.required ? `${f.label} *` : f.label}>
             {f.kind === "textarea" ? (
-              <textarea
-                id={`field-${f.key}`}
+              <Textarea
                 value={(values[f.key] as string) ?? ""}
                 maxLength={f.maxLength}
                 onChange={(e) => set(f.key, e.target.value)}
                 rows={4}
-                className="rounded-lg border border-border p-2 font-[inherit]"
               />
             ) : f.kind === "select" ? (
-              <select
-                id={`field-${f.key}`}
+              <Select
                 value={(values[f.key] as string) ?? ""}
                 onChange={(e) => set(f.key, e.target.value)}
-                className="rounded-lg border border-border p-2"
               >
                 {!f.required && <option value="">—</option>}
                 {(f.options ?? []).map((o) => (
@@ -113,24 +104,24 @@ export function StudioSectionEditor({
                     {o.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             ) : (
-              <input
-                id={`field-${f.key}`}
+              <Input
                 type={f.kind === "url" ? "url" : "text"}
                 value={(values[f.key] as string) ?? ""}
                 maxLength={f.maxLength}
                 onChange={(e) => set(f.key, e.target.value)}
-                className="rounded-lg border border-border p-2"
               />
             )}
-          </div>
+          </Field>
         ),
       )}
 
       {collectionCfg && (
         <div className="flex flex-col gap-1">
-          <span className="text-[13px] text-muted-foreground">{collectionCfg.arrayKey}</span>
+          <span className="text-xs font-medium text-muted-foreground">
+            {collectionCfg.arrayKey}
+          </span>
           <CollectionEditor
             items={items}
             fields={collectionCfg.fields}
@@ -141,24 +132,18 @@ export function StudioSectionEditor({
         </div>
       )}
 
-      {error && <p className="m-0 text-[13px] text-destructive">{error}</p>}
+      {error && (
+        <p role="alert" className="m-0 text-sm text-destructive">
+          {error}
+        </p>
+      )}
       <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={save}
-          disabled={pending}
-          className="cursor-pointer rounded-lg border-none bg-primary px-3.5 py-[0.45rem] text-primary-foreground"
-        >
+        <Button size="sm" onClick={save} disabled={pending}>
           {pending ? "Saving…" : "Save"}
-        </button>
-        <button
-          type="button"
-          onClick={onDone}
-          disabled={pending}
-          className="cursor-pointer rounded-lg border border-border bg-background px-3.5 py-[0.45rem]"
-        >
+        </Button>
+        <Button size="sm" variant="secondary" onClick={onDone} disabled={pending}>
           Cancel
-        </button>
+        </Button>
       </div>
     </div>
   );
