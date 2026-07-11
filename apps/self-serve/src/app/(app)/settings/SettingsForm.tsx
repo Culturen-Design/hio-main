@@ -6,12 +6,11 @@ import {
   MARGIN_PATTERN_OPTIONS,
   RADIUS_PRESETS,
   STYLE_OPTIONS,
+  cn,
 } from "@hio/ui";
-import { useActionState, useState } from "react";
-import { type SettingsActionState, updateTheme } from "./actions";
-
-const selectStyle = { padding: "0.6rem", borderRadius: 8, border: "1px solid #d1d5db" } as const;
-const labelStyle = { display: "flex", flexDirection: "column", gap: 4, fontSize: 13 } as const;
+import { Button, Field, Select, Spinner, toastFromResult, useToast } from "@hio/ui/admin";
+import { type FormEvent, useState, useTransition } from "react";
+import { updateTheme } from "./actions";
 
 export function SettingsForm({
   accent,
@@ -26,15 +25,26 @@ export function SettingsForm({
   style: string;
   marginPattern: string;
 }) {
-  const [state, formAction, pending] = useActionState<SettingsActionState, FormData>(
-    updateTheme,
-    null,
-  );
   const [selectedAccent, setSelectedAccent] = useState(accent);
   const [selectedFont, setSelectedFont] = useState(font);
   const [selectedRadius, setSelectedRadius] = useState(radius);
   const [selectedStyle, setSelectedStyle] = useState(style);
   const [selectedMargin, setSelectedMargin] = useState(marginPattern);
+  const [pending, start] = useTransition();
+  const toast = useToast();
+
+  // Called directly (not via useActionState): the action returns null on
+  // success, which useActionState can't distinguish from its initial state —
+  // and the toast needs to fire on every save, not just the first.
+  function onSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    start(async () => {
+      const res = await updateTheme(null, formData);
+      const t = toastFromResult(res ?? { ok: true }, "Theme saved");
+      if (t) toast(t);
+    });
+  }
 
   const previewParams = new URLSearchParams({
     accent: selectedAccent,
@@ -45,145 +55,103 @@ export function SettingsForm({
   });
 
   return (
-    <div style={{ display: "flex", gap: "2rem", flexWrap: "wrap" }}>
-      <form
-        action={formAction}
-        style={{ display: "flex", flexDirection: "column", gap: "1.1rem", maxWidth: 420 }}
-      >
-        <fieldset style={{ border: "none", padding: 0, margin: 0 }}>
-          <legend style={{ fontSize: 13, marginBottom: 6 }}>Accent color</legend>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+    <div className="flex flex-wrap gap-8">
+      <form onSubmit={onSubmit} className="flex w-full max-w-[420px] flex-col gap-4">
+        <fieldset className="m-0 border-none p-0">
+          <legend className="mb-1.5 text-xs font-medium">Accent color</legend>
+          <div className="flex flex-wrap gap-2">
             {ACCENT_SWATCHES.map((s) => (
-              <label key={s.value} style={{ cursor: "pointer" }}>
+              <label key={s.value} className="cursor-pointer">
                 <input
                   type="radio"
                   name="accent"
                   value={s.value}
                   checked={selectedAccent === s.value}
                   onChange={() => setSelectedAccent(s.value)}
-                  style={{ position: "absolute", opacity: 0, width: 0, height: 0 }}
+                  className="sr-only"
                 />
                 <span
                   title={s.name}
-                  style={{
-                    display: "block",
-                    width: 32,
-                    height: 32,
-                    borderRadius: "50%",
-                    background: s.value,
-                    border:
-                      selectedAccent === s.value ? "2px solid #111827" : "2px solid transparent",
-                    boxShadow: "0 0 0 1px #e5e7eb",
-                  }}
+                  className={cn(
+                    "block size-8 rounded-full ring-1 ring-border",
+                    selectedAccent === s.value && "ring-2 ring-primary ring-offset-2",
+                  )}
+                  style={{ background: s.value }}
                 />
               </label>
             ))}
           </div>
         </fieldset>
 
-        <label style={labelStyle}>
-          Font
-          <select
+        <Field label="Font">
+          <Select
             name="font"
             value={selectedFont}
             onChange={(e) => setSelectedFont(e.target.value)}
-            style={selectStyle}
           >
             {FONT_STACKS.map((f) => (
               <option key={f.value} value={f.value}>
                 {f.name}
               </option>
             ))}
-          </select>
-        </label>
+          </Select>
+        </Field>
 
-        <label style={labelStyle}>
-          Rounding
-          <select
+        <Field label="Rounding">
+          <Select
             name="radius"
             value={selectedRadius}
             onChange={(e) => setSelectedRadius(e.target.value)}
-            style={selectStyle}
           >
             {RADIUS_PRESETS.map((r) => (
               <option key={r.value} value={r.value}>
                 {r.name}
               </option>
             ))}
-          </select>
-        </label>
+          </Select>
+        </Field>
 
-        <label style={labelStyle}>
-          Page style
-          <select
+        <Field label="Page style">
+          <Select
             name="style"
             value={selectedStyle}
             onChange={(e) => setSelectedStyle(e.target.value)}
-            style={selectStyle}
           >
             {STYLE_OPTIONS.map((s) => (
               <option key={s.value} value={s.value}>
                 {s.name}
               </option>
             ))}
-          </select>
-        </label>
+          </Select>
+        </Field>
 
-        <label style={labelStyle}>
-          Margin pattern
-          <select
+        <Field label="Margin pattern">
+          <Select
             name="marginPattern"
             value={selectedMargin}
             onChange={(e) => setSelectedMargin(e.target.value)}
-            style={selectStyle}
           >
             {MARGIN_PATTERN_OPTIONS.map((p) => (
               <option key={p.value} value={p.value}>
                 {p.name}
               </option>
             ))}
-          </select>
-        </label>
+          </Select>
+        </Field>
 
-        {state && "error" in state && (
-          <p role="alert" style={{ color: "#dc2626", fontSize: 13, margin: 0 }}>
-            {state.error}
-          </p>
-        )}
-        {state === null && <output style={{ color: "#16a34a", fontSize: 13 }} aria-live="polite" />}
-
-        <button
-          type="submit"
-          disabled={pending}
-          style={{
-            padding: "0.65rem 1.1rem",
-            borderRadius: 8,
-            border: "none",
-            background: "#111827",
-            color: "white",
-            fontWeight: 600,
-            cursor: pending ? "default" : "pointer",
-            opacity: pending ? 0.6 : 1,
-            alignSelf: "flex-start",
-          }}
-        >
-          {pending ? "Saving…" : "Save changes"}
-        </button>
+        <Button type="submit" disabled={pending} className="self-start">
+          {pending ? <Spinner label="Saving…" /> : "Save changes"}
+        </Button>
       </form>
 
-      <div style={{ flex: "1 1 380px", minWidth: 320 }}>
-        <p style={{ fontSize: 13, color: "#6b7280", margin: "0 0 0.5rem" }}>
+      <div className="min-w-[320px] flex-[1_1_380px]">
+        <p className="mb-2 text-xs text-muted-foreground">
           Live preview — updates as you change a control above, before you save.
         </p>
         <iframe
           title="Site look preview"
           src={`/settings/preview?${previewParams.toString()}`}
-          style={{
-            width: "100%",
-            height: 520,
-            border: "1px solid #e5e7eb",
-            borderRadius: 12,
-          }}
+          className="h-[520px] w-full rounded-xl border border-border"
         />
       </div>
     </div>
