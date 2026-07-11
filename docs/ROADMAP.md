@@ -424,6 +424,27 @@ onto tenants too, via expand→migrate→contract), **one generalized** tenant-a
 
 Every approved departure from the original plan, with its reason and cost.
 
+### 2026-07-11 — Admin-side UX/UI overhaul (owner-directed, out-of-sequence)
+**Change:** owner approved a full UX/UI overhaul of the admin side of both apps — dashboard,
+admin console, page builder, settings, auth — before continuing INFRA/path-to-prod. Goals:
+(1) an own design language for admin (persistent app shell, hand-rolled primitives on the
+existing Tailwind `@theme` tokens — explicitly no shadcn/Radix), distinct from the public pages'
+Warm Blueprint look; (2) the AI chat becomes the builder's PRIMARY editing path (persistent
+two-pane layout, suggested actions, sessionStorage history) with manual editing demoted;
+(3) desktop-first but nothing overflows at 375px. Public rendering (`.site-public` /
+`.site-style-*`, `/[slug]`, `/sites/[slug]`, preview routes) and server-action security
+(requireAdmin, RLS, Zod) are untouched; no migrations. Ships as **4 sequential PRs** (each
+merged before the next branches — no stacking, after two squash-merge conflict incidents):
+**PR 1** `packages/ui/src/admin/` primitives (`@hio/ui/admin` subpath: Button/Card/Field/Badge/
+Spinner/Container/PageHeader/AdminShell/Toast/ConfirmDialog) + `--color-success` token +
+self-serve `(app)` route group (shell; URLs unchanged) + auth/dashboard/landing restyle +
+stale-metadata fix; **PR 2** AI-first builder — shared `builder/` components in `@hio/ui/admin`
+(persistent chat pane, suggestion chips, history) replacing the four 100%-identical
+per-app copies, server actions injected as props so the package stays Next-free; **PR 3**
+self-serve admin console + settings on the design system (PR #64 behaviors preserved verbatim);
+**PR 4** studio pages on the design system. **Cost:** INFRA work pushed back by the overhaul;
+one new dependency-free token and a `"./admin"` package export to maintain.
+
 ### 2026-07-06 — Admin console improvements (owner-directed, out-of-sequence)
 **Change:** owner asked for a small audit of Self-Serve's `/admin` console (access, reaction,
 styling-picker usability) after using it; approved acting on the resulting plan. Shipped:
