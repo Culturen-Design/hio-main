@@ -1,6 +1,15 @@
 "use client";
 
 import { FREE_MODULE_TYPES, type ModuleType } from "@hio/content-model";
+import { cn } from "@hio/ui";
+import {
+  Badge,
+  ConfirmDialog,
+  Spinner,
+  buttonClasses,
+  toastFromResult,
+  useToast,
+} from "@hio/ui/admin";
 import { useState, useTransition } from "react";
 import { type ActionResult, setDisabled, setLocked, setModuleOverrides, setTier } from "./actions";
 
@@ -14,23 +23,7 @@ export type AdminUserRow = {
   isDisabled: boolean;
 };
 
-const cell: React.CSSProperties = {
-  padding: "0.6rem 0.5rem",
-  borderBottom: "1px solid #eee",
-  verticalAlign: "top",
-  fontSize: 14,
-};
-
-const badge = (label: string, color: string): React.CSSProperties => ({
-  display: "inline-block",
-  fontSize: 11,
-  fontWeight: 600,
-  padding: "0.1rem 0.4rem",
-  borderRadius: 999,
-  background: color,
-  color: "white",
-  marginLeft: 4,
-});
+const cell = "border-b border-border px-3 py-2.5 align-top";
 
 export function AdminTable({
   rows,
@@ -45,13 +38,13 @@ export function AdminTable({
   const extraModules = moduleTypes.filter((t) => !FREE_MODULE_TYPES.includes(t));
 
   return (
-    <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "1rem" }}>
+    <table className="w-full min-w-[640px] border-collapse text-sm">
       <thead>
-        <tr style={{ textAlign: "left", fontSize: 12, color: "#6b7280" }}>
-          <th style={cell}>User</th>
-          <th style={cell}>Tier</th>
-          <th style={cell}>Extra modules (overrides)</th>
-          <th style={cell}>Access</th>
+        <tr className="bg-muted text-left text-xs text-muted-foreground">
+          <th className={cn(cell, "font-medium")}>User</th>
+          <th className={cn(cell, "font-medium")}>Tier</th>
+          <th className={cn(cell, "font-medium")}>Extra modules (overrides)</th>
+          <th className={cn(cell, "font-medium")}>Access</th>
         </tr>
       </thead>
       <tbody>
@@ -67,22 +60,6 @@ export function AdminTable({
     </table>
   );
 }
-
-const statusStyle = (kind: "saving" | "saved" | "error"): React.CSSProperties => ({
-  fontSize: 12,
-  marginTop: 4,
-  color: kind === "error" ? "#dc2626" : kind === "saving" ? "#9ca3af" : "#16a34a",
-});
-
-const accessBtn = (active: boolean, color: string): React.CSSProperties => ({
-  padding: "0.25rem 0.6rem",
-  borderRadius: 6,
-  border: `1px solid ${active ? color : "#d1d5db"}`,
-  background: active ? color : "white",
-  color: active ? "white" : "#374151",
-  fontSize: 12,
-  cursor: "pointer",
-});
 
 function AdminRow({
   row,
@@ -100,22 +77,19 @@ function AdminRow({
   const [tier, setTierState] = useState(row.tier);
   const [locked, setLockedState] = useState(row.isLocked);
   const [disabled, setDisabledState] = useState(row.isDisabled);
+  const [confirmingDowngrade, setConfirmingDowngrade] = useState(false);
   const [pending, start] = useTransition();
-  const [status, setStatus] = useState<{ kind: "saving" | "saved" | "error"; text: string } | null>(
-    null,
-  );
+  const toast = useToast();
 
   // A single save pattern for every control in this row: fire immediately on
-  // change, show "Saving…" while pending, then "Saved"/the server error —
+  // change, show a spinner while pending, then a toast with the result —
   // no separate "Save" button anywhere (tier used to autosave while overrides
   // needed an explicit click; this closes that inconsistency).
   const run = (fn: () => Promise<ActionResult>, savedText: string) => {
-    setStatus({ kind: "saving", text: "Saving…" });
     start(async () => {
       const res = await fn();
-      setStatus(
-        "error" in res ? { kind: "error", text: res.error } : { kind: "saved", text: savedText },
-      );
+      const t = toastFromResult(res, savedText);
+      if (t) toast(t);
     });
   };
 
@@ -127,17 +101,20 @@ function AdminRow({
     run(() => setModuleOverrides(row.userId, [...next] as ModuleType[]), "Overrides saved");
   };
 
+  const applyTier = (next: "free" | "paid") => {
+    setTierState(next);
+    run(() => setTier(row.userId, next), "Tier updated");
+  };
+
   const changeTier = (next: string) => {
     // Downgrading a paid user silently walls off any paid-only modules
     // already on their page — confirm before it's irreversible-feeling.
+    // (The controlled <select> keeps its old value until confirmed.)
     if (row.tier === "paid" && next === "free") {
-      const ok = window.confirm(
-        "Downgrade this user to the free tier? Any paid-only modules already on their page will stop being editable until they're upgraded again.",
-      );
-      if (!ok) return;
+      setConfirmingDowngrade(true);
+      return;
     }
-    setTierState(next as "free" | "paid");
-    run(() => setTier(row.userId, next), "Tier updated");
+    applyTier(next as "free" | "paid");
   };
 
   const toggleLocked = () => {
@@ -154,35 +131,44 @@ function AdminRow({
 
   return (
     <tr>
-      <td style={cell}>
-        <div style={{ fontWeight: 600 }}>
+      <td className={cell}>
+        <div className="flex items-center gap-1.5 font-semibold">
           {row.slug ? `/${row.slug}` : "—"}
-          {row.isAdmin && <span style={badge("admin", "#7c3aed")}>admin</span>}
-          {isSelf && <span style={badge("you", "#2563eb")}>you</span>}
+          {row.isAdmin && <Badge tone="primary">admin</Badge>}
+          {isSelf && <Badge>you</Badge>}
+          {pending && <Spinner className="size-3 text-muted-foreground" label="Saving…" />}
         </div>
-        <div style={{ fontSize: 11, color: "#9ca3af", fontFamily: "monospace" }}>{row.userId}</div>
-        {status && <div style={statusStyle(status.kind)}>{status.text}</div>}
+        <div className="font-mono text-[11px] text-muted-foreground">{row.userId}</div>
       </td>
 
-      <td style={cell}>
+      <td className={cell}>
         <select
           value={tier}
           disabled={pending}
           onChange={(e) => changeTier(e.target.value)}
-          style={{ padding: "0.3rem 0.5rem", borderRadius: 6, border: "1px solid #d1d5db" }}
+          className="h-8 rounded-lg border border-border bg-background px-2 text-sm disabled:opacity-50"
         >
           <option value="free">free</option>
           <option value="paid">paid</option>
         </select>
+        <ConfirmDialog
+          open={confirmingDowngrade}
+          title="Downgrade to free?"
+          description="Any paid-only modules already on this user's page will stop being editable until they're upgraded again."
+          confirmLabel="Downgrade"
+          destructive
+          onConfirm={() => {
+            setConfirmingDowngrade(false);
+            applyTier("free");
+          }}
+          onCancel={() => setConfirmingDowngrade(false)}
+        />
       </td>
 
-      <td style={cell}>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem 0.9rem" }}>
+      <td className={cell}>
+        <div className="flex flex-wrap gap-x-3.5 gap-y-2">
           {extraModules.map((type) => (
-            <label
-              key={type}
-              style={{ fontSize: 13, display: "inline-flex", gap: 4, alignItems: "center" }}
-            >
+            <label key={type} className="inline-flex items-center gap-1 text-[13px]">
               <input
                 type="checkbox"
                 checked={selected.has(type)}
@@ -195,14 +181,17 @@ function AdminRow({
         </div>
       </td>
 
-      <td style={cell}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start" }}>
+      <td className={cell}>
+        <div className="flex flex-col items-start gap-1.5">
           <button
             type="button"
             disabled={pending || isSelf}
             title={isSelf ? "You can't lock your own account" : undefined}
             onClick={toggleLocked}
-            style={{ ...accessBtn(locked, "#dc2626"), opacity: isSelf ? 0.5 : 1 }}
+            className={cn(
+              buttonClasses(locked ? "destructive" : "secondary", "sm"),
+              isSelf && "opacity-50",
+            )}
           >
             {locked ? "Unlock" : "Lock"}
           </button>
@@ -211,7 +200,10 @@ function AdminRow({
             disabled={pending || isSelf}
             title={isSelf ? "You can't disable your own account" : undefined}
             onClick={toggleDisabled}
-            style={{ ...accessBtn(disabled, "#6b7280"), opacity: isSelf ? 0.5 : 1 }}
+            className={cn(
+              buttonClasses(disabled ? "primary" : "secondary", "sm"),
+              isSelf && "opacity-50",
+            )}
           >
             {disabled ? "Enable" : "Disable"}
           </button>

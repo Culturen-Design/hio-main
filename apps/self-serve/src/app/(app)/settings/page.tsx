@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_THEME, parseSiteTheme } from "@hio/ui";
+import { Container, PageHeader } from "@hio/ui/admin";
 import { redirect } from "next/navigation";
 import { SettingsForm } from "./SettingsForm";
 
@@ -20,13 +21,11 @@ export default async function SettingsPage() {
   const theme = parseSiteTheme(tenant.theme);
 
   return (
-    <main
-      style={{ fontFamily: "system-ui", maxWidth: 960, margin: "0 auto", padding: "3rem 1.5rem" }}
-    >
-      <a href="/dashboard" style={{ fontSize: 13, color: "#6b7280", textDecoration: "none" }}>
-        ← Back to dashboard
-      </a>
-      <h1 style={{ margin: "0.5rem 0 1.5rem" }}>Site look</h1>
+    <Container>
+      <PageHeader
+        title="Site look"
+        description="How your public page looks — every change previews live before you save."
+      />
 
       <SettingsForm
         accent={theme.accent ?? DEFAULT_THEME.accent}
@@ -35,6 +34,6 @@ export default async function SettingsPage() {
         style={theme.style ?? DEFAULT_THEME.style}
         marginPattern={theme.marginPattern ?? DEFAULT_THEME.marginPattern}
       />
-    </main>
+    </Container>
   );
 }
