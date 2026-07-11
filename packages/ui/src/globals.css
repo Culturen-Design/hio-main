@@ -9,12 +9,14 @@
  * under `./modules` calls but doesn't itself spell out — without scanning it
  * directly those utilities are never generated (caught while live-verifying
  * the per-site theming MVP's rounding preset). `./forms` holds the manual
- * collection-editor UI (CollectionEditor.tsx) — same reason.
+ * collection-editor UI (CollectionEditor.tsx) — same reason. `./admin` holds
+ * the admin-side design system (`@hio/ui/admin`) — same reason again.
  */
 @import "tailwindcss";
 @source "./modules";
 @source "./variant.ts";
 @source "./forms";
+@source "./admin";
 
 @theme {
   --font-sans: ui-sans-serif, system-ui, -apple-system, sans-serif;
@@ -27,6 +29,8 @@
   --color-primary: oklch(0.205 0 0);
   --color-primary-foreground: oklch(0.985 0 0);
   --color-destructive: oklch(0.577 0.245 27.325);
+  /* Admin-side positive feedback (save toasts, "published" badges) — ≈ green-600. */
+  --color-success: oklch(0.627 0.194 149.214);
 
   --radius-card: 0.75rem;
 }
