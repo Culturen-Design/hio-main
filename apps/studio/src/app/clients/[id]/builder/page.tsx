@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { resolveVariant } from "@hio/content-model";
+import type { BuilderSection } from "@hio/ui/admin";
 import { notFound, redirect } from "next/navigation";
-import { StudioBuilderCanvas } from "./StudioBuilderCanvas";
+import { BuilderClient } from "./BuilderClient";
 
 export default async function ClientBuilderPage({
   params,
@@ -58,12 +59,12 @@ export default async function ClientBuilderPage({
   }
 
   return (
-    <StudioBuilderCanvas
+    <BuilderClient
       tenantId={client.id}
       siteId={site.id}
       clientName={client.name}
       schemaVariant={client.schema_variant}
-      sections={sections ?? []}
+      sections={(sections ?? []) as BuilderSection[]}
       palette={palette}
       paletteError={palette.length === 0 ? client.schema_variant : null}
     />

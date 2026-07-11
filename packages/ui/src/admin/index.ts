@@ -7,6 +7,13 @@
  */
 export { AdminShell, navLinkClasses } from "./AdminShell";
 export { Badge, type BadgeTone } from "./Badge";
+export {
+  type BuilderActionResult,
+  BuilderCanvas,
+  type BuilderSection,
+} from "./builder/BuilderCanvas";
+export { ChatPanel, type SendOutcome } from "./builder/ChatPanel";
+export { buildSuggestions } from "./builder/suggestions";
 export { Button, type ButtonSize, type ButtonVariant, buttonClasses } from "./Button";
 export { Card, CardTitle } from "./Card";
 export { ConfirmDialog } from "./ConfirmDialog";
