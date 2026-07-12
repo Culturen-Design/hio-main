@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { Card, Container, PageHeader } from "@hio/ui/admin";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { NewClientForm } from "../NewClientForm";
 
@@ -17,17 +19,19 @@ export default async function NewClientPage() {
   if (settings?.is_admin !== true) redirect("/dashboard");
 
   return (
-    <main
-      style={{ fontFamily: "system-ui", maxWidth: 760, margin: "0 auto", padding: "3rem 1.5rem" }}
-    >
-      <a href="/dashboard" style={{ fontSize: 13, color: "#6b7280", textDecoration: "none" }}>
-        ← Back to clients
-      </a>
-      <h1 style={{ margin: "0.5rem 0 0.25rem" }}>New client</h1>
-      <p style={{ color: "#6b7280", marginTop: 0 }}>
-        Creates a tenant, a site, and a starter section — ready to edit.
-      </p>
-      <NewClientForm />
-    </main>
+    <Container size="narrow">
+      <PageHeader
+        title="New client"
+        backLink={
+          <Link href="/dashboard" className="hover:text-foreground">
+            ← Back to clients
+          </Link>
+        }
+        description="Creates a tenant, a site, and a starter section — ready to edit."
+      />
+      <Card>
+        <NewClientForm />
+      </Card>
+    </Container>
   );
 }

@@ -77,8 +77,6 @@ export function BuilderClient({
       sections={sections}
       palette={palette}
       paletteError={paletteError}
-      // Studio has no AdminShell until PR 4, so the builder owns the full viewport.
-      heightClassName="lg:h-dvh"
       onAdd={(type: ModuleType) => addSection(tenantId, type)}
       onDelete={(sectionId) => deleteSection(tenantId, sectionId)}
       onMove={(sectionId, toIndex) => moveSection(tenantId, sectionId, toIndex)}
