@@ -14,6 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_messages: {
+        Row: {
+          content: Json
+          created_at: string
+          id: string
+          role: string
+          session_id: string
+          tenant_id: string
+        }
+        Insert: {
+          content: Json
+          created_at?: string
+          id?: string
+          role: string
+          session_id: string
+          tenant_id: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          id?: string
+          role?: string
+          session_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_messages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_sessions: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          last_active_at: string
+          site_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          last_active_at?: string
+          site_id: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          last_active_at?: string
+          site_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_sessions_site_id_fkey"
+            columns: ["site_id"]
+            isOneToOne: false
+            referencedRelation: "sites"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sections: {
         Row: {
           content: Json

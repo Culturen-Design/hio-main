@@ -13,16 +13,27 @@
 // The legacy { page_id } path was removed in the CONTRACT phase (pages/page_id dropped).
 // The engine code is identical for both products — only the provider and the rows differ.
 //
+// AI EDIT SESSIONS (2026-07-12): the model runs the engine's agentic tool loop
+// (multi-step, self-correcting) over a SERVER-OWNED conversation. The client sends
+// only an optional `session_id`; the authoritative transcript lives in ai_sessions/
+// ai_messages (written exclusively here — a client can never forge history). Before
+// the first applied edit of a request, the site is snapshotted ("Before AI edit")
+// through the USER-scoped client, and the resulting version id rides back on each
+// edit so the UI can offer one-click Undo via restore_site_version.
+//
 // Imports resolve via ./deno.json (npm: for third-party, relative for @hio/*).
 import Anthropic from "@anthropic-ai/sdk";
 import {
+  type CallModel,
+  type ConversationMessage,
   SYSTEM_PROMPT,
   type SectionRecord,
   type SectionStore,
   buildClaudeTools,
   buildPageContext,
   buildSchemaContext,
-  executeTool,
+  runToolLoop,
+  trimHistoryForModel,
 } from "@hio/ai-engine";
 import { type ModuleType, type SchemaProvider, resolveVariant } from "@hio/content-model";
 import { type SupabaseClient, createClient } from "@supabase/supabase-js";
@@ -33,6 +44,9 @@ const CORS = {
 };
 
 const DEFAULT_MODEL = "claude-haiku-4-5-20251001";
+/** Most recent transcript rows loaded per request (trimHistoryForModel re-cuts
+ *  the window so it always opens on a real user prompt). */
+const HISTORY_LIMIT = 40;
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -121,6 +135,33 @@ async function resolveTarget(
   return json({ ok: false, message: "Missing tenant_id + site_id." }, 400);
 }
 
+/** Resume the caller's session (must match tenant/site/creator) or start a new one. */
+async function resolveSession(
+  admin: SupabaseClient,
+  args: { sessionId: unknown; tenantId: string; siteId: string; userId: string },
+): Promise<string | null> {
+  if (typeof args.sessionId === "string" && args.sessionId) {
+    const { data: existing } = await admin
+      .from("ai_sessions")
+      .select("id")
+      .eq("id", args.sessionId)
+      .eq("tenant_id", args.tenantId)
+      .eq("site_id", args.siteId)
+      .eq("created_by", args.userId)
+      .maybeSingle();
+    if (existing) return existing.id as string;
+    // Unknown/foreign session id → fall through and start fresh rather than 404:
+    // the id is a resumption hint, not a credential.
+  }
+
+  const { data: created } = await admin
+    .from("ai_sessions")
+    .insert({ tenant_id: args.tenantId, site_id: args.siteId, created_by: args.userId })
+    .select("id")
+    .single();
+  return (created?.id as string | undefined) ?? null;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
 
@@ -145,8 +186,9 @@ Deno.serve(async (req: Request) => {
     } = await userClient.auth.getUser();
     if (authError || !user) return json({ ok: false, message: "Unauthorized." }, 401);
 
-    const { prompt, tenant_id, site_id } = (await req.json()) as {
+    const { prompt, session_id, tenant_id, site_id } = (await req.json()) as {
       prompt?: string;
+      session_id?: string;
       tenant_id?: string;
       site_id?: string;
     };
@@ -161,38 +203,60 @@ Deno.serve(async (req: Request) => {
     if (target instanceof Response) return target;
     const { provider, sections, tenantId, siteId } = target;
 
+    const sessionId = await resolveSession(admin, {
+      sessionId: session_id,
+      tenantId,
+      siteId,
+      userId: user.id,
+    });
+    if (!sessionId) return json({ ok: false, message: "Couldn't start an AI session." }, 500);
+
+    // Server-owned history — written only by this function, so it can be trusted
+    // as-is. Loaded newest-first for the LIMIT, then restored to chronological.
+    const { data: historyRows } = await admin
+      .from("ai_messages")
+      .select("role, content")
+      .eq("session_id", sessionId)
+      .order("created_at", { ascending: false })
+      .limit(HISTORY_LIMIT);
+    const history = trimHistoryForModel(
+      ((historyRows ?? []).reverse() as ConversationMessage[]) ?? [],
+    );
+
     // The engine builds Claude's tools from the schema; we never hard-code them
     // here. The schema context teaches the model each module type's FULL field
-    // surface (needed to fully populate add_section and to reach optional
-    // fields absent from the current rows). max_tokens allows a completely
-    // filled collection section in one tool call.
+    // surface; the page context is rebuilt fresh every request, so the system
+    // prompt always reflects current reality while the transcript carries intent.
     const tools = buildClaudeTools(provider);
     const anthropic = new Anthropic({ apiKey });
-    const response = await anthropic.messages.create({
-      model: Deno.env.get("ANTHROPIC_MODEL") ?? DEFAULT_MODEL,
-      max_tokens: 4096,
-      system: [
-        {
-          type: "text",
-          text: `${SYSTEM_PROMPT}\n\n${buildSchemaContext(provider)}\n\n${buildPageContext(sections)}`,
-          cache_control: { type: "ephemeral" },
-        },
-        // biome-ignore lint/suspicious/noExplicitAny: cache_control isn't in the SDK's base param type
-      ] as any,
-      // biome-ignore lint/suspicious/noExplicitAny: engine's ClaudeTool shape matches the SDK at runtime
-      tools: tools as any,
-      tool_choice: { type: "auto" },
-      messages: [{ role: "user", content: prompt }],
-    });
+    const model = Deno.env.get("ANTHROPIC_MODEL") ?? DEFAULT_MODEL;
+    const system = [
+      {
+        type: "text",
+        text: `${SYSTEM_PROMPT}\n\n${buildSchemaContext(provider)}\n\n${buildPageContext(sections)}`,
+        cache_control: { type: "ephemeral" },
+      },
+      // biome-ignore lint/suspicious/noExplicitAny: cache_control isn't in the SDK's base param type
+    ] as any;
 
-    const toolUse = response.content.find((b) => b.type === "tool_use");
-    const textBlock = response.content.find((b) => b.type === "text");
-    const text = textBlock && "text" in textBlock ? textBlock.text : undefined;
-
-    if (!toolUse || toolUse.type !== "tool_use") {
-      // Claude replied with text only (clarifying question or out-of-scope).
-      return json({ ok: true, message: text ?? "I didn't understand that request." });
-    }
+    const callModel: CallModel = async (messages) => {
+      const response = await anthropic.messages.create({
+        model,
+        max_tokens: 4096,
+        system,
+        // biome-ignore lint/suspicious/noExplicitAny: engine's ClaudeTool shape matches the SDK at runtime
+        tools: tools as any,
+        tool_choice: { type: "auto" },
+        // biome-ignore lint/suspicious/noExplicitAny: engine's ConversationMessage is the SDK's message shape
+        messages: messages as any,
+      });
+      return {
+        content: response.content.filter(
+          (b) => b.type === "text" || b.type === "tool_use",
+          // biome-ignore lint/suspicious/noExplicitAny: narrowed to the engine's block union above
+        ) as any,
+      };
+    };
 
     // Section CRUD deliberately writes through the USER-scoped client (anon key
     // + caller's JWT), not the service-role client: RLS then enforces exactly
@@ -207,13 +271,17 @@ Deno.serve(async (req: Request) => {
       },
       async insertSection(type, content) {
         const def = provider.getModule(type as ModuleType);
+        const { count } = await admin
+          .from("sections")
+          .select("*", { count: "exact", head: true })
+          .eq("site_id", siteId);
         const { error } = await userClient.from("sections").insert({
           tenant_id: tenantId,
           site_id: siteId,
           type,
           content,
           width: def?.width[1] ?? 12,
-          order: sections.length,
+          order: count ?? 0,
         });
         return !error;
       },
@@ -227,14 +295,65 @@ Deno.serve(async (req: Request) => {
       },
     };
 
-    const result = await executeTool(provider, toolUse.name, toolUse.input, sections, store);
+    // One pre-edit snapshot per request (memoized): the first applied tool call
+    // triggers it, every edit in the request shares it, and the UI's Undo simply
+    // restores it. Taken through the USER-scoped client so snapshot_site's own
+    // membership gate (is_tenant_member) applies.
+    let undoVersionId: string | null | undefined;
+    const beforeEdit = async () => {
+      if (undoVersionId === undefined) {
+        const { data } = await userClient.rpc("snapshot_site", {
+          p_site_id: siteId,
+          p_label: "Before AI edit",
+        });
+        undoVersionId = (data as string | null) ?? null;
+      }
+      return undoVersionId;
+    };
+
+    const result = await runToolLoop({
+      provider,
+      callModel,
+      history,
+      prompt,
+      loadSections: async () => {
+        const { data } = await admin
+          .from("sections")
+          .select("id, type, content")
+          .eq("site_id", siteId)
+          .order("order");
+        return (data ?? []) as SectionRecord[];
+      },
+      store,
+      beforeEdit,
+    });
+
+    // Persist this turn's transcript with explicit, strictly increasing
+    // timestamps — several rows land in one request, and created_at ties would
+    // make reload order unstable.
+    const base = Date.now();
+    const rows = result.transcript.map((message, index) => ({
+      session_id: sessionId,
+      tenant_id: tenantId,
+      role: message.role,
+      content: message.content,
+      created_at: new Date(base + index).toISOString(),
+    }));
+    const { error: persistError } = await admin.from("ai_messages").insert(rows);
+    if (persistError) console.error("ai-command: failed to persist transcript", persistError);
+    await admin
+      .from("ai_sessions")
+      .update({ last_active_at: new Date().toISOString() })
+      .eq("id", sessionId);
 
     return json({
-      ok: result.ok,
-      tool: toolUse.name,
-      // biome-ignore lint/suspicious/noExplicitAny: tool input is validated inside the engine
-      section_id: (toolUse.input as any)?.section_id ?? null,
-      message: result.ok ? (text ?? result.message) : result.message,
+      ok: true,
+      applied: result.applied,
+      // Kept for pre-session clients, whose "did it apply" check is `ok && tool`.
+      tool: result.edits[0]?.tool ?? null,
+      session_id: sessionId,
+      edits: result.edits,
+      message: result.reply,
     });
   } catch (err) {
     console.error("ai-command error:", err);

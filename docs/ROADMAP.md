@@ -424,6 +424,27 @@ onto tenants too, via expand→migrate→contract), **one generalized** tenant-a
 
 Every approved departure from the original plan, with its reason and cost.
 
+### 2026-07-12 — AI edit sessions: agentic tool loop + server-owned conversations (owner-directed)
+**Change:** owner reported that every builder chat message was treated as a new conversation
+(the function sent only the latest prompt: `messages: [{ role: "user", content: prompt }]`) and
+approved the product-level fix rather than a patch. Shipped as Phase 1: (1) **agentic tool
+loop** in `@hio/ai-engine` (`runToolLoop`) — the model calls tools, sees each result, and
+continues until done (cap 5 iterations), replacing the single-shot one-tool-per-message flow;
+multi-part requests now complete and failed tool calls become model-visible errors it can fix
+and retry. (2) **Server-owned sessions** — migration `015_ai_sessions.sql` adds
+`ai_sessions`/`ai_messages` (RLS, member-readable, written only by the function): the client
+sends just a `session_id`, the authoritative API-shaped transcript (incl. tool_use/tool_result
+blocks) lives server-side — un-forgeable, survives reloads, and doubles as the audit trail of
+every AI action + per-tenant metering substrate. (3) **Snapshot-before-edit + Undo** — one
+`"Before AI edit"` `snapshot_site` per applied request (user-scoped RPC), its version id rides
+each edit to the UI, and the chat bubble grows an "↩ Undo this change" chip that calls
+`restore_site_version`. The page state stays the model's primary context (system prompt rebuilt
+fresh per request); the transcript adds intent continuity only. Phase 2 (deferred): streaming +
+per-edit canvas refresh, tenant rate limits/metering surfaces. **Cost:** two new tables to
+maintain; ai-command deploys carry the loop (still Haiku + prompt caching; history window
+capped at 40 messages). Studio's builder client keeps the pre-session contract until PR #68
+lands (backward compatible), then gets the same session/undo wiring.
+
 ### 2026-07-11 — Admin-side UX/UI overhaul (owner-directed, out-of-sequence)
 **Change:** owner approved a full UX/UI overhaul of the admin side of both apps — dashboard,
 admin console, page builder, settings, auth — before continuing INFRA/path-to-prod. Goals:

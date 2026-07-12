@@ -14,6 +14,8 @@ export type SendOutcome = {
   applied: boolean;
   /** True when the call failed (non-2xx / unavailable) — renders as an error bubble. */
   failed?: boolean;
+  /** Pre-edit snapshot id from the server (one per applied request) — enables Undo. */
+  undoVersionId?: string | null;
 };
 
 const bubbleClasses = (message: Pick<ChatMessage, "role" | "error">) =>
@@ -36,12 +38,15 @@ const bubbleClasses = (message: Pick<ChatMessage, "role" | "error">) =>
 export function ChatPanel({
   send,
   onApplied,
+  onUndo,
   intro,
   storageKey,
   suggestions = [],
 }: {
   send: (prompt: string) => Promise<SendOutcome>;
   onApplied: () => void;
+  /** Restores the pre-edit snapshot a turn carries. Return the bubble to show. */
+  onUndo?: (versionId: string) => Promise<{ ok: boolean; message: string }>;
   intro: string;
   storageKey: string;
   suggestions?: string[];
@@ -82,6 +87,7 @@ export function ChatPanel({
             role: "assistant",
             text: outcome.reply,
             ...(outcome.failed ? { error: true } : {}),
+            ...(outcome.undoVersionId ? { undoVersionId: outcome.undoVersionId } : {}),
           },
         ]),
       );
@@ -105,6 +111,28 @@ export function ChatPanel({
     }
   }
 
+  async function undo(versionId: string) {
+    if (!onUndo || pending) return;
+    setPending(true);
+    try {
+      const result = await onUndo(versionId);
+      setMessages((m) =>
+        capMessages([
+          // A restore invalidates every earlier snapshot chip, not just this one.
+          ...(result.ok ? m.map(({ undoVersionId: _drop, ...rest }) => rest) : m),
+          {
+            id: newId(),
+            role: "assistant",
+            text: result.message,
+            ...(result.ok ? {} : { error: true }),
+          },
+        ]),
+      );
+    } finally {
+      setPending(false);
+    }
+  }
+
   function onSubmit(e: FormEvent) {
     e.preventDefault();
     void submit(input);
@@ -115,8 +143,21 @@ export function ChatPanel({
       <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-4">
         <div className={bubbleClasses({ role: "assistant" })}>{intro}</div>
         {messages.map((m) => (
-          <div key={m.id} className={bubbleClasses(m)}>
-            {m.text}
+          <div
+            key={m.id}
+            className={cn("flex flex-col gap-1", m.role === "user" ? "items-end" : "items-start")}
+          >
+            <div className={bubbleClasses(m)}>{m.text}</div>
+            {m.undoVersionId && onUndo && (
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => void undo(m.undoVersionId as string)}
+                className="rounded-full border border-border bg-background px-3 py-1 text-xs text-muted-foreground hover:border-primary hover:text-foreground disabled:opacity-50"
+              >
+                ↩ Undo this change
+              </button>
+            )}
           </div>
         ))}
         {pending && (
