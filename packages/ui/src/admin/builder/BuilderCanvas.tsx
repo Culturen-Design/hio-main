@@ -66,6 +66,7 @@ export function BuilderCanvas({
   chat: {
     send: (prompt: string) => Promise<SendOutcome>;
     onApplied: () => void;
+    onUndo?: (versionId: string) => Promise<{ ok: boolean; message: string }>;
     intro: string;
     storageKey: string;
     suggestions?: string[];
@@ -210,6 +211,7 @@ export function BuilderCanvas({
           <ChatPanel
             send={chat.send}
             onApplied={chat.onApplied}
+            onUndo={chat.onUndo}
             intro={chat.intro}
             storageKey={chat.storageKey}
             suggestions={chat.suggestions}

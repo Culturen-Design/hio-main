@@ -54,7 +54,8 @@ RULES:
 - When ADDING a section, fill EVERY field of that module's schema (see MODULE SCHEMAS) with realistic, well-written sample content the user can tweak afterwards — never an empty placeholder. Give collection modules 2–4 fleshed-out items. Where an image URL field exists and the user didn't provide one, use https://picsum.photos/seed/<one-word>/800/600 (vary the seed word per image). Sample content on a brand-new section is expected; everywhere else, never fabricate facts about the user's real business.
 - Removing a section is destructive: call remove_section only when the user clearly asked to remove/delete that section, and target it by its section id from the page context.
 - Before acting on ambiguous requests, ask one clarifying question.
-- After calling a tool, confirm what changed in one or two plain sentences.
+- A multi-part request is fine: call the tools one after another (you'll see each tool's result before deciding the next step) until everything the user asked for is done. If a tool reports an error, fix your input and retry once before giving up.
+- When you're done, confirm what changed in one or two plain sentences.
 - Keep responses short unless the user asks for detail.
 - Dates must be ISO 8601 (YYYY-MM-DD). Resolve relative dates like "next Friday" to the actual date before calling a tool.`;
 
@@ -395,4 +396,169 @@ export async function executeTool(
   const saved = await store.updateContent(section.id, content);
   if (!saved) return { ok: false, message: "Failed to save changes." };
   return { ok: true, message };
+}
+
+/* ── Agentic tool loop (AI edit sessions, 2026-07-12) ───────────────────────────
+ *
+ * Replaces the original single-shot "one prompt → at most one tool call" flow:
+ * the model runs in a loop — call a tool, see its result, decide the next step —
+ * until it answers with text or the iteration cap trips. Multi-part requests
+ * complete instead of silently dropping everything after the first action, and
+ * a failed tool call (e.g. Zod rejection) becomes something the model can fix
+ * and retry rather than a dead-end error shown to the user.
+ *
+ * The Anthropic call is injected (`callModel`) so this stays SDK-free and
+ * unit-testable with a scripted fake model, mirroring the SectionStore port.
+ */
+
+export interface TextBlock {
+  type: "text";
+  text: string;
+}
+export interface ToolUseBlock {
+  type: "tool_use";
+  id: string;
+  name: string;
+  input: unknown;
+}
+export type AssistantContentBlock = TextBlock | ToolUseBlock;
+export interface ToolResultBlock {
+  type: "tool_result";
+  tool_use_id: string;
+  content: string;
+  is_error?: boolean;
+}
+
+/** One turn of the conversation, in the Messages-API shape (and how a turn is
+ *  persisted: this exact structure round-trips through the ai_messages table). */
+export type ConversationMessage =
+  | { role: "user"; content: string | ToolResultBlock[] }
+  | { role: "assistant"; content: AssistantContentBlock[] };
+
+export interface ModelResponse {
+  content: AssistantContentBlock[];
+}
+export type CallModel = (messages: ConversationMessage[]) => Promise<ModelResponse>;
+
+/** One successfully applied tool call. `undoVersionId` carries whatever the
+ *  caller's `beforeEdit` hook returned (a pre-edit snapshot id) to the client. */
+export interface AppliedEdit {
+  tool: string;
+  sectionId: string | null;
+  undoVersionId: string | null;
+}
+
+export interface ToolLoopResult {
+  /** Final assistant text for the user. */
+  reply: string;
+  /** True when at least one tool call was applied — the canvas should refresh. */
+  applied: boolean;
+  edits: AppliedEdit[];
+  /** The messages GENERATED this turn (the user prompt + every assistant /
+   *  tool_result turn) — exactly what the caller should persist. */
+  transcript: ConversationMessage[];
+  iterations: number;
+}
+
+export const MAX_TOOL_ITERATIONS = 5;
+
+/**
+ * Prepare a stored transcript for the model: keep only the most recent
+ * `maxMessages`, then drop leading messages until the window opens on a real
+ * user prompt — an assistant-first window is rejected by the API, and a
+ * tool_result-first window references a tool_use the model can no longer see.
+ */
+export function trimHistoryForModel(
+  messages: ConversationMessage[],
+  maxMessages = 40,
+): ConversationMessage[] {
+  const recent =
+    messages.length > maxMessages ? messages.slice(messages.length - maxMessages) : [...messages];
+  let first = recent[0];
+  while (first && !(first.role === "user" && typeof first.content === "string")) {
+    recent.shift();
+    first = recent[0];
+  }
+  return recent;
+}
+
+export async function runToolLoop(options: {
+  provider: SchemaProvider;
+  callModel: CallModel;
+  /** Prior turns (already trimmed via trimHistoryForModel). */
+  history?: ConversationMessage[];
+  prompt: string;
+  /** Re-read between iterations so each tool executes against fresh rows. */
+  loadSections: () => Promise<SectionRecord[]>;
+  store: SectionStore;
+  /** Called before each tool executes; its return value (e.g. a pre-edit
+   *  snapshot id) is attached to the resulting AppliedEdit. Memoize inside the
+   *  hook for once-per-request semantics. */
+  beforeEdit?: (toolName: string, input: unknown) => Promise<string | null>;
+  maxIterations?: number;
+  genId?: () => string;
+}): Promise<ToolLoopResult> {
+  const { provider, callModel, prompt, loadSections, store, beforeEdit } = options;
+  const history = options.history ?? [];
+  const maxIterations = options.maxIterations ?? MAX_TOOL_ITERATIONS;
+
+  const messages: ConversationMessage[] = [...history, { role: "user", content: prompt }];
+  const edits: AppliedEdit[] = [];
+  let reply = "";
+  let iterations = 0;
+
+  while (iterations < maxIterations) {
+    iterations++;
+    const response = await callModel(messages);
+    messages.push({ role: "assistant", content: response.content });
+
+    // The latest text block wins: interim narration ("I'll update the hero…")
+    // is superseded by the closing summary.
+    const textBlock = response.content.find((b): b is TextBlock => b.type === "text");
+    if (textBlock?.text) reply = textBlock.text;
+
+    const toolUses = response.content.filter((b): b is ToolUseBlock => b.type === "tool_use");
+    if (toolUses.length === 0) break;
+
+    const sections = await loadSections();
+    const results: ToolResultBlock[] = [];
+    for (const toolUse of toolUses) {
+      const undoVersionId = beforeEdit ? await beforeEdit(toolUse.name, toolUse.input) : null;
+      const result = await executeTool(
+        provider,
+        toolUse.name,
+        toolUse.input,
+        sections,
+        store,
+        options.genId,
+      );
+      results.push({
+        type: "tool_result",
+        tool_use_id: toolUse.id,
+        content: result.message,
+        ...(result.ok ? {} : { is_error: true }),
+      });
+      if (result.ok) {
+        const sectionId = (toolUse.input as { section_id?: unknown } | null)?.section_id;
+        edits.push({
+          tool: toolUse.name,
+          sectionId: typeof sectionId === "string" ? sectionId : null,
+          undoVersionId,
+        });
+      }
+    }
+    messages.push({ role: "user", content: results });
+  }
+
+  if (!reply) {
+    reply = edits.length ? "Done — applied your changes." : "I couldn't complete that request.";
+  }
+
+  return {
+    reply,
+    applied: edits.length > 0,
+    edits,
+    transcript: messages.slice(history.length),
+    iterations,
+  };
 }

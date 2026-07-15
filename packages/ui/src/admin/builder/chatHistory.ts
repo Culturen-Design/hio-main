@@ -4,6 +4,8 @@ export type ChatMessage = {
   text: string;
   /** Marks a failed assistant turn — rendered destructive-tinted with a retry chip. */
   error?: boolean;
+  /** Pre-edit snapshot id for a turn that changed the page — enables the Undo chip. */
+  undoVersionId?: string;
 };
 
 /** Hard cap on persisted messages — old turns fall off the front. */
@@ -33,7 +35,9 @@ export function parseChatHistory(raw: string | null): ChatMessage[] {
       m !== null &&
       typeof (m as ChatMessage).id === "string" &&
       ((m as ChatMessage).role === "user" || (m as ChatMessage).role === "assistant") &&
-      typeof (m as ChatMessage).text === "string",
+      typeof (m as ChatMessage).text === "string" &&
+      ((m as ChatMessage).undoVersionId === undefined ||
+        typeof (m as ChatMessage).undoVersionId === "string"),
   );
   return capMessages(valid);
 }
