@@ -16,6 +16,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@culturen-design/hio-tokens": "^0.1.0",
     "@hio/content-model": "*",
     "clsx": "^2.1.1",
     "react-markdown": "^10.1.0",

@@ -1,5 +1,13 @@
 /**
- * @hio/ui design tokens — the shadcn-style base both apps import.
+ * @hio/ui base stylesheet both apps import.
+ *
+ * DESIGN TOKENS COME FROM THE DESIGN SYSTEM. The Tailwind @theme block and
+ * the .site-style-* custom-property sets that used to be hand-written here
+ * now build from DTCG sources in the hio-design-system repo
+ * (@culturen-design/hio-tokens) — imported below, identical values. This
+ * file keeps what is structural, not tokenizable: the body defaults, the
+ * site-public reset, and each style's layout grammar (borders-as-grid,
+ * instrument panel, margin patterns).
  *
  * `@source` tells Tailwind v4 to scan this package's components for class
  * names too, since it lives outside whichever app's own directory Tailwind
@@ -13,27 +21,13 @@
  * the admin-side design system (`@hio/ui/admin`) — same reason again.
  */
 @import "tailwindcss";
+@import "@culturen-design/hio-tokens/tailwind.css";
+@import "@culturen-design/hio-tokens/css/site-warm-blueprint-brutalism.css";
+@import "@culturen-design/hio-tokens/css/site-stone-slate.css";
 @source "./modules";
 @source "./variant.ts";
 @source "./forms";
 @source "./admin";
-
-@theme {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, sans-serif;
-
-  --color-background: oklch(1 0 0);
-  --color-foreground: oklch(0.145 0 0);
-  --color-muted: oklch(0.97 0 0);
-  --color-muted-foreground: oklch(0.552 0.016 285.9);
-  --color-border: oklch(0.922 0 0);
-  --color-primary: oklch(0.205 0 0);
-  --color-primary-foreground: oklch(0.985 0 0);
-  --color-destructive: oklch(0.577 0.245 27.325);
-  /* Admin-side positive feedback (save toasts, "published" badges) — ≈ green-600. */
-  --color-success: oklch(0.627 0.194 149.214);
-
-  --radius-card: 0.75rem;
-}
 
 body {
   background-color: var(--color-background);
@@ -75,14 +69,8 @@ body {
  * "Alive" here means warm, organic colour — not motion. No transitions.
  */
 .site-style-stone-slate {
-  --color-background: #fafaf9; /* stone-50 */
-  --color-foreground: #1c1917; /* stone-900 */
-  --color-muted: #f5f5f4; /* stone-100 */
-  --color-muted-foreground: #475569; /* slate-600 — 7.26:1 on stone-50 (AA) */
-  --color-border: #cbd5e1; /* slate-300 */
-  --color-primary: #292524; /* stone-800 — sane default until a site sets its own */
-  --color-primary-foreground: #fafaf9; /* stone-50 */
-
+  /* Color tokens (stone/slate values incl. the AA-checked muted-foreground)
+     come from @culturen-design/hio-tokens/css/site-stone-slate.css. */
   border-inline: 1px solid var(--color-border);
 
   background-image: linear-gradient(
@@ -136,37 +124,9 @@ body {
  * below), the machine's window into an otherwise warm paper page.
  */
 .site-style-warm-blueprint-brutalism {
-  --bp-paper: #faf8f4;
-  --bp-paper-panel: #efe8d8;
-  --bp-ink: #2a2420;
-  --bp-muted-ink: #6b5f4f;
-  --bp-hairline: #d8cfbc; /* stone-300-ish, warm */
-  --bp-hairline-strong: #b7a98f; /* stone-400-ish, warm */
-  --bp-slate-900: #1c232e;
-  --bp-slate-700: #38414f;
-  --bp-slate-600: #4c5866;
-  --bp-slate-ink: #e7e2d6; /* warm-tinted light text on the dark instrument panel */
-  --bp-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-  --bp-serif: ui-serif, Georgia, "Iowan Old Style", "Times New Roman", serif;
-  --bp-unit: 8px;
-  /* The drafting margin: the single measurement the whole scaffold hangs on.
-     Sections offset by it (their borders ARE the column lines) and the seam
-     ticks extend into it. 40px at desktop, floored at 16px on small screens. */
-  --bp-margin: clamp(calc(var(--bp-unit) * 2), 4vw, calc(var(--bp-unit) * 5));
-  /* Vertical breathing room between the paper's trim edge and the content
-     column. Without it the column sat flush against the frame at both ends and
-     the page read as "cut out" (owner feedback, 2026-07-05). The column's own
-     top/bottom rules + corner overshoots (below) close the drawing instead. */
-  --bp-page-pad: clamp(calc(var(--bp-unit) * 4), 6vw, calc(var(--bp-unit) * 8));
-
-  --color-background: var(--bp-paper);
-  --color-foreground: var(--bp-ink);
-  --color-muted: var(--bp-paper-panel);
-  --color-muted-foreground: var(--bp-muted-ink);
-  --color-border: var(--bp-hairline);
-  --color-primary: #292524; /* sane default until a site sets its own accent */
-  --color-primary-foreground: var(--bp-paper);
-
+  /* All --bp-* and --color-* custom properties (palette, voices, --bp-unit,
+     --bp-margin, --bp-page-pad — incl. their documented clamp() rationale)
+     come from @culturen-design/hio-tokens/css/site-warm-blueprint-brutalism.css. */
   font-family: var(--bp-serif);
 
   /* The paper's own trim edge — the outermost line of the drawing. */
