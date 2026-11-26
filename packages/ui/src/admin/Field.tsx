@@ -9,11 +9,14 @@ const controlClasses =
 /** Label + control + optional error slot. The control goes in as children. */
 export function Field({
   label,
+  hint,
   error,
   className,
   children,
 }: {
   label: string;
+  /** One plain-language line under the label explaining what the control does. */
+  hint?: ReactNode;
   error?: ReactNode;
   className?: string;
   children: ReactNode;
@@ -22,6 +25,7 @@ export function Field({
     // biome-ignore lint/a11y/noLabelWithoutControl: the control is passed in as children, so it does sit inside the label — static analysis just can't see through the slot.
     <label className={cn("flex flex-col gap-1.5 text-xs font-medium text-foreground", className)}>
       {label}
+      {hint ? <span className="font-normal text-muted-foreground">{hint}</span> : null}
       {children}
       {error ? (
         <span role="alert" className="font-normal text-destructive">

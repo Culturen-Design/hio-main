@@ -11,7 +11,7 @@ export function HeroModule({
     <section
       data-module="hero"
       className={cn(
-        "relative border-primary border-t-[3px] bg-[radial-gradient(ellipse_at_top,var(--color-muted),transparent_70%)] px-6 py-14 text-center",
+        "relative border-primary border-t-[3px] bg-[radial-gradient(ellipse_at_top,var(--color-muted),transparent_70%)] px-6 py-12 text-center sm:py-14",
         cardClasses(variant),
       )}
     >
@@ -25,7 +25,7 @@ export function HeroModule({
       )}
       <h1
         className={cn(
-          "my-2 text-4xl leading-[1.1] sm:text-5xl",
+          "my-2 text-4xl leading-[1.1] [overflow-wrap:anywhere] [text-wrap:balance] sm:text-5xl",
           headingClasses(variant) || "font-semibold",
         )}
       >
@@ -42,13 +42,13 @@ export function HeroModule({
       {content.cta_label && content.cta_url && (
         <a
           href={content.cta_url}
-          className="bp-offset mt-5 inline-block rounded-[8px] bg-primary px-6 py-3 font-semibold text-primary-foreground no-underline"
+          className="bp-offset bp-cta mt-5 inline-block rounded-[8px] bg-primary px-6 py-3 font-semibold text-primary-foreground no-underline"
         >
           {content.cta_label}
         </a>
       )}
       {content.image_url && (
-        <div className="bp-offset mx-auto mt-8 max-w-[720px] rounded-[14px] border border-border bg-background p-1.5">
+        <div className="bp-frame bp-offset mx-auto mt-8 max-w-[720px] rounded-[14px] border border-border bg-background p-1.5">
           <img
             src={content.image_url}
             alt={content.image_alt ?? ""}

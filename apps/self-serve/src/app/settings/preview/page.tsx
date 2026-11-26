@@ -3,9 +3,10 @@ import {
   DEFAULT_THEME,
   FONT_STACKS,
   MARGIN_PATTERN_OPTIONS,
-  ModuleRenderer,
+  PREVIEW_SECTIONS,
   RADIUS_PRESETS,
   STYLE_OPTIONS,
+  SiteSections,
   themeToStyle,
 } from "@hio/ui";
 
@@ -50,30 +51,7 @@ export default async function ThemePreviewPage({
       className={`site-public site-style-${style} site-margin-${marginPattern}`}
       style={{ minHeight: "100vh", ...themeToStyle(theme) }}
     >
-      <ModuleRenderer
-        section={{
-          type: "hero",
-          content: {
-            eyebrow: "Preview",
-            headline: "Your headline goes here",
-            subheadline: "A short line about what you do.",
-            cta_label: "See it in action",
-            cta_url: "#",
-          },
-        }}
-      />
-      <ModuleRenderer
-        section={{
-          type: "contact",
-          content: {
-            title: "Get in touch",
-            intro: "This is the instrument panel — the one dark accent per page.",
-            email: "hello@example.com",
-            phone: "+1 555 0100",
-            location: "Anywhere",
-          },
-        }}
-      />
+      <SiteSections sections={PREVIEW_SECTIONS} />
     </main>
   );
 }

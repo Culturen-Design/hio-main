@@ -10,7 +10,7 @@ export function TestimonialModule({
   return (
     <section
       data-module="testimonial"
-      className={cn("mx-auto max-w-[720px] p-10", cardClasses(variant))}
+      className={cn("mx-auto max-w-[720px] p-6 sm:p-10", cardClasses(variant))}
     >
       <p className="bp-count" aria-hidden>
         {content.items.length} {content.items.length === 1 ? "testimonial" : "testimonials"}
@@ -24,7 +24,7 @@ export function TestimonialModule({
       {content.items.length === 0 ? (
         <p className="text-muted-foreground">No testimonials yet.</p>
       ) : (
-        <ul className="m-0 grid list-none gap-4 p-0">
+        <ul className="bp-cells m-0 grid list-none grid-cols-1 gap-4 p-0 @3xl:grid-cols-2">
           {content.items.map((t) => {
             // Clamp defensively: content is schema-validated on write, but a DB
             // row is rendered as-is — a bad rating must not crash the page
@@ -34,7 +34,7 @@ export function TestimonialModule({
             return (
               <li
                 key={t.id}
-                className="relative rounded-[12px] border border-border px-5 py-[1.1rem]"
+                className="relative min-w-0 rounded-[12px] border border-border px-5 py-[1.1rem]"
               >
                 <span
                   aria-hidden="true"
@@ -45,10 +45,11 @@ export function TestimonialModule({
                 {rating !== null && (
                   <span
                     className="bp-rating block pl-5 text-primary text-sm"
+                    role="img"
                     aria-label={`Rated ${rating} out of 5`}
                   >
                     {"★".repeat(rating)}
-                    <span aria-hidden="true" className="text-border">
+                    <span aria-hidden="true" className="text-muted-foreground/60">
                       {"☆".repeat(5 - rating)}
                     </span>
                   </span>
@@ -58,11 +59,7 @@ export function TestimonialModule({
                 </blockquote>
                 <div className="mt-3 flex items-center gap-2.5">
                   {t.avatar_url && (
-                    <img
-                      src={t.avatar_url}
-                      alt={t.author}
-                      className="h-9 w-9 rounded-full object-cover"
-                    />
+                    <img src={t.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover" />
                   )}
                   <div className="text-sm">
                     <span className="font-semibold">{t.author}</span>

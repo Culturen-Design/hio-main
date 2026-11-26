@@ -1,3 +1,4 @@
+import { publicEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { type ModuleType, selfServeSchema } from "@hio/content-model";
 import type { BuilderSection } from "@hio/ui/admin";
@@ -35,12 +36,20 @@ export default async function BuilderPage() {
     label: selfServeSchema.getModule(type)?.label ?? type,
   }));
 
+  // Allowed grid width per module type, from the schema provider (never hard-coded).
+  const widthRanges = Object.fromEntries(
+    selfServeSchema.modules.map((m) => [m.type, m.width] as const),
+  );
+  const publicUrl = new URL(`/${site.slug}`, publicEnv.NEXT_PUBLIC_SITE_URL).toString();
+
   return (
     <BuilderClient
       tenantId={tenant.id}
       site={{ id: site.id, slug: site.slug }}
       sections={(sections ?? []) as BuilderSection[]}
       palette={palette}
+      widthRanges={widthRanges}
+      publicUrl={publicUrl}
       theme={tenant.theme}
     />
   );

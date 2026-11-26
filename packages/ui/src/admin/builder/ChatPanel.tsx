@@ -139,8 +139,13 @@ export function ChatPanel({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col" aria-label="AI editor">
-      <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-4">
+    <section className="flex min-h-0 flex-1 flex-col" aria-label="AI editor">
+      <div
+        ref={scrollRef}
+        role="log"
+        aria-live="polite"
+        className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-4"
+      >
         <div className={bubbleClasses({ role: "assistant" })}>{intro}</div>
         {messages.map((m) => (
           <div
@@ -161,13 +166,13 @@ export function ChatPanel({
           </div>
         ))}
         {pending && (
-          <div
-            className={cn(bubbleClasses({ role: "assistant" }), "flex items-center gap-1")}
-            aria-label="Waiting for the AI"
-          >
-            <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground" />
-            <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:120ms]" />
-            <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:240ms]" />
+          <div className={cn(bubbleClasses({ role: "assistant" }), "flex items-center gap-2")}>
+            <span aria-hidden="true" className="flex items-center gap-1">
+              <span className="size-1.5 rounded-full bg-muted-foreground motion-safe:animate-bounce" />
+              <span className="size-1.5 rounded-full bg-muted-foreground motion-safe:animate-bounce motion-safe:[animation-delay:120ms]" />
+              <span className="size-1.5 rounded-full bg-muted-foreground motion-safe:animate-bounce motion-safe:[animation-delay:240ms]" />
+            </span>
+            <span className="text-muted-foreground text-xs">Working on your page…</span>
           </div>
         )}
         {retryPrompt && !pending && (
@@ -204,6 +209,7 @@ export function ChatPanel({
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          aria-label="Message the AI editor"
           placeholder="Ask for a change…"
           disabled={pending}
           className="h-9 min-w-0 flex-1 rounded-lg border border-border bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-2 focus:outline-offset-1 focus:outline-primary"
@@ -212,6 +218,6 @@ export function ChatPanel({
           Send
         </Button>
       </form>
-    </div>
+    </section>
   );
 }

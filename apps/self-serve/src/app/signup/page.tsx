@@ -9,6 +9,7 @@ export default function SignUpPage() {
       submitLabel="Sign up"
       altHref="/login"
       altLabel="Already have an account? Log in"
+      newPassword
     />
   );
 }

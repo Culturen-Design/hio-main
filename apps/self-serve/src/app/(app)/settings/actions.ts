@@ -27,18 +27,21 @@ export async function updateTheme(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  if (!user) return { error: "Your session has ended. Please sign in again." };
 
   const { data: tenant } = await supabase
     .from("tenants")
     .select("id, theme, sites(slug)")
     .eq("kind", "self_serve")
     .maybeSingle();
-  if (!tenant) return { error: "No site for user" };
+  if (!tenant) return { error: "We couldn't find your page. Please reload and try again." };
 
   const nextTheme = { ...(tenant.theme as Record<string, unknown>), ...parsed.data } as Json;
   const { error } = await supabase.from("tenants").update({ theme: nextTheme }).eq("id", tenant.id);
-  if (error) return { error: error.message };
+  if (error) {
+    console.error("[settings] theme update failed", error);
+    return { error: "Couldn't save your site look. Please try again in a moment." };
+  }
 
   revalidatePath("/settings");
   revalidatePath("/builder");

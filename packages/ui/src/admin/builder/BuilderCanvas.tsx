@@ -4,6 +4,7 @@ import type { ModuleType } from "@hio/content-model";
 import { type CSSProperties, type ReactNode, useState, useTransition } from "react";
 import { cn } from "../../cn";
 import { ModuleRenderer } from "../../modules/ModuleRenderer";
+import { packSpans } from "../../modules/SiteSections";
 import type { StyleVariant } from "../../style";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { ChatPanel, type SendOutcome } from "./ChatPanel";
@@ -15,6 +16,8 @@ export type BuilderSection = {
   type: ModuleType;
   content: unknown;
   style_variant: StyleVariant | null;
+  /** Columns out of 12 (`sections.width`). */
+  width?: number | null;
 };
 
 export type BuilderActionResult = { ok: true } | { error: string };
@@ -40,10 +43,13 @@ export function BuilderCanvas({
   palette,
   paletteError = null,
   canvasStyle,
+  previewClassName,
+  widthRanges,
   heightClassName = "lg:h-[calc(100dvh-3.5rem)]",
   onAdd,
   onDelete,
   onMove,
+  onSetWidth,
   onSaveContent,
   chat,
 }: {
@@ -53,11 +59,20 @@ export function BuilderCanvas({
   sections: BuilderSection[];
   palette: { type: string; label: string }[];
   paletteError?: string | null;
+  /** The site's theme as inline custom properties — applied to the section
+   *  previews only, never to the editor's own controls. */
   canvasStyle?: CSSProperties;
+  /** Site-style classes (e.g. `site-style-warm-blueprint-brutalism`) so the
+   *  previews match the published page. */
+  previewClassName?: string;
+  /** Allowed width range per module type, from the schema provider. */
+  widthRanges?: Partial<Record<string, [number, number]>>;
   heightClassName?: string;
   onAdd: (type: ModuleType) => Promise<BuilderActionResult>;
   onDelete: (sectionId: string) => Promise<BuilderActionResult>;
   onMove: (sectionId: string, toIndex: number) => Promise<BuilderActionResult>;
+  /** When given, each section gets a width control (Full / ⅔ / ½ / ⅓). */
+  onSetWidth?: (sectionId: string, width: number) => Promise<BuilderActionResult>;
   onSaveContent: (
     sectionId: string,
     type: ModuleType,
@@ -88,6 +103,10 @@ export function BuilderCanvas({
     });
 
   const deleting = deletingId ? sections.find((s) => s.id === deletingId) : undefined;
+  const labelFor = (type: string) => palette.find((p) => p.type === type)?.label ?? type;
+  // Lay the canvas out like the published grid; the section being edited
+  // takes a full row so its form has room.
+  const spans = packSpans(sections.map((s) => (s.id === editingId ? 12 : (s.width ?? 12))));
 
   return (
     <div
@@ -101,7 +120,7 @@ export function BuilderCanvas({
     >
       {/* Canvas pane — scrolls on its own at lg. */}
       <div className="min-w-0 lg:overflow-y-auto">
-        <div className="mx-auto max-w-[820px] px-4 py-8 sm:px-6" style={canvasStyle}>
+        <div className="mx-auto max-w-[1080px] px-4 py-8 sm:px-6">
           <header className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h1 className="m-0 text-xl font-semibold tracking-tight">{title}</h1>
@@ -115,10 +134,10 @@ export function BuilderCanvas({
           </header>
 
           <section className="my-5 flex flex-wrap items-center gap-2">
-            <span className="text-xs text-muted-foreground">Add module:</span>
+            <span className="text-xs text-muted-foreground">Add a section:</span>
             {paletteError ? (
               <span className="text-xs text-destructive">
-                Unknown schema variant “{paletteError}” — no modules available.
+                Sections can't be added right now. Please reload the page or contact support.
               </span>
             ) : (
               palette.map((m) => (
@@ -136,22 +155,35 @@ export function BuilderCanvas({
           </section>
 
           {error && (
-            <p role="alert" className="text-sm text-destructive">
+            // Sticky so it stays in view while you're scrolled down the canvas.
+            <p
+              role="alert"
+              className="sticky top-2 z-10 mb-3 rounded-lg border border-destructive/30 bg-background px-3 py-2 text-sm text-destructive shadow-sm"
+            >
               {error}
             </p>
           )}
 
           {sections.length === 0 && (
             <p className="text-sm text-muted-foreground">
-              No modules yet — add one above, or just ask the AI.
+              No sections yet — add one above, or just ask the AI.
             </p>
           )}
 
-          <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-12 gap-4">
             {sections.map((s, idx) => (
               <SectionCard
                 key={s.id}
                 type={s.type}
+                label={labelFor(s.type)}
+                span={spans[idx] ?? 12}
+                width={s.width ?? 12}
+                widthRange={widthRanges?.[s.type]}
+                onSetWidth={onSetWidth ? (w) => run(() => onSetWidth(s.id, w)) : undefined}
+                canMoveUp={idx > 0}
+                canMoveDown={idx < sections.length - 1}
+                onMoveUp={() => run(() => onMove(s.id, idx - 1))}
+                onMoveDown={() => run(() => onMove(s.id, idx + 1))}
                 editing={editingId === s.id}
                 disabled={pending}
                 isDragging={draggingId === s.id}
@@ -184,9 +216,14 @@ export function BuilderCanvas({
                     onDone={() => setEditingId(null)}
                   />
                 ) : (
-                  <ModuleRenderer
-                    section={{ type: s.type, content: s.content, style_variant: s.style_variant }}
-                  />
+                  <div
+                    className={cn("site-preview @container h-full", previewClassName)}
+                    style={canvasStyle}
+                  >
+                    <ModuleRenderer
+                      section={{ type: s.type, content: s.content, style_variant: s.style_variant }}
+                    />
+                  </div>
                 )}
               </SectionCard>
             ))}
@@ -223,9 +260,10 @@ export function BuilderCanvas({
             type="button"
             onClick={() => setChatOpen(true)}
             aria-label="Open AI editor"
-            className="flex h-full w-full items-start justify-center pt-3 text-sm hover:bg-muted"
+            className="flex h-full w-full flex-col items-center gap-2 pt-3 text-muted-foreground text-xs hover:bg-muted hover:text-foreground"
           >
-            ✨
+            <span aria-hidden="true">✨</span>
+            <span className="[writing-mode:vertical-rl]">Edit with AI</span>
           </button>
         </aside>
       )}
@@ -235,7 +273,7 @@ export function BuilderCanvas({
         title="Delete this section?"
         description={
           deleting
-            ? `The ${deleting.type} section and its content will be removed from your page.`
+            ? `The ${labelFor(deleting.type)} section and its content will be removed from your page.`
             : undefined
         }
         confirmLabel="Delete"

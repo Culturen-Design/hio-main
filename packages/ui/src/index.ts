@@ -15,6 +15,13 @@ export { GalleryModule } from "./modules/GalleryModule";
 export { TestimonialModule } from "./modules/TestimonialModule";
 export { CustomModule } from "./modules/CustomModule";
 export { ModuleRenderer, type RenderableSection } from "./modules/ModuleRenderer";
+export {
+  SiteSections,
+  type GridSection,
+  GRID_COLUMNS,
+  packSpans,
+} from "./modules/SiteSections";
+export { PREVIEW_SECTIONS } from "./modules/previewSections";
 export type { StyleVariant } from "./style";
 export {
   type SiteTheme,

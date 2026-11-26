@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { type ModuleType, selfServeSchema } from "@hio/content-model";
 import type { Json } from "@hio/db";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { friendlyError, invalidContentMessage } from "./messages";
 import { computeReorder } from "./reorder";
 
 export type ActionResult = { ok: true } | { error: string };
@@ -37,7 +39,7 @@ async function requireSite() {
 export async function addModule(type: ModuleType): Promise<ActionResult> {
   const { supabase, tenant, site } = await requireSite();
   const def = selfServeSchema.getModule(type);
-  if (!def) return { error: `Unknown module: ${type}` };
+  if (!def) return { error: "That section type isn't available." };
 
   const { count } = await supabase
     .from("sections")
@@ -54,7 +56,7 @@ export async function addModule(type: ModuleType): Promise<ActionResult> {
     width: def.width[1],
     order: count ?? 0,
   });
-  if (error) return { error: error.message };
+  if (error) return { error: friendlyError("add", error) };
   revalidatePath("/builder");
   return { ok: true };
 }
@@ -73,11 +75,11 @@ export async function updateContent(
   const def = selfServeSchema.getModule(type);
   if (def) {
     const parsed = def.contentSchema.safeParse(content);
-    if (!parsed.success) return { error: `Invalid content: ${parsed.error.message}` };
+    if (!parsed.success) return { error: invalidContentMessage(parsed.error) };
   }
 
   const { error } = await supabase.from("sections").update({ content }).eq("id", sectionId);
-  if (error) return { error: error.message };
+  if (error) return { error: friendlyError("save", error) };
   revalidatePath("/builder");
   return { ok: true };
 }
@@ -85,7 +87,7 @@ export async function updateContent(
 export async function deleteSection(sectionId: string): Promise<ActionResult> {
   const { supabase } = await requireSite();
   const { error } = await supabase.from("sections").delete().eq("id", sectionId);
-  if (error) return { error: error.message };
+  if (error) return { error: friendlyError("delete", error) };
   revalidatePath("/builder");
   return { ok: true };
 }
@@ -97,7 +99,7 @@ export async function moveSection(sectionId: string, toIndex: number): Promise<A
     .select("id, order")
     .eq("site_id", site.id)
     .order("order");
-  if (!secs) return { error: "No sections" };
+  if (!secs) return { error: "Couldn't load your sections. Please reload the page." };
 
   // Drag-and-drop to an arbitrary index, computed as a sequence of adjacent
   // order-value swaps (same membership-gated per-row updates the old up/down
@@ -108,14 +110,50 @@ export async function moveSection(sectionId: string, toIndex: number): Promise<A
       .from("sections")
       .update({ order: swap.aOrder })
       .eq("id", swap.aId);
-    if (e1) return { error: e1.message };
+    if (e1) return { error: friendlyError("move", e1) };
     const { error: e2 } = await supabase
       .from("sections")
       .update({ order: swap.bOrder })
       .eq("id", swap.bId);
-    if (e2) return { error: e2.message };
+    if (e2) return { error: friendlyError("move", e2) };
   }
 
+  revalidatePath("/builder");
+  return { ok: true };
+}
+
+const widthInput = z.object({
+  sectionId: z.string().uuid(),
+  width: z.number().int().min(1).max(12),
+});
+
+/** Set how many of the page grid's 12 columns a section spans. The allowed
+ *  range comes from the schema provider (`def.width`), checked against the
+ *  section's real type from the DB — not a client-supplied one. */
+export async function setSectionWidth(sectionId: string, width: number): Promise<ActionResult> {
+  const parsed = widthInput.safeParse({ sectionId, width });
+  if (!parsed.success) return { error: "That width isn't available." };
+  const { supabase, site } = await requireSite();
+
+  const { data: section } = await supabase
+    .from("sections")
+    .select("id, type")
+    .eq("id", parsed.data.sectionId)
+    .eq("site_id", site.id)
+    .maybeSingle();
+  if (!section) return { error: "That section no longer exists. Please reload the page." };
+
+  const def = selfServeSchema.getModule(section.type as ModuleType);
+  const [min, max] = def?.width ?? [12, 12];
+  if (parsed.data.width < min || parsed.data.width > max) {
+    return { error: "That width isn't available for this section." };
+  }
+
+  const { error } = await supabase
+    .from("sections")
+    .update({ width: parsed.data.width })
+    .eq("id", section.id);
+  if (error) return { error: friendlyError("resize", error) };
   revalidatePath("/builder");
   return { ok: true };
 }

@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { ModuleType } from "@hio/content-model";
 import {
   DEFAULT_THEME,
-  ModuleRenderer,
+  SiteSections,
   type StyleVariant,
   parseSiteTheme,
   themeToStyle,
@@ -56,12 +56,7 @@ export function PublicSiteView({ site }: { site: PublicSite }) {
       {site.sections.length === 0 ? (
         <p style={{ padding: "2rem 1.5rem", opacity: 0.6 }}>This site has no content yet.</p>
       ) : (
-        site.sections.map((s) => (
-          <ModuleRenderer
-            key={s.id}
-            section={{ type: s.type, content: s.content, style_variant: s.style_variant }}
-          />
-        ))
+        <SiteSections sections={site.sections} />
       )}
     </main>
   );

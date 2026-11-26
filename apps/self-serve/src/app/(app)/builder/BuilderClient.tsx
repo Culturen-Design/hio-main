@@ -2,16 +2,18 @@
 
 import { createClient } from "@/lib/supabase/client";
 import type { Json } from "@hio/db";
-import { parseSiteTheme, themeToStyle } from "@hio/ui";
+import { DEFAULT_THEME, parseSiteTheme, themeToStyle } from "@hio/ui";
 import {
+  Badge,
   BuilderCanvas,
   type BuilderSection,
+  CopyField,
   type SendOutcome,
   buildSuggestions,
   buttonClasses,
 } from "@hio/ui/admin";
 import { useRouter } from "next/navigation";
-import { addModule, deleteSection, moveSection, updateContent } from "./actions";
+import { addModule, deleteSection, moveSection, setSectionWidth, updateContent } from "./actions";
 
 type CommandResponse = {
   ok: boolean;
@@ -35,14 +37,19 @@ export function BuilderClient({
   site,
   sections,
   palette,
+  widthRanges,
+  publicUrl,
   theme,
 }: {
   tenantId: string;
   site: { id: string; slug: string };
   sections: BuilderSection[];
   palette: { type: string; label: string }[];
+  widthRanges: Partial<Record<string, [number, number]>>;
+  publicUrl: string;
   theme?: unknown;
 }) {
+  const siteTheme = parseSiteTheme(theme);
   const router = useRouter();
   const sessionKey = `hio-chat-session-${site.id}`;
 
@@ -95,9 +102,15 @@ export function BuilderClient({
     <BuilderCanvas
       title="Builder"
       subtitle={
-        <>
-          Editing <code>/{site.slug}</code>
-        </>
+        // There is no draft: every save, AI edit, move and delete is live at
+        // once. Say so plainly, next to the page's real address.
+        <span className="inline-flex flex-wrap items-center gap-2">
+          <Badge tone="success" title="Changes go live as soon as you make them">
+            ● Live
+          </Badge>
+          <span>Changes appear on your page straight away.</span>
+          <CopyField value={publicUrl} />
+        </span>
       }
       headerActions={
         <a
@@ -106,15 +119,18 @@ export function BuilderClient({
           rel="noreferrer"
           className={buttonClasses("secondary", "sm")}
         >
-          View public ↗
+          View your page ↗
         </a>
       }
       sections={sections}
       palette={palette}
-      canvasStyle={themeToStyle(parseSiteTheme(theme))}
+      canvasStyle={themeToStyle(siteTheme)}
+      previewClassName={`site-style-${siteTheme.style ?? DEFAULT_THEME.style}`}
+      widthRanges={widthRanges}
       onAdd={addModule}
       onDelete={deleteSection}
       onMove={moveSection}
+      onSetWidth={setSectionWidth}
       onSaveContent={(sectionId, type, next) => updateContent(sectionId, type, next as Json)}
       chat={{
         send,

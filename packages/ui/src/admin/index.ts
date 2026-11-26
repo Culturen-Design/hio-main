@@ -17,6 +17,7 @@ export { buildSuggestions } from "./builder/suggestions";
 export { Button, type ButtonSize, type ButtonVariant, buttonClasses } from "./Button";
 export { Card, CardTitle } from "./Card";
 export { ConfirmDialog } from "./ConfirmDialog";
+export { CopyField } from "./CopyField";
 export { Container, type ContainerSize } from "./Container";
 export { Field, Input, Select, Textarea } from "./Field";
 export { PageHeader } from "./PageHeader";

@@ -13,8 +13,11 @@ export function AuthForm({
   submitLabel,
   altHref,
   altLabel,
+  newPassword = false,
 }: {
   action: Action;
+  /** Sign-up: the browser should offer to generate and save a new password. */
+  newPassword?: boolean;
   title: string;
   submitLabel: string;
   altHref: string;
@@ -30,11 +33,11 @@ export function AuthForm({
           <Field label="Email">
             <Input name="email" type="email" autoComplete="email" required />
           </Field>
-          <Field label="Password">
+          <Field label="Password" hint={newPassword ? "At least 8 characters." : undefined}>
             <Input
               name="password"
               type="password"
-              autoComplete="current-password"
+              autoComplete={newPassword ? "new-password" : "current-password"}
               required
               minLength={8}
             />
