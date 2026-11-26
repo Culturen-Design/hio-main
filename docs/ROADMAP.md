@@ -429,6 +429,20 @@ onto tenants too, via expand→migrate→contract), **one generalized** tenant-a
 
 Every approved departure from the original plan, with its reason and cost.
 
+### 2026-11-26 — Migration 016: scope changes found while writing it
+**Change 1 (security fix beyond the plan):** dev's `user_settings` UPDATE policy allowed
+`user_id = auth.uid()`, and with the default table grants any signed-in user could set their own
+`is_admin`, `tier`, `is_locked` or `is_disabled`. Every app write to `user_settings` is in the admin
+screens, so `016` makes UPDATE admin-only instead of copying the old policy. **Change 2 (drift
+captured):** `is_current_user_admin()`, `get_all_user_settings_for_admin()` and the two
+"Users can … own settings" policies were applied to dev by hand in May and never committed; `016`
+now defines them, so a repo-built database (CI, prod) ends in the same state as dev. **Change 3
+(deferred):** leaked-password protection needs the Supabase Pro plan; the dev project is on Free.
+Turn it on for prod at launch if prod is on Pro, otherwise when upgrading. **Follow-ups:** review
+anon/authenticated `EXECUTE` on the other `SECURITY DEFINER` helpers (`is_current_user_admin` can
+now drop anon since its only policies are `to authenticated`; `handle_new_user`, `is_active_user`,
+`is_tenant_member`, …); check dev for other hand-applied objects not in the repo.
+
 ### 2026-11-26 — Clean-up + security pass before INFRA (owner-approved)
 **Change:** the roadmap's next step is INFRA / path to prod. The owner approved inserting two short
 phases first, from a July audit re-checked on 2026-11-26. **Phase 1 (clean-up):** pin the Supabase CLI
