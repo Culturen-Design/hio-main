@@ -86,7 +86,7 @@ app**, base dir = the app (config in `apps/<app>/netlify.toml`). The current M4 
 on Self-Serve.
 
 **Remaining manual steps (dashboard / OAuth — cannot be done from here):**
-1. **Link the repo** — on each site, Site configuration → Build & deploy → link `culturenteam/hio-main`
+1. ✅ **Done (confirmed 2026-07-04).** **Link the repo** — on each site, Site configuration → Build & deploy → link `culturenteam/hio-main`
    (authorize the Netlify GitHub App for the private repo). Use Netlify's monorepo **Package directory**
    field (`apps/studio` / `apps/self-serve`), leaving **Base directory** at `/` (repo root — required for
    npm workspaces to resolve). Set **production branch = `integration/v2`**. **Gotcha:** each app's
@@ -103,14 +103,18 @@ on Self-Serve.
 
 ## What's connected today
 - ✅ **dev** Supabase wired (this account, `Hio` project) — `.env.local` set for both apps.
-- 🔵 **Netlify** — both monorepo sites **created + public env set** (above); repo-link, service-role
-  secret, and domains are the outstanding manual steps. Old exploration sites untouched.
+  > The dev project is on the **free tier and auto-pauses** after about a week without activity
+  > (it did between July and November 2026). When it's paused its hostname stops resolving and both
+  > apps fail to sign in or render pages. Restore it from the Supabase dashboard.
+- 🔵 **Netlify** — both monorepo sites created, public env set, repo linked, auto-deploying from
+  `integration/v2`. Outstanding: the Self-Serve service-role secret (unverified) and the domains.
+  Old exploration sites untouched.
 - 🔵 **prod** Supabase — **project created** in the separate account (2026-06-22, ref
   `ltrigisoniqcsuamaebj`); `SUPABASE_PROD_REF` recorded above. **Still outstanding** (owner, can't be done
   from the dev account): add the GitHub Actions secrets (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROD_REF`,
   `SUPABASE_PROD_DB_PASSWORD`), set the Netlify *Production* context env (prod URL + anon key + the
   Self-Serve service-role key), and set repo var `PROD_DB_DEPLOY_ENABLED=true`. The prod schema is empty
-  until the first merge to `main` runs `db-deploy.yml` (the 14 migrations).
+  until the first merge to `main` runs `db-deploy.yml` (the 16 migrations, `0000`–`015`).
   > **MCP note:** a prod Supabase MCP should NOT be wired into the agent as a read-write `mcp__supabase`
   > server — prod changes go through CI only (rule #1). If a prod MCP is connected at all, make it
   > **read-only** + a **distinct name** (e.g. `supabase-prod`, not "supabase" — that collides with the dev

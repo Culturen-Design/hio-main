@@ -157,5 +157,5 @@ npm run plugin:build         # builds plugin/ai-dev-workflow from .claude/
 
 Chosen for AI-friendliness + low cost, isolated to single config points so you can replace them:
 **Drizzle/SQL** (migrations are plain SQL here), **Zod** (`src/lib/env.ts`), **Vitest**
-(`vitest.config.ts`), **Playwright** (e2e), **Biome** (`biome.json`). Swap any without touching
+(`vitest.config.ts`), **Playwright** (e2e, planned after launch), **Biome** (`biome.json`). Swap any without touching
 the workflow.

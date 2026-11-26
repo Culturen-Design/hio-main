@@ -37,6 +37,11 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
 
 `✅ done` · `🔵 in progress` · `⬜ not started` · `↪ moved` (see deviation log)
 
+- **Status check 2026-11-26 (after a ~4-month pause):** no code merged since PR #70 (2026-07-15).
+  The dev Supabase project had auto-paused and was restored by the owner; data and `ai-command` v12
+  intact. A short **clean-up + security pass** now runs before INFRA (see the Deviation log's
+  `2026-11-26` entry). Open: PR #73 (design tokens from `Culturen-Design/hio-design-system`, needs a
+  GitHub Packages token) and the dependabot PRs.
 - **Now:** **M4 feature-complete + the page→tenant rewrite fully landed (expand → migrate → CONTRACT done).
   Legacy `pages`/`page_id` no longer exist anywhere — the path to prod is now pure infra.**
   M2 + M3 are complete and the `ai-command` **v7** bundle is deployed + live-verified on dev (one unified
@@ -71,7 +76,7 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
   the intended production domains (`app.hio.space`/`studio.hio.space` + M4.8 client domain aliases) are
   mapped — see `hio-netlify-deploy`; **(3)** arm `PROD_DB_DEPLOY_ENABLED=true` + the prod GitHub Actions
   secrets (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROD_REF`, `SUPABASE_PROD_DB_PASSWORD`); **(4)** promote
-  `integration/v2` → `main` so CI runs the 14 migrations against prod and Netlify deploys production.
+  `integration/v2` → `main` so CI runs the 16 migrations (`0000`–`015`) against prod and Netlify deploys production.
 - **In parallel (widening M2) — now complete.** `contact` ✅ · `services` ✅ · `gallery` ✅ ·
   `testimonial` ✅ · `custom` ✅ done — **all 9 module types built.** Drag-and-drop reorder ✅ done
   (both builders, PR #42). **shadcn/Tailwind migration ✅ fully done** (PR #44 spike + PR #47 the
@@ -423,6 +428,21 @@ onto tenants too, via expand→migrate→contract), **one generalized** tenant-a
 ## Deviation log
 
 Every approved departure from the original plan, with its reason and cost.
+
+### 2026-11-26 — Clean-up + security pass before INFRA (owner-approved)
+**Change:** the roadmap's next step is INFRA / path to prod. The owner approved inserting two short
+phases first, from a July audit re-checked on 2026-11-26. **Phase 1 (clean-up):** pin the Supabase CLI
+to v2 in every workflow (`version: latest` now resolves to CLI v3, which drops `--project-ref` and
+prompts on hosted changes, so `db-deploy` would break when armed); start the CI database with
+`-x edge-runtime` to end the deno.land flake; make the `no-direct-prod-db` hook actually fire (its
+`mcp__supabase__*` matcher never matched hosted connectors, and the refs it read were never set);
+retarget the dependabot PRs to `integration/v2`; correct stale docs. **Phase 2 (security, dev only):**
+migration `016` to stop anonymous calls to `get_all_user_settings_for_admin`, pin `search_path` on it
+and `is_current_user_admin`, add five missing FK indexes, and make the `user_settings` policies
+evaluate `auth.uid()` once; turn on leaked-password protection. **Why:** each is cheap, and several
+would bite during or right after launch. **Cost:** about a day before INFRA starts. **Follow-ups:**
+move CI to Supabase CLI v3 deliberately; consolidate the multiple permissive policies on
+`sections`/`sites`; Playwright smoke tests after launch.
 
 ### 2026-07-12 — AI edit sessions: agentic tool loop + server-owned conversations (owner-directed)
 **Change:** owner reported that every builder chat message was treated as a new conversation

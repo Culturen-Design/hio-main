@@ -8,7 +8,7 @@ procedures live in `.claude/skills/` and load on demand.
 - **Next.js** (App Router, TypeScript, React 19) — app code in `apps/<app>/src/`
 - **Supabase** (Postgres + Auth + Storage) — shared schema in `supabase/migrations/`
 - **Netlify** hosting — one site per app (`apps/<app>/netlify.toml`, base dir = the app)
-- **Biome** lint+format · **Vitest** unit · **Playwright** e2e · **Zod** validation
+- **Biome** lint+format · **Vitest** unit · **Zod** validation · **Playwright** e2e is planned for after launch (not set up yet)
 - Package manager: **npm**. Run tasks via Turbo: `npm run check` = `turbo run lint typecheck test`.
 
 ## Two products, one engine
