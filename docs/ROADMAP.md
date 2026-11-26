@@ -39,9 +39,11 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
 
 - **Status check 2026-11-26 (after a ~4-month pause):** no code merged since PR #70 (2026-07-15).
   The dev Supabase project had auto-paused and was restored by the owner; data and `ai-command` v12
-  intact. A short **clean-up + security pass** now runs before INFRA (see the Deviation log's
-  `2026-11-26` entry). Open: PR #73 (design tokens from `Culturen-Design/hio-design-system`, needs a
-  GitHub Packages token) and the dependabot PRs.
+  intact. A short **clean-up + security pass** ran before INFRA (see the Deviation log's
+  `2026-11-26` entries): done, with migrations `016` + `017` merged (#76, #77). **Now: a Design & UX
+  review** before INFRA (Deviation log, "Design & UX review before launch"). PR #78
+  (`integration/v2` → `main`) is held as a draft until that review is signed off. PR #73 (design
+  tokens) is decided inside the review.
 - **Now:** **M4 feature-complete + the page→tenant rewrite fully landed (expand → migrate → CONTRACT done).
   Legacy `pages`/`page_id` no longer exist anywhere — the path to prod is now pure infra.**
   M2 + M3 are complete and the `ai-command` **v7** bundle is deployed + live-verified on dev (one unified
@@ -67,7 +69,7 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
   theme via `@hio/ui`, with a publish toggle; verified live. **M4.7 (version history) done** — `site_versions`
   whole-site snapshots (migration `010`) with `snapshot_site`/`restore_site_version` RPCs; captured on
   publish + manual save; restore auto-snapshots first; verified live.
-- **Next action:** **INFRA — the path to prod** (the page→tenant rewrite is fully done; admin slug `013`
+- **Next action:** **INFRA — the path to prod, after the Design & UX review is signed off** (the page→tenant rewrite is fully done; admin slug `013`
   + CONTRACT `014` both landed). **Netlify repo-link + auto-deploy from `integration/v2` is confirmed
   working** (both sites deploy clean on every push — verified 2026-07-04 against PR #51/#52's merges).
   Remaining is mostly owner accounts/decisions — propose, don't assume:
@@ -76,7 +78,7 @@ is not to be rigid, but to make every change *deliberate and recorded*. The prot
   the intended production domains (`app.hio.space`/`studio.hio.space` + M4.8 client domain aliases) are
   mapped — see `hio-netlify-deploy`; **(3)** arm `PROD_DB_DEPLOY_ENABLED=true` + the prod GitHub Actions
   secrets (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROD_REF`, `SUPABASE_PROD_DB_PASSWORD`); **(4)** promote
-  `integration/v2` → `main` so CI runs the 16 migrations (`0000`–`015`) against prod and Netlify deploys production.
+  `integration/v2` → `main` (PR #78) so CI runs the 18 migrations (`0000`–`017`) against prod and Netlify deploys production.
 - **In parallel (widening M2) — now complete.** `contact` ✅ · `services` ✅ · `gallery` ✅ ·
   `testimonial` ✅ · `custom` ✅ done — **all 9 module types built.** Drag-and-drop reorder ✅ done
   (both builders, PR #42). **shadcn/Tailwind migration ✅ fully done** (PR #44 spike + PR #47 the
@@ -428,6 +430,19 @@ onto tenants too, via expand→migrate→contract), **one generalized** tenant-a
 ## Deviation log
 
 Every approved departure from the original plan, with its reason and cost.
+
+### 2026-11-26 — Design & UX review before launch (owner-directed)
+**Change:** after the security pass, the owner asked for a product review before INFRA instead of
+going straight to prod. A new phase walks every user journey on dev (Self-Serve sign-up, builder,
+AI edit + Undo, publish + public page, admin; Studio new client, publish, versions, custom domain)
+on desktop and phone, adds a first-pass review by Claude (public pages, builder/admin screens,
+accessibility basics), and sorts each finding by type (works / UX / look) and priority (must fix
+before launch / after launch). The must-fix list is fixed in small PRs into `integration/v2`, then the
+owner signs off. PR #73 (design tokens) is decided inside this review. PR #78 (`integration/v2` →
+`main`) is held as a draft until sign-off. The checklist and findings log live in the project
+handbook. **Why:** nothing has shipped, so changes to screens and flows are cheapest now; launching
+first would mean changing them with real users and data. **Cost:** INFRA starts later, by however
+long the must-fix list takes. **Follow-ups:** after-launch findings get their own roadmap entries.
 
 ### 2026-11-26 — Migration 016: scope changes found while writing it
 **Change 1 (security fix beyond the plan):** dev's `user_settings` UPDATE policy allowed
