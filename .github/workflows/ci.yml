@@ -65,15 +65,19 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned: "latest" resolves to CLI v3 (Nov 2026), which changes flags and
+          # defaults. Move to v3 deliberately, following Supabase's migration guide.
+          version: 2.122.1
         env:
           # Authenticated GitHub API calls so resolving the CLI release doesn't hit
           # the 60/hr unauthenticated rate limit.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Lint migrations (start local DB + db lint)
+        # -x edge-runtime: linting needs only Postgres. Skipping the edge runtime
+        # avoids the intermittent deno.land 5xx that used to fail this job.
         run: |
-          supabase start
+          supabase start -x edge-runtime
           supabase db lint --level warning
 
       - name: Enforce migration immutability
