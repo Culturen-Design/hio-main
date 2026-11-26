@@ -70,7 +70,10 @@ export async function updateContent(
   type: ModuleType,
   content: Json,
 ): Promise<ActionResult> {
-  const { supabase } = await requireSite();
+  if (!z.string().uuid().safeParse(sectionId).success) {
+    return { error: "That section no longer exists. Please reload the page." };
+  }
+  const { supabase, site } = await requireSite();
 
   const def = selfServeSchema.getModule(type);
   if (def) {
@@ -78,15 +81,26 @@ export async function updateContent(
     if (!parsed.success) return { error: invalidContentMessage(parsed.error) };
   }
 
-  const { error } = await supabase.from("sections").update({ content }).eq("id", sectionId);
+  const { error } = await supabase
+    .from("sections")
+    .update({ content })
+    .eq("id", sectionId)
+    .eq("site_id", site.id);
   if (error) return { error: friendlyError("save", error) };
   revalidatePath("/builder");
   return { ok: true };
 }
 
 export async function deleteSection(sectionId: string): Promise<ActionResult> {
-  const { supabase } = await requireSite();
-  const { error } = await supabase.from("sections").delete().eq("id", sectionId);
+  if (!z.string().uuid().safeParse(sectionId).success) {
+    return { error: "That section no longer exists. Please reload the page." };
+  }
+  const { supabase, site } = await requireSite();
+  const { error } = await supabase
+    .from("sections")
+    .delete()
+    .eq("id", sectionId)
+    .eq("site_id", site.id);
   if (error) return { error: friendlyError("delete", error) };
   revalidatePath("/builder");
   return { ok: true };
