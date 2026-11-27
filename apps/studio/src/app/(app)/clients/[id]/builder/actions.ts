@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { type ModuleType, resolveVariant } from "@hio/content-model";
 import type { Json } from "@hio/db";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { computeReorder } from "./reorder";
 
 export type ActionResult = { ok: true } | { error: string };
@@ -57,7 +58,18 @@ async function requireClient(tenantId: string): Promise<RequireClientResult> {
   return { ok: true, supabase, tenant, site };
 }
 
-export async function addSection(tenantId: string, type: ModuleType): Promise<ActionResult> {
+/** Optional drop position from the builder's component toolbar. */
+const atIndexInput = z.number().int().min(0).max(1000).optional();
+
+/** Adds a section at the end, or before the section at `atIndex` when the
+ *  module was dropped in place from the component toolbar. */
+export async function addSection(
+  tenantId: string,
+  type: ModuleType,
+  atIndex?: number,
+): Promise<ActionResult> {
+  const pos = atIndexInput.safeParse(atIndex);
+  if (!pos.success) return { error: "Invalid position" };
   const ctx = await requireClient(tenantId);
   if (!ctx.ok) return { error: ctx.error };
   const { supabase, tenant, site } = ctx;
@@ -77,15 +89,24 @@ export async function addSection(tenantId: string, type: ModuleType): Promise<Ac
     .eq("site_id", site.id);
 
   // sections_write_studio_member RLS enforces tenant membership on insert.
-  const { error } = await supabase.from("sections").insert({
-    tenant_id: tenant.id,
-    site_id: site.id,
-    type,
-    content: def.defaults as Json,
-    width: def.width[1],
-    order: count ?? 0,
-  });
+  const { data: added, error } = await supabase
+    .from("sections")
+    .insert({
+      tenant_id: tenant.id,
+      site_id: site.id,
+      type,
+      content: def.defaults as Json,
+      width: def.width[1],
+      order: count ?? 0,
+    })
+    .select("id")
+    .single();
   if (error) return { error: error.message };
+  // Dropped in place: move it from the end to its slot with the same
+  // membership-gated reorder the drag handle uses.
+  if (pos.data !== undefined && pos.data < (count ?? 0)) {
+    return moveSection(tenantId, added.id, pos.data);
+  }
   revalidatePath(`/clients/${tenantId}/builder`);
   return { ok: true };
 }

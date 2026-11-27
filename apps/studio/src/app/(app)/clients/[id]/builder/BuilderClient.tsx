@@ -112,7 +112,7 @@ export function BuilderClient({
       sections={sections}
       palette={palette}
       paletteError={paletteError}
-      onAdd={(type: ModuleType) => addSection(tenantId, type)}
+      onAdd={(type: ModuleType, atIndex?: number) => addSection(tenantId, type, atIndex)}
       onDelete={(sectionId) => deleteSection(tenantId, sectionId)}
       onMove={(sectionId, toIndex) => moveSection(tenantId, sectionId, toIndex)}
       onSaveContent={(sectionId, type, next) =>
