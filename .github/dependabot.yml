@@ -2,9 +2,6 @@ version: 2
 updates:
   - package-ecosystem: npm
     directory: "/"
-    # Until launch, updates go to integration/v2 (the monorepo); main still
-    # holds the old single-app layout. Remove after PR #78 merges.
-    target-branch: integration/v2
     schedule:
       interval: weekly
     groups:
@@ -14,6 +11,5 @@ updates:
     open-pull-requests-limit: 3
   - package-ecosystem: github-actions
     directory: "/"
-    target-branch: integration/v2
     schedule:
       interval: monthly
