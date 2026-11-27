@@ -43,46 +43,89 @@ body {
 }
 
 /**
- * Public-site visual identity — the default look for both products' PUBLISHED
- * pages (Self-Serve's /[slug], Studio's /sites/[slug] and custom-domain
- * render). Applied via `className="site-public site-style-<id>"` on the page
- * wrapper in each app's public route — never on builder/dashboard/admin pages
- * in either app. `.site-public` alone is the shared base; each
- * `.site-style-<id>` block below is a self-contained "look" — swapping the id
- * swaps the whole system with zero `@hio/ui` component change. A style may
- * only ADD markup that is invisible by default (the `.bp-*` hooks) so a module
- * component never branches in JS on which style is active.
+ * Public-site visual identity — the look of both products' PUBLISHED pages
+ * (Self-Serve's /[slug], Studio's /sites/[slug]) and of the builder's section
+ * previews. Applied via `className="site-public site-style-<id>"` on the page
+ * wrapper (`site-preview` in the builder). `.site-public` alone is the shared
+ * structure; each `.site-style-<id>` block below changes colour, type and the
+ * margin pattern only — never structure. A style may only ADD markup that is
+ * invisible by default (the `.bp-*` hooks), so a module never branches in JS.
  *
- * THE GRID (2026-11-27, Phase 3 design review). Sections no longer stack as
- * free-floating bands. `SiteSections` renders every section into a cell of
- * one 12-column grid (`.site-grid > .site-cell`), spanning its stored
- * `sections.width` (packed so every row is full). The grid's 1px gaps over a
- * line-coloured background ARE the page's rules: every line belongs to the
- * edge of some cell, so no line can float, overshoot, or double up with a
- * module's own border. Owner brief: "crafted, structured, clarity,
- * transparency"; references vercel.com / griffin.com / paper.design.
+ * THE RULES (2026-11-27, owner review: "think systematic, apply rules
+ * everywhere"). Every module and every style obeys these; full text in
+ * docs/DESIGN-RULES.md.
+ *
+ *  1. One kind of line. Every line is 1px, solid, `--line`, and it is the
+ *     edge of a cell. No dashed or dotted lines, no shadows, no offset
+ *     outlines, no frames, no mats.
+ *  2. Cells divide, boxes don't nest. The page is a grid of section cells.
+ *     A section's items (services, links, images, testimonials, events,
+ *     contact rows) are a grid of cells that runs to the section's own edges
+ *     and shares them (`.site-items`). Nothing draws a box inside a cell.
+ *  3. One inset. Content sits `--pad` from a section's sides; items use
+ *     the same side inset (`--pad-item` is only their top/bottom), so all
+ *     text in a column shares one left edge. Modules carry no padding.
+ *  4. Images run to the edges of the cell they sit in (`.site-media` inside
+ *     an item, `.site-bleed` at the foot of a section). No frame around them.
+ *  5. Square corners. Only a portrait photo may be round (`rounded-full`).
+ *  6. Labels are type, not boxes: small, uppercase, muted, tracked.
+ *  7. Buttons are a flat accent fill. No shadow, no outline (except the
+ *     button's own edge on the dark contact panel, for contrast).
+ *  8. The page pattern is drawn by the sheet and lines up with its edges.
  */
-.site-public {
-  background-color: var(--color-background);
-  color: var(--color-foreground);
-  max-width: 64rem;
-  margin-inline: auto;
+.site-public,
+.site-preview {
+  --line: var(--color-border);
+  --pad: clamp(1.5rem, 4vw, 2.5rem);
+  /* Items keep the section's side inset so all text in a cell shares one
+     left edge; only their vertical inset is tighter. */
+  --pad-item: clamp(1.25rem, 2.5vw, 1.75rem);
 }
 
+/* The page: full width, so there is no "paper card" edge inside the window.
+   The side margin is a multiple of 8px so the patterns line up (rule 8). */
+.site-public {
+  --margin: 16px;
+  --page-pad: clamp(1rem, 4vw, 3rem);
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
+  min-height: 100dvh;
+  padding-block: var(--page-pad);
+  padding-left: max(var(--margin), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--margin), env(safe-area-inset-right, 0px));
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+}
+@media (min-width: 48rem) {
+  .site-public {
+    --margin: 40px;
+  }
+}
+
+/* The sheet. Its outer width is snapped to 8n + 1px so a pattern anchored on
+   its left edge also lands exactly on its right edge (browsers without
+   `round()` keep the plain width). */
 .site-grid {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 1px;
-  background-color: var(--color-border);
-  border: 1px solid var(--color-border);
+  width: min(calc(64rem + 1px), 100%);
+  width: min(calc(64rem + 1px), calc(round(down, 100% - 1px, 8px) + 1px));
+  margin-inline: auto;
+  background-color: var(--line);
+  border: 1px solid var(--line);
 }
 
-/* Full width on phones; the stored span from the tablet breakpoint up. */
+/* A cell: full width on phones, its stored span from the tablet up. `clip`
+   keeps every item line inside its own cell (rule 1). */
 .site-cell {
   grid-column: span 12;
   min-width: 0;
   display: flex;
   flex-direction: column;
+  overflow: clip;
   background-color: var(--color-background);
 }
 @media (min-width: 48rem) {
@@ -91,31 +134,105 @@ body {
   }
 }
 
-/* A module fills its cell. Renderers carry historical `mx-auto max-w-*`
-   widths for use outside the grid (the builder); inside a cell the cell is
-   the box. Unlayered CSS beats Tailwind's utility layer. */
-.site-cell > section {
+/* A section fills its cell and takes the one inset (rule 3). Variant
+   borders and radii from `cardClasses` would be a box inside the cell, so
+   they are dropped; the "filled" variant's background stays. Unlayered CSS
+   beats Tailwind's utility layer. */
+.site-public [data-module],
+.site-preview [data-module] {
   flex: 1 1 auto;
   width: 100%;
   max-width: none;
-  margin-inline: 0;
+  margin: 0;
+  padding: var(--pad);
+  border: 0;
+  border-radius: 0;
+  background-image: none;
 }
 
-/* Builder previews: a section wrapped in its site style's classes so it looks
-   like the published page, minus the page-level frame (trim edge, drafting
-   margin, patterns) that only makes sense around a whole page. */
+/* Builder previews: one section, same look, without the page around it. */
 .site-preview {
-  max-width: none;
-  border: 0 !important;
-  padding: 0 !important;
-  background-image: none !important;
+  overflow: clip;
   background-color: var(--color-background);
   color: var(--color-foreground);
 }
 .site-preview > section {
-  max-width: none;
-  margin-inline: 0;
   min-height: 100%;
+}
+
+/* Rule 2 — the items grid. Runs to the section's sides and foot; its top
+   rule is the only line it adds. Each item draws its right and bottom edge
+   into the 1px gap, so an unfilled last row stays empty paper instead of a
+   block of line colour; edges on the cell's border are clipped by the cell. */
+.site-items {
+  display: grid;
+  gap: 1px;
+  margin: var(--pad) calc(-1 * var(--pad)) calc(-1 * var(--pad));
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+.site-items:first-child {
+  margin-top: calc(-1 * var(--pad));
+  border-top: 0;
+}
+.site-items > * {
+  min-width: 0;
+  margin: 0;
+  padding: var(--pad-item) var(--pad);
+  box-shadow: 1px 1px 0 0 var(--line);
+}
+/* A whole-item link keeps its focus ring inside the cell. */
+.site-items > a:focus-visible {
+  outline-offset: -4px;
+}
+
+/* Rule 4 — media. `.site-media` runs to the top and sides of its item;
+   `.site-bleed` runs to the sides and foot of its section. */
+.site-media {
+  display: block;
+  width: calc(100% + 2 * var(--pad));
+  max-width: none;
+  margin: calc(-1 * var(--pad-item)) calc(-1 * var(--pad)) var(--pad-item);
+  border-radius: 0;
+}
+.site-media:last-child {
+  margin-bottom: calc(-1 * var(--pad-item));
+}
+.site-bleed {
+  display: block;
+  width: calc(100% + 2 * var(--pad));
+  max-width: none;
+  margin: var(--pad) calc(-1 * var(--pad)) calc(-1 * var(--pad));
+  border-radius: 0;
+}
+
+/* Rule 6 — labels. */
+.site-label {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted-foreground);
+}
+
+/* Rule 7 — the button. */
+.site-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0;
+  background-color: var(--color-primary);
+  color: var(--color-primary-foreground);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* Rule 5 — square corners everywhere but a round portrait. */
+.site-public img:not(.rounded-full),
+.site-preview img:not(.rounded-full) {
+  border-radius: 0;
 }
 
 /* Comfortable reading measure for running text, whatever the cell width. */
@@ -168,19 +285,14 @@ body {
   overflow-x: auto;
 }
 
-/* Style hooks. Hidden by default: they only exist to be shown under a style
-   that asks for them, so a module component never needs a style conditional. */
-.bp-ghost-cell,
-.bp-count,
-.bp-leader {
+/* Style hooks. Hidden by default; a style shows the ones it uses. */
+.bp-count {
   display: none;
 }
 
 /*
- * Style: Stone & Slate (classic). Stone = warm = content. Slate = cold =
- * structural chrome (the grid rules, meta text). Primary is left to
- * `themeToStyle`'s inline custom properties. Same grid as every style; its
- * rules are slate hairlines and cells keep the module's own rounded cards.
+ * Style: Stone & Slate (classic). Warm stone content, cool slate lines and
+ * meta text, system sans. Structure is the shared one above.
  */
 .site-style-stone-slate {
   --color-background: #fafaf9; /* stone-50 */
@@ -188,138 +300,77 @@ body {
   --color-muted: #f5f5f4; /* stone-100 */
   --color-muted-foreground: #475569; /* slate-600 — 7.26:1 on stone-50 (AA) */
   --color-border: #cbd5e1; /* slate-300 */
-  --color-primary: #292524; /* stone-800 — sane default until a site sets its own */
+  --color-primary: #292524; /* stone-800 — default until a site sets its own */
   --color-primary-foreground: #fafaf9; /* stone-50 */
-
-  padding-block: clamp(1rem, 4vw, 2.5rem);
 }
 
 /*
  * Style: Warm Blueprint Brutalism (default) — a technical drawing of itself.
- * Warm, human content mounted on a precise engineering scaffold. Every line
- * has a job: it is a cell edge, a divider, a shadow, a slot, or a label —
- * never ambient texture. One accent (the site's own `--color-primary`), one
- * shadow technique (offset-outline), two type voices (serif content / mono
- * annotation). No motion.
- *
- * The scaffold is the grid: paper trim edge → drafting margin → one ruled
- * 12-column sheet whose cells hold the modules. Inside a module, items
- * (services, links, testimonials, events) become cells of a smaller grid of
- * the same grammar (`.bp-cells`), never boxes drawn inside boxes. Signature
- * element: the INSTRUMENT PANEL — the Contact module is one dark slate cell.
+ * Warm paper, one warm line colour, serif content with a mono annotation
+ * voice (counts, labels, prices, ratings), the site's accent on the button
+ * only, and one dark cell: the contact panel.
  */
 .site-style-warm-blueprint-brutalism {
   --bp-paper: #faf8f4;
   --bp-paper-panel: #efe8d8;
   --bp-ink: #2a2420;
   --bp-muted-ink: #6b5f4f;
-  --bp-hairline: #d8cfbc; /* stone-300-ish, warm */
-  --bp-hairline-strong: #b7a98f; /* stone-400-ish, warm */
+  --bp-line: #cbbfa8;
+  --bp-pattern: color-mix(in oklab, var(--bp-line) 65%, transparent);
   --bp-slate-900: #1c232e;
   --bp-slate-700: #38414f;
   --bp-slate-600: #4c5866;
-  --bp-slate-ink: #e7e2d6; /* warm-tinted light text on the dark instrument panel */
+  --bp-slate-ink: #e7e2d6;
   --bp-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
   --bp-serif: ui-serif, Georgia, "Iowan Old Style", "Times New Roman", serif;
   --bp-unit: 8px;
-  /* The drafting margin between the paper's trim edge and the sheet. */
-  --bp-margin: clamp(calc(var(--bp-unit) * 2), 4vw, calc(var(--bp-unit) * 5));
-  /* Vertical breathing room above and below the sheet. */
-  --bp-page-pad: clamp(calc(var(--bp-unit) * 4), 6vw, calc(var(--bp-unit) * 8));
 
   --color-background: var(--bp-paper);
   --color-foreground: var(--bp-ink);
   --color-muted: var(--bp-paper-panel);
   --color-muted-foreground: var(--bp-muted-ink);
-  --color-border: var(--bp-hairline);
-  --color-primary: #292524; /* sane default until a site sets its own accent */
+  --color-border: var(--bp-line);
+  --color-primary: #292524;
   --color-primary-foreground: var(--bp-paper);
 
   font-family: var(--bp-serif);
-  /* The paper's own trim edge — the outermost line of the drawing. */
-  border: 1px solid var(--bp-hairline);
-  padding-block: var(--bp-page-pad);
-  padding-inline: var(--bp-margin);
-  position: relative;
-}
-
-/* The sheet: its rules are the stronger hairline. */
-.site-style-warm-blueprint-brutalism .site-grid {
-  position: relative;
-  background-color: var(--bp-hairline-strong);
-  border-color: var(--bp-hairline-strong);
-}
-.site-style-warm-blueprint-brutalism .site-cell {
-  background-color: var(--bp-paper);
-}
-
-/* Corner overshoots: at the sheet's four corners its vertical rules run two
-   units past the horizontal ones into the breathing space — drafting
-   construction lines cross, they never just stop. Top pair on the sheet,
-   bottom pair on the wrapper (same x: the wrapper's inline padding). */
-.site-style-warm-blueprint-brutalism .site-grid::before,
-.site-style-warm-blueprint-brutalism .site-grid::after,
-.site-style-warm-blueprint-brutalism:has(.site-cell)::before,
-.site-style-warm-blueprint-brutalism:has(.site-cell)::after {
-  content: "";
-  position: absolute;
-  width: 1px;
-  height: calc(var(--bp-unit) * 2);
-  background: var(--bp-hairline-strong);
-}
-.site-style-warm-blueprint-brutalism .site-grid::before,
-.site-style-warm-blueprint-brutalism .site-grid::after {
-  top: calc(var(--bp-unit) * -2 - 1px);
-}
-.site-style-warm-blueprint-brutalism .site-grid::before {
-  left: -1px;
-}
-.site-style-warm-blueprint-brutalism .site-grid::after {
-  right: -1px;
-}
-.site-style-warm-blueprint-brutalism:has(.site-cell)::before,
-.site-style-warm-blueprint-brutalism:has(.site-cell)::after {
-  bottom: calc(var(--bp-page-pad) - var(--bp-unit) * 2);
-}
-.site-style-warm-blueprint-brutalism:has(.site-cell)::before {
-  left: var(--bp-margin);
-}
-.site-style-warm-blueprint-brutalism:has(.site-cell)::after {
-  right: var(--bp-margin);
 }
 
 /*
- * Margin patterns — the curated `theme.marginPattern` dimension (`@hio/ui`'s
- * MARGIN_PATTERN_OPTIONS; the wrapper carries `site-margin-<value>`). The
- * drafting-table surface showing through around the sheet; the opaque cells
- * cover it everywhere else. Kept deliberately faint. A tenant-set custom
- * `background` colour is inline `background` shorthand on the wrapper, which
- * resets background-image, so patterns gracefully vanish rather than fight
- * it. Scoped to this style; the settings picker only offers them here.
+ * Margin patterns (`theme.marginPattern`, the wrapper's `site-margin-<value>`)
+ * — rule 8. Drawn by the sheet on a layer behind it that reaches far past the
+ * window (the page clips it), anchored on the sheet's left border line. The
+ * offset is a multiple of every pattern's period and the sheet's width is
+ * 8n + 1px, so a pinstripe falls exactly on both side borders and the dot
+ * grid sits symmetric to them.
  */
-.site-style-warm-blueprint-brutalism.site-margin-dot-grid {
-  background-image: radial-gradient(
-    color-mix(in oklab, var(--bp-hairline-strong) 60%, transparent) 1px,
-    transparent 1.5px
-  );
-  background-size: calc(var(--bp-unit) * 2) calc(var(--bp-unit) * 2);
+.site-style-warm-blueprint-brutalism[class*="site-margin-"] .site-grid::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: calc(var(--bp-unit) * -500);
+  left: calc(var(--bp-unit) * -500 - 1px);
+  pointer-events: none;
 }
-.site-style-warm-blueprint-brutalism.site-margin-diagonal-hatch {
-  background-image: repeating-linear-gradient(
-    45deg,
-    color-mix(in oklab, var(--bp-hairline) 70%, transparent) 0,
-    color-mix(in oklab, var(--bp-hairline) 70%, transparent) 1px,
-    transparent 1px,
-    transparent var(--bp-unit)
-  );
+.site-style-warm-blueprint-brutalism.site-margin-none .site-grid::before {
+  content: none;
 }
-.site-style-warm-blueprint-brutalism.site-margin-pinstripe {
+.site-style-warm-blueprint-brutalism.site-margin-pinstripe .site-grid::before {
   background-image: repeating-linear-gradient(
     90deg,
-    color-mix(in oklab, var(--bp-hairline) 70%, transparent) 0,
-    color-mix(in oklab, var(--bp-hairline) 70%, transparent) 1px,
-    transparent 1px,
-    transparent var(--bp-unit)
+    var(--bp-pattern) 0 1px,
+    transparent 1px var(--bp-unit)
+  );
+}
+.site-style-warm-blueprint-brutalism.site-margin-dot-grid .site-grid::before {
+  background-image: radial-gradient(var(--bp-pattern) 1px, transparent 1.5px);
+  background-size: calc(var(--bp-unit) * 2) calc(var(--bp-unit) * 2);
+}
+.site-style-warm-blueprint-brutalism.site-margin-diagonal-hatch .site-grid::before {
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--bp-pattern) 0 1px,
+    transparent 1px var(--bp-unit)
   );
 }
 
@@ -329,54 +380,22 @@ body {
   letter-spacing: -0.01em;
 }
 
-/* One spacing rhythm for every module; the cell edges are the section's
-   frame, so variant borders/radii from `cardClasses` are dropped here. */
-.site-style-warm-blueprint-brutalism section {
-  padding: clamp(1.5rem, 5vw, 2.5rem);
-  border: 0;
-  border-radius: 0;
-}
-
-/* Items inside a module are cells of a small grid in the same grammar as the
-   page: shared 1px rules, no box inside a box. */
-.site-style-warm-blueprint-brutalism .bp-cells {
-  gap: 1px;
-  background-color: var(--bp-hairline);
-  border: 1px solid var(--bp-hairline);
-}
-.site-style-warm-blueprint-brutalism .bp-cells > * {
-  border: 0;
-  border-radius: 0 !important;
-  background-color: var(--bp-paper);
-}
-.site-style-warm-blueprint-brutalism .bp-cells img {
-  border-radius: 0 !important;
-}
-
-/* Image frames: no padded mat, just the image and its offset outline. */
-.site-style-warm-blueprint-brutalism .bp-frame {
-  padding: 0;
-  border: 0;
-  background: transparent;
-}
-.site-style-warm-blueprint-brutalism .bp-frame img {
-  border-radius: 0 !important;
-}
-
-/* Prices read as a spec value. */
-.site-style-warm-blueprint-brutalism .bp-price {
+/* The annotation voice. */
+.site-style-warm-blueprint-brutalism .site-label,
+.site-style-warm-blueprint-brutalism .bp-price,
+.site-style-warm-blueprint-brutalism .bp-rating,
+.site-style-warm-blueprint-brutalism .bp-eyebrow,
+.site-style-warm-blueprint-brutalism figcaption {
   font-family: var(--bp-mono);
-  letter-spacing: 0.02em;
 }
-
 .site-style-warm-blueprint-brutalism .bp-count {
   display: block;
+  margin: 0 0 0.5rem;
   font-family: var(--bp-mono);
   font-size: 0.75rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--color-muted-foreground);
-  margin: 0 0 0.5rem;
 }
 .site-style-warm-blueprint-brutalism .bp-count::before,
 .site-style-warm-blueprint-brutalism .bp-eyebrow::before {
@@ -386,80 +405,34 @@ body {
 .site-style-warm-blueprint-brutalism .bp-eyebrow::after {
   content: " ]";
 }
-.site-style-warm-blueprint-brutalism .bp-eyebrow {
-  font-family: var(--bp-mono);
+.site-style-warm-blueprint-brutalism .bp-rating {
+  letter-spacing: 0.18em;
 }
 
-/* Depth, one technique only: offset-outline — a duplicated hairline rectangle
-   shifted a few px, like print misregistration. Drawn with a two-layer
-   box-shadow (a background-coloured inset copy over a hairline copy) so it
-   needs no stacking context and can't be painted under the cell. No blur. */
-.site-style-warm-blueprint-brutalism .bp-offset {
-  box-shadow: 5px 5px 0 -1px var(--color-background), 5px 5px 0 0 var(--bp-hairline-strong);
+/* Hero: more air than other cells; the button is its only colour. */
+.site-style-warm-blueprint-brutalism [data-module="hero"] {
+  padding-block: clamp(2.5rem, 8vw, 4.5rem);
+}
+.site-style-warm-blueprint-brutalism [data-module="hero"] .site-bleed {
+  margin-bottom: calc(-1 * clamp(2.5rem, 8vw, 4.5rem));
 }
 
-/* Dotted leader line: joins a mono label to the value it annotates. */
-.site-style-warm-blueprint-brutalism .bp-leader {
-  display: block;
-  flex: 1 1 1.5rem;
-  min-width: 1.5rem;
-  height: 0;
-  margin-bottom: 4px;
-  border-bottom: 1px dotted var(--bp-hairline-strong);
-}
-
-/* Signature element — the instrument panel. One dark slate cell per page. */
+/* The contact panel — the one dark cell. Same structure, darker tokens. */
 .site-style-warm-blueprint-brutalism .site-cell[data-module-cell="contact"],
-.site-style-warm-blueprint-brutalism section[data-module="contact"] {
+.site-style-warm-blueprint-brutalism .site-preview [data-module="contact"],
+.site-style-warm-blueprint-brutalism.site-preview [data-module="contact"] {
   --color-background: var(--bp-slate-900);
   --color-muted: var(--bp-slate-700);
   --color-border: var(--bp-slate-600);
-  --color-muted-foreground: #b4bfcb; /* 5.5:1 on the dt badge, AA */
+  --line: var(--bp-slate-600);
+  --color-muted-foreground: #b4bfcb; /* 8.9:1 on slate-900 */
   background-color: var(--bp-slate-900);
   color: var(--bp-slate-ink);
 }
-/* Links in the panel take the panel's ink; the CTA keeps its own colours. */
-.site-style-warm-blueprint-brutalism [data-module="contact"] a:not(.bp-cta) {
+.site-style-warm-blueprint-brutalism [data-module="contact"] a:not(.site-button) {
   color: inherit;
 }
-/* Any accent (even a dark one) keeps a visible edge on the dark panel. */
-.site-style-warm-blueprint-brutalism [data-module="contact"] .bp-cta {
+.site-style-warm-blueprint-brutalism [data-module="contact"] .site-button {
   outline: 1px solid color-mix(in oklab, var(--bp-slate-ink) 55%, transparent);
   outline-offset: -1px;
-  box-shadow: 5px 5px 0 -1px var(--bp-slate-900), 5px 5px 0 0 var(--bp-slate-600);
-}
-.site-style-warm-blueprint-brutalism [data-module="contact"] .bp-leader {
-  border-bottom-color: var(--bp-slate-600);
-}
-.site-style-warm-blueprint-brutalism [data-module="contact"] dt,
-.site-style-warm-blueprint-brutalism [data-module="bio"] dt {
-  font-family: var(--bp-mono);
-}
-
-/* No rounded-corner card soup for this style (radius 0-2px max). Circular
-   avatars (rounded-full) are a real content shape, not card soup — excluded. */
-.site-style-warm-blueprint-brutalism [class*="rounded-"]:not([class*="rounded-full"]) {
-  border-radius: 2px !important;
-}
-
-/* Hero: no gradient-as-mood, no coloured top border — the accent CTA button
-   is the only "alive" touch this style permits. More air than other cells. */
-.site-style-warm-blueprint-brutalism [data-module="hero"] {
-  background-image: none;
-  padding-block: clamp(2.5rem, 8vw, 4.5rem);
-}
-
-/* Metadata voice: figure captions read as dashed annotation. */
-.site-style-warm-blueprint-brutalism [data-module="gallery"] figcaption {
-  border-top: 1px dashed var(--bp-hairline-strong);
-  padding-top: 0.35rem;
-  font-family: var(--bp-mono);
-  font-size: 0.75rem;
-  letter-spacing: 0.06em;
-}
-
-/* Star ratings speak the annotation voice — mono, tracked, machine-stamped. */
-.site-style-warm-blueprint-brutalism .bp-rating {
-  font-family: var(--bp-mono);
-  letter-spacing: 0.18em;
 }

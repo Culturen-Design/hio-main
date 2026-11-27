@@ -1,9 +1,9 @@
 import type { CustomContent } from "@hio/content-model";
 import type { ComponentPropsWithoutRef } from "react";
 import Markdown, { type Components } from "react-markdown";
-import { cn } from "../cn";
 import type { StyleVariant } from "../style";
-import { cardClasses, headingClasses } from "../variant";
+import { cardClasses } from "../variant";
+import { SectionHeader } from "./SectionHeader";
 
 /** Markdown headings sit under the section's own h2, so they render as h3/h4. */
 const mdComponents: Components = {
@@ -23,14 +23,11 @@ export function CustomModule({
   variant,
 }: { content: CustomContent; variant?: StyleVariant | null }) {
   return (
-    <section
-      data-module="custom"
-      className={cn("mx-auto max-w-[720px] p-6 sm:p-10", cardClasses(variant))}
-    >
-      <h2 className={cn("mt-0 text-xl", headingClasses(variant))}>{content.title}</h2>
+    <section data-module="custom" className={cardClasses(variant)}>
+      <SectionHeader title={content.title} variant={variant} />
       {/* `site-prose` restores list bullets, heading sizes and paragraph
           rhythm that Tailwind's reset strips (see globals.css). */}
-      <div className="site-prose leading-relaxed text-muted-foreground">
+      <div className="site-prose mt-3 leading-relaxed text-muted-foreground">
         <Markdown components={mdComponents}>{content.body}</Markdown>
       </div>
     </section>

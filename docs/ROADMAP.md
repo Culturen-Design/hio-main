@@ -447,6 +447,10 @@ Studio builder width control. **Why:** the owner's brief named concrete defects 
 text, boxed borders, floating dividers, brochure feel) that are cheaper to fix before the walk, so
 the owner reviews a better baseline. **Cost:** none to the schedule; the owner still walks and signs
 off. **Follow-ups:** the items above are listed in the handbook's Findings table for triage.
+**Revision (same day, owner feedback):** the owner was not moved by the first pass: cards were still
+boxes inside boxes, the offset shadows had no purpose, gallery captions had dashed lines, corner
+lines poked out and the margin pattern didn't line up. Claude replaced the per-module styling with
+eight written rules applied to every module and style (`docs/DESIGN-RULES.md`). No scope change.
 
 ### 2026-11-26 — Design & UX review before launch (owner-directed)
 **Change:** after the security pass, the owner asked for a product review before INFRA instead of

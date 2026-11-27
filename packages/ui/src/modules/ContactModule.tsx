@@ -1,7 +1,7 @@
 import type { ContactContent } from "@hio/content-model";
-import { cn } from "../cn";
 import type { StyleVariant } from "../style";
-import { cardClasses, headingClasses } from "../variant";
+import { cardClasses } from "../variant";
+import { SectionHeader } from "./SectionHeader";
 
 /** `tel:` links must not contain spaces or punctuation — keep digits and a leading +. */
 export const telHref = (phone: string): string => `tel:${phone.replace(/[^\d+]/g, "")}`;
@@ -19,25 +19,25 @@ export function ContactModule({
   if (content.hours) rows.push({ label: "Hours", value: content.hours });
 
   return (
-    <section
-      data-module="contact"
-      className={cn("mx-auto max-w-xl p-6 sm:p-10", cardClasses(variant))}
-    >
-      <p className="bp-count" aria-hidden>
-        contact
-      </p>
-      <h2 className={cn("mt-0 text-xl", headingClasses(variant))}>{content.title}</h2>
-      {content.intro && <p className="leading-relaxed text-muted-foreground">{content.intro}</p>}
+    <section data-module="contact" className={cardClasses(variant)}>
+      <SectionHeader
+        count="contact"
+        title={content.title}
+        intro={content.intro}
+        variant={variant}
+      />
+      {content.cta_label && content.cta_url && (
+        <a href={content.cta_url} className="site-button mt-5">
+          {content.cta_label}
+        </a>
+      )}
+      {/* The details are rows of the section's own grid: label, then value,
+          wrapping under the label when the cell is narrow. */}
       {rows.length > 0 && (
-        <dl className="mt-5 grid gap-3">
+        <dl className="site-items">
           {rows.map((r) => (
-            // Wraps on a narrow box: the label stays put and the value drops
-            // below it instead of pushing past the section's edge.
-            <div key={r.label} className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <dt className="w-20 shrink-0 rounded-card border border-border bg-muted px-2 py-1 text-center text-muted-foreground text-xs uppercase tracking-wide">
-                {r.label}
-              </dt>
-              <span className="bp-leader" aria-hidden />
+            <div key={r.label} className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+              <dt className="site-label w-20 shrink-0">{r.label}</dt>
               <dd className="m-0 min-w-0 [overflow-wrap:anywhere]">
                 {r.href ? (
                   <a href={r.href} className="text-foreground underline underline-offset-2">
@@ -50,14 +50,6 @@ export function ContactModule({
             </div>
           ))}
         </dl>
-      )}
-      {content.cta_label && content.cta_url && (
-        <a
-          href={content.cta_url}
-          className="bp-offset bp-cta mt-6 inline-block rounded-[8px] bg-primary px-5 py-2.5 font-semibold text-primary-foreground no-underline"
-        >
-          {content.cta_label}
-        </a>
       )}
     </section>
   );
