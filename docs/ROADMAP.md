@@ -431,6 +431,32 @@ onto tenants too, via expand→migrate→contract), **one generalized** tenant-a
 
 Every approved departure from the original plan, with its reason and cost.
 
+### 2026-11-27 — Site look: page width, working rounding, and a rebuilt editor (owner-directed)
+**Change:** the owner asked for (1) a page-wide width setting in Site look: full screen with no
+margin, or a margin of about 10%, 20% and so on, alongside the per-section widths; (2) a fix for
+Rounding, which did nothing; and (3) a usability review of the whole Site look page. Built as one
+system, with no migration (new keys in the existing `tenants.theme` JSONB, existing RLS):
+- **Page width** (`theme.pageWidth`): Classic (the old fixed 1024px column, the default, so stored
+  sites don't change), Full screen, Wide 5%, Comfortable 10%, Roomy 15%, Narrow 20%. One CSS token
+  (`--margin`, `--sheet-max`); phones keep 16px. Design rule 9 added (width is one token; running
+  text stays near 65 characters).
+- **Rounding:** broken by design rule 5 (square corners), which zeroed every radius. The rule is
+  now "the grid is square; Rounding is for buttons and pictures". Presets: Sharp / Soft / Round,
+  and the old "pill" is read as Round.
+- **Paper** colour preset (Style default / White / Warm / Cool): the theme already had a
+  background field but no control for it. Curated light papers keep each style's text readable.
+- **Editor:** one shared `SiteLookForm` (`@hio/ui/admin`) replaces the two copies (Self-Serve
+  Settings, Studio client page). It has controls grouped as Layout / Colour / Type / Details and
+  shown as pictures. The preview runs at real desktop width (scaled) or phone width, shows the
+  site's own sections, and restyles by message instead of reloading. It adds Discard, Reset to
+  default, a warning on leaving with unsaved changes, and an Open your page link.
+- **One helper** (`sitePageProps`) now builds every page's wrapper class and tokens: the public
+  page, the Studio page and custom domain, and both previews. Before, four places built them by hand.
+**Why:** the owner's direct requests; the rounding bug came from the design-rules pass and is
+fixed at the rule. **Cost:** about two days; no migration, no RLS change. **Not done:** a single
+section breaking out to full screen inside a narrower page (F3). That needs a presentation column
+and an updated `get_public_site`, so it remains a separate, migration-gated item.
+
 ### 2026-11-27 — Builder: collapsible sections and a left component toolbar (owner-directed)
 **Change:** after reviewing the design pass, the owner asked for two builder changes that were not
 in the Design & UX findings: sections that collapse, and a toolbar on the left listing the

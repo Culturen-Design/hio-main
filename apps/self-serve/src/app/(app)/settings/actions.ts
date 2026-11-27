@@ -5,22 +5,12 @@ import type { Json } from "@hio/db";
 import { revalidatePath } from "next/cache";
 import { updateThemeSchema } from "./validation";
 
-export type SettingsActionState = { error: string } | null;
-
-/** Set the caller's site theme (accent/font/radius — the per-site theming MVP).
- *  Direct update rides the tenants_update_member RLS policy (migration 007),
- *  which already scopes writes to a tenant's own members for every tenant kind. */
-export async function updateTheme(
-  _prev: SettingsActionState,
-  formData: FormData,
-): Promise<SettingsActionState> {
-  const parsed = updateThemeSchema.safeParse({
-    accent: formData.get("accent"),
-    font: formData.get("font"),
-    radius: formData.get("radius"),
-    style: formData.get("style"),
-    marginPattern: formData.get("marginPattern"),
-  });
+/** Save the caller's Site look. Called by the shared `SiteLookForm` with the
+ *  whole look; it's re-checked here against the curated options (Zod) and the
+ *  direct update rides the tenants_update_member RLS policy (migration 007),
+ *  which scopes writes to a tenant's own members. */
+export async function updateTheme(input: unknown): Promise<{ error: string } | null> {
+  const parsed = updateThemeSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
 
   const supabase = await createClient();

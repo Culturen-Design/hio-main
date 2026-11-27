@@ -1,22 +1,14 @@
-import {
-  ACCENT_SWATCHES,
-  DEFAULT_THEME,
-  FONT_STACKS,
-  MARGIN_PATTERN_OPTIONS,
-  PREVIEW_SECTIONS,
-  RADIUS_PRESETS,
-  STYLE_OPTIONS,
-  SiteSections,
-  themeToStyle,
-} from "@hio/ui";
+import { createClient } from "@/lib/supabase/server";
+import { type GridSection, PREVIEW_SECTIONS, SiteSections, curatedTheme } from "@hio/ui";
+import { LiveSitePage } from "@hio/ui/admin";
+import { z } from "zod";
 
 /**
- * A live preview of the site-look picker's effect, embedded via `<iframe>` in
- * `ThemeForm` — mirrors Self-Serve's `settings/preview` route exactly (same
- * reasoning: an iframe gives the preview its own viewport, which the Warm
- * Blueprint scaffold's `vw`-relative spacing needs to look right at any
- * embedded size). Carries no per-client data — just the theme values from the
- * query string against fixed sample content — so it needs no auth.
+ * The page inside a client's Site look preview frame — the Studio twin of
+ * Self-Serve's `settings/preview`. Starts from the curated theme in the query
+ * string and follows the form by message. With `?client=<id>`, staff see that
+ * client's own sections (RLS limits the query to tenants they're a member
+ * of); otherwise, or with no sections yet, fixed sample content.
  */
 export default async function ThemePreviewPage({
   searchParams,
@@ -24,27 +16,33 @@ export default async function ThemePreviewPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+  const first = Object.fromEntries(
+    Object.entries(params).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v]),
+  );
+  const theme = curatedTheme(first);
 
-  const accent =
-    ACCENT_SWATCHES.find((s) => s.value === one(params.accent))?.value ?? DEFAULT_THEME.accent;
-  const font = FONT_STACKS.find((f) => f.value === one(params.font))?.value ?? DEFAULT_THEME.font;
-  const radius =
-    RADIUS_PRESETS.find((r) => r.value === one(params.radius))?.value ?? DEFAULT_THEME.radius;
-  const style =
-    STYLE_OPTIONS.find((s) => s.value === one(params.style))?.value ?? DEFAULT_THEME.style;
-  const marginPattern =
-    MARGIN_PATTERN_OPTIONS.find((p) => p.value === one(params.marginPattern))?.value ??
-    DEFAULT_THEME.marginPattern;
-
-  const theme = { accent, font, radius, style, marginPattern };
+  let sections: GridSection[] = PREVIEW_SECTIONS;
+  const clientId = z.string().uuid().safeParse(first.client);
+  if (clientId.success) {
+    const supabase = await createClient();
+    const { data: site } = await supabase
+      .from("sites")
+      .select("id")
+      .eq("tenant_id", clientId.data)
+      .maybeSingle();
+    if (site) {
+      const { data } = await supabase
+        .from("sections")
+        .select("id, type, content, style_variant, width")
+        .eq("site_id", site.id)
+        .order("order");
+      if (data && data.length > 0) sections = data as unknown as GridSection[];
+    }
+  }
 
   return (
-    <main
-      className={`site-public site-style-${style} site-margin-${marginPattern}`}
-      style={{ minHeight: "100vh", ...themeToStyle(theme) }}
-    >
-      <SiteSections sections={PREVIEW_SECTIONS} />
-    </main>
+    <LiveSitePage initial={theme}>
+      <SiteSections sections={sections} />
+    </LiveSitePage>
   );
 }

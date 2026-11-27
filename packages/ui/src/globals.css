@@ -67,11 +67,17 @@ body {
  *     text in a column shares one left edge. Modules carry no padding.
  *  4. Images run to the edges of the cell they sit in (`.site-media` inside
  *     an item, `.site-bleed` at the foot of a section). No frame around them.
- *  5. Square corners. Only a portrait photo may be round (`rounded-full`).
+ *  5. The grid is square. Section cells and item cells share their lines,
+ *     so they never round. The site's Rounding setting applies only to what
+ *     you touch and look at: buttons (`--site-radius-button`) and pictures
+ *     (`--site-radius`). A portrait photo may be fully round (`rounded-full`).
  *  6. Labels are type, not boxes: small, uppercase, muted, tracked.
  *  7. Buttons are a flat accent fill. No shadow, no outline (except the
  *     button's own edge on the dark contact panel, for contrast).
  *  8. The page pattern is drawn by the sheet and lines up with its edges.
+ *  9. Width is one token. The site's Page width setting only sets the side
+ *     margin (`--margin`) and the sheet's cap (`--sheet-max`); everything
+ *     else follows. Running text stays near 65 characters a line at any width.
  */
 .site-public,
 .site-preview {
@@ -86,6 +92,7 @@ body {
    The side margin is a multiple of 8px so the patterns line up (rule 8). */
 .site-public {
   --margin: 16px;
+  --sheet-max: calc(64rem + 1px);
   --page-pad: clamp(1rem, 4vw, 3rem);
   position: relative;
   isolation: isolate;
@@ -103,6 +110,38 @@ body {
   }
 }
 
+/* Rule 9 — page width (`theme.pageWidth`, the wrapper's `site-width-<value>`).
+   "classic" is the defaults above. The share-of-window widths apply from the
+   tablet up; phones keep the 16px margin. "full" has no margin anywhere: the
+   sheet meets the window, so its outer border and the page padding go too. */
+@media (min-width: 48rem) {
+  .site-public.site-width-wide {
+    --margin: 5vw;
+    --sheet-max: 100%;
+  }
+  .site-public.site-width-comfortable {
+    --margin: 10vw;
+    --sheet-max: 100%;
+  }
+  .site-public.site-width-roomy {
+    --margin: 15vw;
+    --sheet-max: 100%;
+  }
+  .site-public.site-width-narrow {
+    --margin: 20vw;
+    --sheet-max: 100%;
+  }
+}
+.site-public.site-width-full {
+  --margin: 0px;
+  --sheet-max: 100%;
+  padding-block: 0;
+}
+.site-public.site-width-full .site-grid {
+  width: 100%;
+  border-width: 0;
+}
+
 /* The sheet. Its outer width is snapped to 8n + 1px so a pattern anchored on
    its left edge also lands exactly on its right edge (browsers without
    `round()` keep the plain width). */
@@ -111,8 +150,8 @@ body {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 1px;
-  width: min(calc(64rem + 1px), 100%);
-  width: min(calc(64rem + 1px), calc(round(down, 100% - 1px, 8px) + 1px));
+  width: min(var(--sheet-max), 100%);
+  width: min(var(--sheet-max), calc(round(down, 100% - 1px, 8px) + 1px));
   margin-inline: auto;
   background-color: var(--line);
   border: 1px solid var(--line);
@@ -194,7 +233,6 @@ body {
   width: calc(100% + 2 * var(--pad));
   max-width: none;
   margin: calc(-1 * var(--pad-item)) calc(-1 * var(--pad)) var(--pad-item);
-  border-radius: 0;
 }
 .site-media:last-child {
   margin-bottom: calc(-1 * var(--pad-item));
@@ -204,7 +242,6 @@ body {
   width: calc(100% + 2 * var(--pad));
   max-width: none;
   margin: var(--pad) calc(-1 * var(--pad)) calc(-1 * var(--pad));
-  border-radius: 0;
 }
 
 /* Rule 6 — labels. */
@@ -222,24 +259,28 @@ body {
   align-items: center;
   min-height: 2.75rem;
   padding: 0.625rem 1.25rem;
-  border-radius: 0;
+  border-radius: var(--site-radius-button, 0);
   background-color: var(--color-primary);
   color: var(--color-primary-foreground);
   font-weight: 600;
   text-decoration: none;
 }
 
-/* Rule 5 — square corners everywhere but a round portrait. */
+/* Rule 5 — pictures take the site's rounding (none by default); a portrait
+   can be fully round. The grid itself never rounds. */
 .site-public img:not(.rounded-full),
 .site-preview img:not(.rounded-full) {
-  border-radius: 0;
+  border-radius: var(--site-radius, 0);
 }
 
-/* Comfortable reading measure for running text, whatever the cell width. */
+/* Rule 9 — a comfortable reading measure for running text, whatever the
+   cell or page width. Headings and pictures use the full width. */
 .site-public section p,
 .site-public section blockquote,
+.site-public .site-prose li,
 .site-preview section p,
-.site-preview section blockquote {
+.site-preview section blockquote,
+.site-preview .site-prose li {
   max-width: 65ch;
 }
 

@@ -116,7 +116,7 @@ describe("updateThemeSchema", () => {
       id,
       accent: "#2563eb",
       font: "ui-sans-serif, system-ui, -apple-system, sans-serif",
-      radius: "pill",
+      radius: "round",
       style: "warm-blueprint-brutalism",
       marginPattern: "diagonal-hatch",
     });

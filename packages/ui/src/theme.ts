@@ -1,7 +1,55 @@
 import type { CSSProperties } from "react";
 
-/** The rounding presets a site can pick (M2-widening per-site theming MVP). */
-export type RadiusPreset = "sharp" | "soft" | "pill";
+/** The rounding presets a site can pick. Rounding applies to the things you
+ *  touch and look at — buttons and images — never to the section grid, whose
+ *  cells share their lines (docs/DESIGN-RULES.md, rule 5). "pill" is the old
+ *  name of "round" and is still read from stored themes. */
+export type RadiusPreset = "sharp" | "soft" | "round";
+
+/**
+ * How wide the whole page is: the side margin around the sheet of sections.
+ * "classic" is the fixed, centred 1024px column every site had before this
+ * setting existed, so stored themes without it render unchanged. The others
+ * set the margin as a share of the window; phones keep a 16px margin (none
+ * for "full"), since a percentage of a phone screen is either nothing or too
+ * much. Each value maps to a `site-width-<value>` class (globals.css).
+ */
+export type PageWidth = "classic" | "full" | "wide" | "comfortable" | "roomy" | "narrow";
+
+/** Page-width options for the picker, in display order. `margin` is the side
+ *  margin on a computer screen, for the picker's label and diagram. */
+export const PAGE_WIDTH_OPTIONS: ReadonlyArray<{
+  name: string;
+  value: PageWidth;
+  margin: number;
+  hint: string;
+}> = [
+  { name: "Classic", value: "classic", margin: -1, hint: "A centred 1024px column" },
+  { name: "Full screen", value: "full", margin: 0, hint: "Edge to edge, no margin" },
+  { name: "Wide", value: "wide", margin: 5, hint: "5% margin each side" },
+  { name: "Comfortable", value: "comfortable", margin: 10, hint: "10% margin each side" },
+  { name: "Roomy", value: "roomy", margin: 15, hint: "15% margin each side" },
+  { name: "Narrow", value: "narrow", margin: 20, hint: "20% margin each side" },
+];
+
+const PAGE_WIDTH_VALUES: readonly string[] = PAGE_WIDTH_OPTIONS.map((o) => o.value);
+
+/**
+ * The page's paper colour. "default" keeps the page style's own paper; the
+ * others are light papers that keep every style's ink, muted text and line
+ * colours readable (each is at least as light as the styles' own papers, so
+ * contrast only improves). Stored as a preset name, never a free colour.
+ */
+export type Paper = "default" | "white" | "warm" | "cool";
+
+export const PAPER_OPTIONS: ReadonlyArray<{ name: string; value: Paper; color?: string }> = [
+  { name: "Style default", value: "default" },
+  { name: "White", value: "white", color: "#ffffff" },
+  { name: "Warm", value: "warm", color: "#fbf7ef" },
+  { name: "Cool", value: "cool", color: "#f6f8fa" },
+];
+
+const PAPER_VALUES: readonly string[] = PAPER_OPTIONS.map((o) => o.value);
 
 /**
  * The page-level "look system" a site can pick — a distinct theme dimension from
@@ -14,9 +62,27 @@ export type RadiusPreset = "sharp" | "soft" | "pill";
 export type SiteStyle = "warm-blueprint-brutalism" | "stone-slate";
 
 /** Curated style options for the picker, in display order. */
-export const STYLE_OPTIONS: ReadonlyArray<{ name: string; value: SiteStyle }> = [
-  { name: "Warm Blueprint (default)", value: "warm-blueprint-brutalism" },
-  { name: "Stone & Slate (classic)", value: "stone-slate" },
+export const STYLE_OPTIONS: ReadonlyArray<{
+  name: string;
+  value: SiteStyle;
+  /** One line for the picker. */
+  hint: string;
+  /** The style's own paper, ink, line colour and type, for the picker tile
+   *  (mirrors its `.site-style-<value>` block in globals.css). */
+  swatch: { paper: string; ink: string; line: string; font: string };
+}> = [
+  {
+    name: "Warm Blueprint",
+    value: "warm-blueprint-brutalism",
+    hint: "Warm paper, serif headings, drawing-office details",
+    swatch: { paper: "#faf8f4", ink: "#2a2420", line: "#cbbfa8", font: "Georgia, serif" },
+  },
+  {
+    name: "Stone & Slate",
+    value: "stone-slate",
+    hint: "Calm stone and slate, plain sans type",
+    swatch: { paper: "#fafaf9", ink: "#1c1917", line: "#cbd5e1", font: "system-ui, sans-serif" },
+  },
 ];
 
 /**
@@ -61,6 +127,10 @@ export interface SiteTheme {
   style?: SiteStyle;
   /** Geometric fill for the page margin (see `MarginPattern`). */
   marginPattern?: MarginPattern;
+  /** How wide the whole page is (see `PageWidth`). */
+  pageWidth?: PageWidth;
+  /** Paper colour preset (see `Paper`). */
+  paper?: Paper;
 }
 
 /** Curated accent swatches (not a free color picker) — each pairs a Tailwind-
@@ -88,27 +158,50 @@ export const FONT_STACKS: ReadonlyArray<{ name: string; value: string }> = [
  *  first entry of each curated list, named so callers don't index into the
  *  arrays themselves (arrays are indexable-undefined under strict TS). */
 export const DEFAULT_THEME: Required<
-  Pick<SiteTheme, "accent" | "font" | "radius" | "style" | "marginPattern">
+  Pick<SiteTheme, "accent" | "font" | "radius" | "style" | "marginPattern" | "pageWidth" | "paper">
 > = {
   accent: ACCENT_SWATCHES[0]?.value ?? "#0f172a",
   font: FONT_STACKS[0]?.value ?? "ui-sans-serif, system-ui, -apple-system, sans-serif",
   radius: "soft",
   style: "warm-blueprint-brutalism",
   marginPattern: "none",
+  pageWidth: "classic",
+  paper: "default",
 };
+
+/** A theme with every picker field filled — stored values, else defaults. */
+export type ResolvedTheme = typeof DEFAULT_THEME;
+
+export function resolveTheme(theme: SiteTheme): ResolvedTheme {
+  return {
+    accent: theme.accent ?? DEFAULT_THEME.accent,
+    font: theme.font ?? DEFAULT_THEME.font,
+    radius: theme.radius ?? DEFAULT_THEME.radius,
+    style: theme.style ?? DEFAULT_THEME.style,
+    marginPattern: theme.marginPattern ?? DEFAULT_THEME.marginPattern,
+    pageWidth: theme.pageWidth ?? DEFAULT_THEME.pageWidth,
+    paper: theme.paper ?? DEFAULT_THEME.paper,
+  };
+}
 
 /** Rounding presets offered in the picker, mapped to the `--radius-card` value. */
 export const RADIUS_PRESETS: ReadonlyArray<{ name: string; value: RadiusPreset }> = [
   { name: "Sharp", value: "sharp" },
-  { name: "Soft (default)", value: "soft" },
-  { name: "Pill", value: "pill" },
+  { name: "Soft", value: "soft" },
+  { name: "Round", value: "round" },
 ];
 
-const RADIUS_VALUES: Record<RadiusPreset, string> = {
-  sharp: "0.125rem",
-  soft: "0.75rem",
-  pill: "9999px",
+/** Corner radius for images (`--site-radius`) and buttons (`--site-radius-button`). */
+const RADIUS_VALUES: Record<RadiusPreset, { media: string; button: string }> = {
+  sharp: { media: "0px", button: "0px" },
+  soft: { media: "6px", button: "6px" },
+  round: { media: "14px", button: "9999px" },
 };
+
+function parseRadius(v: unknown): RadiusPreset | undefined {
+  if (v === "pill") return "round";
+  return v === "sharp" || v === "soft" || v === "round" ? v : undefined;
+}
 
 /**
  * Parse an unknown JSON value (the free-form `theme` JSONB from the DB) into a
@@ -128,11 +221,19 @@ export function parseSiteTheme(value: unknown): SiteTheme {
     background: pick("background"),
     foreground: pick("foreground"),
     font: pick("font"),
-    radius: radius === "sharp" || radius === "soft" || radius === "pill" ? radius : undefined,
+    radius: parseRadius(radius),
     style: style === "warm-blueprint-brutalism" || style === "stone-slate" ? style : undefined,
     marginPattern:
       typeof marginPattern === "string" && MARGIN_PATTERN_VALUES.includes(marginPattern)
         ? (marginPattern as MarginPattern)
+        : undefined,
+    pageWidth:
+      typeof v.pageWidth === "string" && PAGE_WIDTH_VALUES.includes(v.pageWidth)
+        ? (v.pageWidth as PageWidth)
+        : undefined,
+    paper:
+      typeof v.paper === "string" && PAPER_VALUES.includes(v.paper)
+        ? (v.paper as Paper)
         : undefined,
   };
 }
@@ -156,6 +257,62 @@ export function themeToStyle(theme: SiteTheme): CSSProperties {
     style["--color-primary-foreground"] =
       ACCENT_SWATCHES.find((s) => s.value === theme.accent)?.foreground ?? "#ffffff";
   }
-  if (theme.radius) style["--radius-card"] = RADIUS_VALUES[theme.radius];
+  if (theme.radius) {
+    const r = RADIUS_VALUES[theme.radius];
+    style["--radius-card"] = r.media;
+    style["--site-radius"] = r.media;
+    style["--site-radius-button"] = r.button;
+  }
+  const paper = PAPER_OPTIONS.find((p) => p.value === theme.paper)?.color;
+  if (paper) style["--color-background"] = paper;
   return style;
 }
+
+/**
+ * Everything a public page (or a preview of one) needs on its wrapper:
+ * the shared `site-public` structure plus one class per theme dimension, and
+ * the inline custom properties. The ONE place a theme becomes page styling,
+ * so the published page, custom domains and every preview can't drift apart.
+ */
+export function sitePageProps(theme: SiteTheme): { className: string; style: CSSProperties } {
+  const t = resolveTheme(theme);
+  return {
+    className: [
+      "site-public",
+      `site-style-${t.style}`,
+      `site-margin-${t.marginPattern}`,
+      `site-width-${t.pageWidth}`,
+    ].join(" "),
+    style: themeToStyle(t),
+  };
+}
+
+/** Builder previews: the style classes only (no page structure or width). */
+export function sitePreviewClassName(theme: SiteTheme): string {
+  const t = resolveTheme(theme);
+  return `site-style-${t.style} site-margin-${t.marginPattern}`;
+}
+
+/**
+ * A fully resolved theme that keeps ONLY curated values: anything not offered
+ * by a picker falls back to the default. For input that never went through a
+ * server-side Zod check — preview query strings and preview messages — so a
+ * crafted URL can only ever show a look the picker could have produced.
+ */
+export function curatedTheme(value: unknown): ResolvedTheme {
+  const v = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
+  const one = <T extends string>(opts: ReadonlyArray<{ value: T }>, x: unknown, d: T): T =>
+    opts.find((o) => o.value === x)?.value ?? d;
+  return {
+    accent: one(ACCENT_SWATCHES, v.accent, DEFAULT_THEME.accent),
+    font: one(FONT_STACKS, v.font, DEFAULT_THEME.font),
+    radius: one(RADIUS_PRESETS, parseRadius(v.radius), DEFAULT_THEME.radius),
+    style: one(STYLE_OPTIONS, v.style, DEFAULT_THEME.style),
+    marginPattern: one(MARGIN_PATTERN_OPTIONS, v.marginPattern, DEFAULT_THEME.marginPattern),
+    pageWidth: one(PAGE_WIDTH_OPTIONS, v.pageWidth, DEFAULT_THEME.pageWidth),
+    paper: one(PAPER_OPTIONS, v.paper, DEFAULT_THEME.paper),
+  };
+}
+
+/** The message a Site look form posts to its preview frame. */
+export const THEME_PREVIEW_MESSAGE = "hio:theme-preview";

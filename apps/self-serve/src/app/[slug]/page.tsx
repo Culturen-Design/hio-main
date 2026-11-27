@@ -1,12 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { ModuleType } from "@hio/content-model";
-import {
-  DEFAULT_THEME,
-  SiteSections,
-  type StyleVariant,
-  parseSiteTheme,
-  themeToStyle,
-} from "@hio/ui";
+import { SiteSections, type StyleVariant, parseSiteTheme, sitePageProps } from "@hio/ui";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
@@ -50,17 +44,12 @@ export default async function PublicPage({ params }: { params: Promise<{ slug: s
   const { slug } = await params;
   const site = await fetchSite(slug);
   if (!site) notFound();
-  const theme = parseSiteTheme(site.theme);
-  const styleId = theme.style ?? DEFAULT_THEME.style;
-  const marginPattern = theme.marginPattern ?? DEFAULT_THEME.marginPattern;
+  const page = sitePageProps(parseSiteTheme(site.theme));
   // The hero renders the page's <h1>; without one, give screen readers a title.
   const hasHero = site.sections.some((s) => s.type === "hero");
 
   return (
-    <main
-      className={`site-public site-style-${styleId} site-margin-${marginPattern}`}
-      style={themeToStyle(theme)}
-    >
+    <main className={page.className} style={page.style}>
       {!hasHero && <h1 className="sr-only">{site.title?.trim() || slug}</h1>}
       <SiteSections sections={site.sections} />
     </main>

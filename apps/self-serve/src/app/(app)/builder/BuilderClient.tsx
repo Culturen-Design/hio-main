@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/client";
 import type { Json } from "@hio/db";
-import { DEFAULT_THEME, parseSiteTheme, themeToStyle } from "@hio/ui";
+import { parseSiteTheme, sitePreviewClassName, themeToStyle } from "@hio/ui";
 import {
   Badge,
   BuilderCanvas,
@@ -125,7 +125,7 @@ export function BuilderClient({
       sections={sections}
       palette={palette}
       canvasStyle={themeToStyle(siteTheme)}
-      previewClassName={`site-style-${siteTheme.style ?? DEFAULT_THEME.style}`}
+      previewClassName={sitePreviewClassName(siteTheme)}
       widthRanges={widthRanges}
       onAdd={addModule}
       onDelete={deleteSection}
