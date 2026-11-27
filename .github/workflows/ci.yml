@@ -22,7 +22,12 @@ jobs:
           node-version: 20
           cache: npm
 
+      # .npmrc pulls @culturen-design/* (design tokens) from GitHub Packages.
+      # GH_PACKAGES_TOKEN is a PAT with read:packages; falls back to
+      # GITHUB_TOKEN, which works once the package grants this repo access.
       - run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN || secrets.GITHUB_TOKEN }}
 
       # One Turborepo pass runs lint + typecheck + test + build across every
       # workspace (apps + packages), with caching. Placeholder public env lets the
