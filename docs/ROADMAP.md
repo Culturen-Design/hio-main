@@ -431,6 +431,26 @@ onto tenants too, via expand→migrate→contract), **one generalized** tenant-a
 
 Every approved departure from the original plan, with its reason and cost.
 
+### 2026-11-27 — Sign-up and password emails done properly (owner-reported, F24 + part of F17)
+**Change:** the owner signed up on dev with an email that already had an account and got
+"Account created — check your email" but no email. Supabase deliberately sends nothing on a
+repeated sign-up (it hides whether an account exists), and the app had no confirm route, no resend
+and no password reset. Fixed in Self-Serve:
+- a "Check your inbox" screen after sign-up, with a Resend button (once a minute) and, always, "Already
+  have an account? Log in or reset your password". It's the same screen in both cases, so it never
+  reveals whether an account exists;
+- an `/auth/confirm` route that signs the user in from an email link (both `token_hash` and `code`
+  links) and opens the dashboard with a welcome. Only our own paths are allowed as the next page;
+- Forgot password → reset email → "Choose a new password", which signs out everywhere afterwards;
+- plain-language messages for every auth error instead of Supabase's raw text, with Resend offered
+  when an email isn't confirmed.
+No migration. **Owner settings** (in `ENVIRONMENTS.md`, "Auth emails"): add `/auth/confirm` to
+Supabase's Redirect URLs. Recommended: switch the two email templates to `token_hash` links.
+**Before launch** (Phase 4): connect a real email service, because Supabase's built-in sender is for
+testing only. **Why:** a broken first step loses users before they see the product. **Cost:** about
+half a day. **Not done:** an account settings page (the rest of F17), and Studio's staff login,
+which still uses the old messages.
+
 ### 2026-11-27 — Site look: page width, working rounding, and a rebuilt editor (owner-directed)
 **Change:** the owner asked for (1) a page-wide width setting in Site look: full screen with no
 margin, or a margin of about 10%, 20% and so on, alongside the per-section widths; (2) a fix for

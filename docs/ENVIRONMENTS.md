@@ -65,6 +65,31 @@ map a domain on a client's settings page, publish the site, then either
 `curl -H "Host: theclient.com" http://localhost:3001/` (renders that client's site), or add
 `127.0.0.1 theclient.com` to your OS hosts file and visit `http://theclient.com:3001/`.
 
+## Auth emails (Supabase Auth settings, per project)
+
+The Self-Serve app sends people through `/auth/confirm` after every auth email
+(sign-up confirmation, password reset). Set these in each Supabase project
+(dashboard → Authentication), dev and prod alike:
+
+- **URL Configuration → Site URL:** the app's main address (dev: `https://build.hio.space`).
+- **URL Configuration → Redirect URLs:** add `https://<app domain>/auth/confirm` (and
+  `http://localhost:3000/auth/confirm` on dev). A link to an address not on this list falls
+  back to the Site URL and the user lands without being signed in.
+- **Email Templates (recommended):** so links work when opened on another device, change the
+  link in *Confirm signup* to
+  `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/dashboard?welcome=1`
+  and in *Reset Password* to
+  `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password`.
+  The route also accepts Supabase's default links (`?code=`), which only work in the browser
+  where the request was made.
+- **SMTP Settings (prod, before launch):** Supabase's built-in sender is for testing. It sends
+  only a few emails an hour and may deliver only to the project team's addresses. Connect a
+  real email service (Resend, Postmark, SES…) with a sender on the hio domain.
+
+A repeated sign-up with an existing email gets a normal-looking success and **no email** (Supabase
+hides whether an account exists). The "Check your inbox" screen therefore always offers "log in
+or reset your password" instead of promising an email.
+
 ## Netlify sites
 
 Team **`culturenteam`** (`https://app.netlify.com/teams/culturenteam`), free tier. **One site per
