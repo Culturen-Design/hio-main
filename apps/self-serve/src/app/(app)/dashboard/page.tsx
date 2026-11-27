@@ -12,7 +12,12 @@ import {
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const { welcome } = await searchParams;
   const supabase = await createClient();
 
   const {
@@ -45,6 +50,18 @@ export default async function DashboardPage() {
         title="Dashboard"
         description="Your page at a glance. Edit it in the builder, change its look in Site look."
       />
+
+      {welcome === "1" && (
+        <output className="mb-4 block rounded-xl border border-border bg-background px-4 py-3 text-sm">
+          <strong className="font-semibold text-foreground">
+            Welcome to hio — your email is confirmed.
+          </strong>{" "}
+          <span className="text-muted-foreground">
+            We've started your page with a headline. Open the builder to add sections, or ask the AI
+            to write a first draft.
+          </span>
+        </output>
+      )}
 
       {site ? (
         <Card>
