@@ -1,8 +1,9 @@
+import { publicEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
-import { DEFAULT_THEME, parseSiteTheme } from "@hio/ui";
-import { Container, PageHeader } from "@hio/ui/admin";
+import { parseSiteTheme, resolveTheme } from "@hio/ui";
+import { Container, PageHeader, SiteLookForm } from "@hio/ui/admin";
 import { redirect } from "next/navigation";
-import { SettingsForm } from "./SettingsForm";
+import { updateTheme } from "./actions";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -13,26 +14,27 @@ export default async function SettingsPage() {
 
   const { data: tenant } = await supabase
     .from("tenants")
-    .select("theme")
+    .select("theme, sites(slug)")
     .eq("kind", "self_serve")
     .maybeSingle();
   if (!tenant) redirect("/dashboard");
 
-  const theme = parseSiteTheme(tenant.theme);
+  const slug = tenant.sites?.[0]?.slug;
+  const livePageHref = slug
+    ? new URL(`/${slug}`, publicEnv.NEXT_PUBLIC_SITE_URL).toString()
+    : undefined;
 
   return (
-    <Container>
+    <Container size="wide">
       <PageHeader
         title="Site look"
-        description="How your public page looks — every change previews live before you save."
+        description="How your public page looks. The preview shows your own page and follows every change before you save."
       />
-
-      <SettingsForm
-        accent={theme.accent ?? DEFAULT_THEME.accent}
-        font={theme.font ?? DEFAULT_THEME.font}
-        radius={theme.radius ?? DEFAULT_THEME.radius}
-        style={theme.style ?? DEFAULT_THEME.style}
-        marginPattern={theme.marginPattern ?? DEFAULT_THEME.marginPattern}
+      <SiteLookForm
+        initial={resolveTheme(parseSiteTheme(tenant.theme))}
+        onSave={updateTheme}
+        previewSrc="/settings/preview"
+        livePageHref={livePageHref}
       />
     </Container>
   );

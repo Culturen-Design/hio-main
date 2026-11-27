@@ -1,13 +1,21 @@
 import { createClient } from "@/lib/supabase/server";
-import { DEFAULT_THEME, parseSiteTheme } from "@hio/ui";
-import { Badge, Card, CardTitle, Container, PageHeader, buttonClasses } from "@hio/ui/admin";
+import { parseSiteTheme, resolveTheme } from "@hio/ui";
+import {
+  Badge,
+  Card,
+  CardTitle,
+  Container,
+  PageHeader,
+  SiteLookForm,
+  buttonClasses,
+} from "@hio/ui/admin";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ClientSettingsForm } from "../ClientSettingsForm";
 import { CustomDomainForm } from "../CustomDomainForm";
 import { PublishControls } from "../PublishControls";
-import { ThemeForm } from "../ThemeForm";
 import { VersionList } from "../VersionList";
+import { updateTenantTheme } from "../actions";
 
 export default async function ClientSettingsPage({
   params,
@@ -108,13 +116,12 @@ export default async function ClientSettingsPage({
 
         <Card>
           <CardTitle>Site look</CardTitle>
-          <ThemeForm
-            id={client.id}
-            accent={theme.accent ?? DEFAULT_THEME.accent}
-            font={theme.font ?? DEFAULT_THEME.font}
-            radius={theme.radius ?? DEFAULT_THEME.radius}
-            style={theme.style ?? DEFAULT_THEME.style}
-            marginPattern={theme.marginPattern ?? DEFAULT_THEME.marginPattern}
+          <SiteLookForm
+            initial={resolveTheme(theme)}
+            onSave={updateTenantTheme.bind(null, client.id)}
+            previewSrc={`/clients/preview?client=${client.id}`}
+            livePageHref={site?.is_published ? `/sites/${site.slug}` : undefined}
+            savedMessage="Site look saved"
           />
         </Card>
 

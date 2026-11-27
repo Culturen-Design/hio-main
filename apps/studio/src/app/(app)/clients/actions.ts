@@ -119,22 +119,15 @@ export async function setCustomDomain(
   return null;
 }
 
-/** Set a client's theme (accent/font/radius — the per-site theming MVP). Direct
- *  update rides tenants_update_member RLS; scoped to studio_client to keep this
- *  off self_serve tenants. Merges onto the existing theme so unrelated keys
- *  (e.g. a future manually-set background/foreground) survive. */
+/** Save a client's Site look. Bound to the client id by the page and called by
+ *  the shared `SiteLookForm` with the whole look; re-checked with Zod, gated to
+ *  agency staff, and the update rides tenants_update_member RLS, scoped to
+ *  studio_client. Merges onto the existing theme so unrelated keys survive. */
 export async function updateTenantTheme(
-  _prev: ClientActionState,
-  formData: FormData,
-): Promise<ClientActionState> {
-  const parsed = updateThemeSchema.safeParse({
-    id: formData.get("id"),
-    accent: formData.get("accent"),
-    font: formData.get("font"),
-    radius: formData.get("radius"),
-    style: formData.get("style"),
-    marginPattern: formData.get("marginPattern"),
-  });
+  clientId: string,
+  input: unknown,
+): Promise<{ error: string } | null> {
+  const parsed = updateThemeSchema.safeParse({ ...(input as object), id: clientId });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
 
   const staff = await requireStaff();
