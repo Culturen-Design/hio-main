@@ -431,6 +431,20 @@ onto tenants too, via expand→migrate→contract), **one generalized** tenant-a
 
 Every approved departure from the original plan, with its reason and cost.
 
+### 2026-11-27 — Builder: collapsible sections and a left component toolbar (owner-directed)
+**Change:** after reviewing the design pass, the owner asked for two builder changes that were not
+in the Design & UX findings: sections that collapse, and a toolbar on the left listing the
+components to add, replacing the "Add a section" row above the canvas. Built in the shared
+`BuilderCanvas`, so Self-Serve and Studio both get them. Section cards collapse to one line (name
+plus a summary such as "My services · 3 services"), with Collapse all / Expand all, and the choice is
+remembered per site in the browser. The left pane lists the site's palette with an icon and a short
+description. Click a component to add it at the end, or drag it onto a section to insert it before
+that section. The pane collapses to a strip like the AI pane; below `lg` it becomes an "Add a
+section" disclosure. The add actions in both apps take an optional, Zod-checked position: they
+insert at the end, then reuse the existing membership-gated reorder. **Why:** the owner's direct
+request; the builder is the screen users spend the most time in. **Cost:** about a day; no
+migration, no RLS change. Separate PR stacked on the design pass.
+
 ### 2026-11-27 — Design review: Claude reviews and fixes before the owner's walk-through (owner-directed)
 **Change:** inside the Design & UX phase, the owner asked Claude to walk the dev site, run audit
 agents (public page, editor UX, accessibility) and implement improvements locally overnight,

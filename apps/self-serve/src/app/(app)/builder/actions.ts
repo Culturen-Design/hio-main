@@ -36,7 +36,14 @@ async function requireSite() {
   };
 }
 
-export async function addModule(type: ModuleType): Promise<ActionResult> {
+/** Optional drop position from the builder's component toolbar. */
+const atIndexInput = z.number().int().min(0).max(1000).optional();
+
+/** Adds a section at the end, or before the section at `atIndex` when the
+ *  module was dropped in place from the component toolbar. */
+export async function addModule(type: ModuleType, atIndex?: number): Promise<ActionResult> {
+  const pos = atIndexInput.safeParse(atIndex);
+  if (!pos.success) return { error: "That position isn't valid. Please try again." };
   const { supabase, tenant, site } = await requireSite();
   const def = selfServeSchema.getModule(type);
   if (!def) return { error: "That section type isn't available." };
@@ -48,15 +55,24 @@ export async function addModule(type: ModuleType): Promise<ActionResult> {
 
   // RLS (sections_insert_self_serve_member) enforces tenant membership + the tier
   // gate (allowed_module_types) on insert — defense in depth.
-  const { error } = await supabase.from("sections").insert({
-    tenant_id: tenant.id,
-    site_id: site.id,
-    type,
-    content: def.defaults as Json,
-    width: def.width[1],
-    order: count ?? 0,
-  });
+  const { data: added, error } = await supabase
+    .from("sections")
+    .insert({
+      tenant_id: tenant.id,
+      site_id: site.id,
+      type,
+      content: def.defaults as Json,
+      width: def.width[1],
+      order: count ?? 0,
+    })
+    .select("id")
+    .single();
   if (error) return { error: friendlyError("add", error) };
+  // Dropped in place: move it from the end to its slot with the same
+  // membership-gated reorder the drag handle uses.
+  if (pos.data !== undefined && pos.data < (count ?? 0)) {
+    return moveSection(added.id, pos.data);
+  }
   revalidatePath("/builder");
   return { ok: true };
 }
