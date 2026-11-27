@@ -1,0 +1,160 @@
+# `@hio/content-model` — the frozen seam (v1.7.0)
+
+This package is **the pluggable seam** between the two products and the one engine.
+`@hio/ai-engine` and both apps depend on the contract defined here. As of the **M3
+seam-freeze** (2026-06-20, `@hio/content-model@1.0.0`) this contract is **stable**:
+Studio (M4) builds on it without it churning. **v1.1.0** (M4.2, 2026-06-21) adds the
+per-tenant provider resolver (`MODULE_REGISTRY` + `resolveProvider`/`resolveVariant`)
+— an **additive, minor** change that grows the seam without touching the frozen surface
+(see [change protocol](#change-protocol-the-freeze-is-social--documentary)).
+
+> Freeze ratified by the M3 gate: the `SchemaProvider` / `ModuleDefinition` /
+> `AiToolDescriptor` contract is good enough for Studio to resolve a provider
+> **per client** (provider + allowed modules + per-client tools) with **zero engine
+> code change**. Proven by `packages/ai-engine/src/contract.test.ts`.
+
+## What "frozen" means
+
+Freeze the **shapes, not the instances.** The whole point of the seam is that
+providers and modules grow — that growth is _not_ a contract change.
+
+### 🔒 Frozen surface — changing it is a breaking change (see protocol)
+- `SchemaProvider` — `{ id, modules, getModule(type), allTools() }`
+- `ModuleDefinition<T>` — `{ type, label, contentSchema, defaults, width, aiTools }`
+- `AiToolDescriptor` — `{ name, description, inputSchema, moduleType, op }`
+- `AiToolOp` — the `appendItem | updateItem | removeItem` interpreter semantics the
+  engine applies. Adding a **new op kind** is additive (minor); changing an existing
+  one's fields/meaning is breaking.
+- `createSchemaProvider(id, modules)` and its enforced invariants (below).
+- The engine's consumption contract in `@hio/ai-engine`: `buildClaudeTools`,
+  `validateToolInput`, `executeTool`, the `SectionStore` port, `PROTECTED_FIELDS`,
+  and the built-in `update_module_content` tool (name reserved via
+  `RESERVED_TOOL_NAMES`).
+
+### 🌱 Not frozen — expected to grow (this _is_ the pluggability)
+- The **set of modules** and concrete content schemas (adding `services`, `contact`,
+  `gallery`, `testimonial`, …). New modules are additive, not contract changes.
+- Concrete **providers**: `selfServeSchema` is one instance; Studio adds one per client.
+- Per-module `defaults`, `width`, descriptions, and `aiTools` lists.
+- **Provider resolution (added v1.1.0, M4.2):** `MODULE_REGISTRY` (the registry of built
+  modules, keyed by `ModuleType`), `MODULE_BUNDLES` (named module sets keyed by a tenant's
+  `schema_variant`), and `resolveProvider(id, enabledTypes)` / `resolveVariant(id, variant)`
+  which build a per-tenant `SchemaProvider` over `createSchemaProvider`. These are
+  **resolution helpers above** the frozen surface — they produce a `SchemaProvider`, they
+  do not change its shape. Registering a new module or adding a new bundle/variant is
+  additive growth, not a contract change. **Storage decision (M4.2):** a tenant's enabled
+  module set is its `tenants.schema_variant` (a named bundle), not a per-tenant column — a
+  granular `enabled_modules` override stays a future *additive* option.
+
+## Enforced invariants
+
+`createSchemaProvider` fails loudly at construction (never at request time) if:
+1. two modules share a `type`,
+2. two AI tools share a `name`, or
+3. a tool name collides with a reserved engine tool (`RESERVED_TOOL_NAMES`).
+
+A malformed provider therefore can't reach the engine, where a name collision
+would otherwise resolve silently last-wins.
+
+## Deliberate boundaries (decided at the M3 gate, 2026-06-20)
+
+- **Module-type space is CLOSED.** `ModuleType` is the fixed `MODULE_TYPES` union
+  (mirrored by the DB `module_type` enum). Products pick from it; **`custom` is the
+  escape hatch** for bespoke content. Opening the space to arbitrary per-client types
+  is a deferred **M4+** decision (it would also reshape the DB enum).
+- **Theme is OUT of scope.** This package is presentation-free — content + AI
+  capabilities only. `StyleVariant` and all styling live in `@hio/ui`, resolved next
+  to the active provider. A provider carries **no** theme field.
+- **"Allowed modules" = `provider.modules`.** The provider's module list is the
+  authority on what exists. _Enforcement_ is per-product: Self-Serve gates by tier via
+  DB RLS (`allowed_module_types()`); Studio (M4) gates per client via its per-client
+  provider plus the forthcoming tenancy RLS.
+
+## How the engine consumes the seam
+
+`@hio/ai-engine` is product-agnostic. It is handed a `SchemaProvider` and:
+1. `buildClaudeTools(provider)` → the built-in `update_module_content` + one Claude
+   tool per `AiToolDescriptor` (JSON Schema generated from each `inputSchema`).
+2. `validateToolInput(provider, name, input)` → server-side Zod validation.
+3. `executeTool(...)` → interprets the descriptor's `op` against the section content,
+   re-validates against the module's `contentSchema`, and persists via `SectionStore`.
+
+The engine **never hard-codes module types.** Self-Serve passes `selfServeSchema`;
+Studio passes a per-client provider. Same engine, different tools.
+
+## Change protocol (the freeze is social + documentary)
+
+There is no automated gate that can judge "is this contract change OK" — protection
+is the rule below + the deviation log.
+
+1. **Additive change** (new module, new op kind, new optional field): allowed; bump the
+   **minor** version. Keep `contract.test.ts` green.
+2. **Breaking change** to any 🔒 item: **stop and propose it** (what + why) for a human
+   decision per `CLAUDE.md` rule 6, log a dated entry in
+   [`docs/ROADMAP.md`](../../docs/ROADMAP.md) Deviation log, bump the **major** version,
+   and update this file.
+3. `contract.test.ts` is the regression guard for the freeze. If a change makes it fail,
+   that is the signal you are touching the frozen surface — go to step 2.
+
+### Change log
+
+- **v1.7.0 — 2026-07-05 (M2 widening, additive/minor — AI section CRUD reservations).** The engine
+  gained two new BUILT-IN tools, `add_section` and `remove_section` (owner-directed: the AI helper must
+  be able to add/remove whole sections and populate new ones across every field). This package's only
+  change: both names appended to `RESERVED_TOOL_NAMES` so no provider can shadow them — the same
+  reservation `update_module_content` has had since v1.0.0. Engine-side (`@hio/ai-engine` 0.2.0,
+  documented here because the consumption contract is part of the freeze): `SectionStore` gained
+  **optional** `insertSection`/`deleteSection` methods (a store that omits them makes the new tools
+  report "not supported"; existing stores compile unchanged), `buildClaudeTools` emits the two new
+  built-ins with the type enum drawn from the ACTIVE provider's module set, and a new
+  `buildSchemaContext(provider)` renders each enabled module's content JSON Schema for the system
+  prompt. Additive on every axis; no 🔒 frozen item changed shape; `contract.test.ts` stays green.
+- **v1.6.0 — 2026-07-05 (M2 widening, additive/minor — per-module content expansion).** Owner-directed
+  pass over all 9 module types, adding the content fields a small business/freelancer actually needs —
+  **every new field optional**, so existing rows keep validating unchanged. `hero`: `supporting_text`,
+  `image_url`/`image_alt` (banner image — pasted URL, same no-upload precedent as Gallery). `bio`:
+  `tagline`, plus a `facts` quick-facts collection (`bioFactSchema`, label+value, max 8) with
+  `add_fact`/`update_fact`/`remove_fact` AI tools (`bioAiTools` — bio's first collection, standard
+  append/update/remove ops). `links`/`calendar`/`gallery`/`testimonial`/`services`: an optional `intro`
+  lead-in paragraph. `contact`: `hours` + `cta_label`/`cta_url` (booking CTA). `services`: section-level
+  `columns` (1|2|3 — optional, absent = the historical single-column list) and per-item `icon`,
+  `image_url`/`image_alt`, `link_url`/`link_label` (grid items must read as intentional with or without
+  icon/image — owner requirement). `testimonial` items: `rating` (1–5 int). `custom` deliberately
+  unchanged (title + markdown body already covers bespoke content — markdown handles images/links).
+  No 🔒 frozen item changed; `contract.test.ts` stays green.
+- **v1.5.0 — 2026-07-04 (M2 widening, additive/minor — the last module type).** Built the `custom`
+  module (`customSchema` + `CustomContent` + `customModule`), the escape hatch called out at the M3
+  gate. Deliberately minimal: `title` + a markdown `body` (max 5000 chars). No new AI tools — a
+  plain-text module edited via the built-in `update_module_content`, same pattern as `contact`/`bio`.
+  Registered in `MODULE_REGISTRY` and added to the `self-serve` bundle (paid-gated by RLS; the DB
+  `allowed_module_types()` already listed `custom` as paid-only since migration `004`, so no schema
+  change). `@hio/ui`'s `CustomModule` renders `body` through `react-markdown` with no `rehype-raw`
+  plugin — pasted HTML/script tags render as inert text, never execute (the module is a markdown
+  renderer, not an HTML renderer — see the component's doc comment). **All 9 module types are now
+  built.** No 🔒 frozen item changed; `contract.test.ts` stays green.
+- **v1.4.0 — 2026-06-22 (M2 widening, additive/minor).** Built the `gallery` and `testimonial`
+  modules, both **collection** modules. `gallery` (`galleryImageSchema`/`gallerySchema`) is an
+  image-URL grid with `add_image`/`update_image`/`remove_image` (users paste hosted URLs — no upload
+  pipeline; Supabase Storage upload is a future enhancement). `testimonial`
+  (`testimonialItemSchema`/`testimonialSchema`) is a quote list with
+  `add_testimonial`/`update_testimonial`/`remove_testimonial`. Both registered in `MODULE_REGISTRY` and
+  added to the `self-serve` bundle (paid-gated by RLS). Only `custom` remains unbuilt. No 🔒 frozen item
+  changed; `contract.test.ts` stays green.
+- **v1.3.0 — 2026-06-22 (M2 widening, additive/minor).** Built the `services` module
+  (`serviceItemSchema` + `servicesSchema` + `ServicesContent` + `servicesModule`), a **collection**
+  module with `add_service`/`update_service`/`remove_service` AI tools (the append/update/remove ops,
+  same pattern as `calendar`). Registered in `MODULE_REGISTRY` and added to the `self-serve` bundle
+  (paid-gated by RLS, like `calendar`). No 🔒 frozen item changed; `contract.test.ts` stays green.
+- **v1.2.0 — 2026-06-22 (M2 widening, additive/minor).** Built the `contact` module
+  (`contactSchema` + `ContactContent` + `contactModule`), registered it in `MODULE_REGISTRY`,
+  and added it to the `self-serve` bundle — closing the free-tier gap (the DB
+  `allowed_module_types()` gate lists `contact` as free, but it had no module). No 🔒 frozen
+  item changed; `contact` is a plain-text module edited by the built-in `update_module_content`
+  tool (no new AI tools). `contract.test.ts` stays green.
+- **v1.1.0 — 2026-06-21 (M4.2, additive/minor).** Added the per-tenant provider resolver:
+  `MODULE_REGISTRY`, `MODULE_BUNDLES`, `resolveProvider(id, enabledTypes)`, and
+  `resolveVariant(id, variant)`. No 🔒 frozen item changed — these build a `SchemaProvider`
+  over the unchanged `createSchemaProvider`. `contract.test.ts` stays green; new coverage in
+  `content-model`'s `index.test.ts` proves a resolved provider exposes only the enabled
+  modules' tools. `selfServeSchema` is now expressed via the registry/bundle (same module set).
+- **v1.0.0 — 2026-06-20 (M3 seam-freeze).** Initial frozen surface.

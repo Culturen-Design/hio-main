@@ -1,0 +1,237 @@
+"use server";
+
+import { createClient } from "@/lib/supabase/server";
+import type { Json } from "@hio/db";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import {
+  newClientSchema,
+  updateClientSchema,
+  updateCustomDomainSchema,
+  updateThemeSchema,
+} from "./validation";
+
+export type ClientActionState = { error: string } | null;
+
+/** Confirms the caller is signed in and an agency-staff member (is_admin). The
+ *  create RPC enforces this server-side too; checking here gives a clean error and
+ *  guards the direct-update path. */
+async function requireStaff() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { data: settings } = await supabase
+    .from("user_settings")
+    .select("is_admin")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (settings?.is_admin !== true) return null;
+  return { supabase, user };
+}
+
+export async function createStudioClient(
+  _prev: ClientActionState,
+  formData: FormData,
+): Promise<ClientActionState> {
+  const parsed = newClientSchema.safeParse({
+    name: formData.get("name"),
+    slug: formData.get("slug"),
+    schema_variant: formData.get("schema_variant"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+
+  const staff = await requireStaff();
+  if (!staff) return { error: "Not authorized: agency staff only." };
+
+  // The RPC inserts the tenant + owner membership + site + seeded section atomically,
+  // and re-enforces the is_admin gate as a SECURITY DEFINER function.
+  const { data, error } = await staff.supabase.rpc("create_studio_client", {
+    p_name: parsed.data.name,
+    p_slug: parsed.data.slug,
+    p_schema_variant: parsed.data.schema_variant,
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath("/dashboard");
+  redirect(`/clients/${data}`);
+}
+
+export async function updateStudioClient(
+  _prev: ClientActionState,
+  formData: FormData,
+): Promise<ClientActionState> {
+  const parsed = updateClientSchema.safeParse({
+    id: formData.get("id"),
+    name: formData.get("name"),
+    schema_variant: formData.get("schema_variant"),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+
+  const staff = await requireStaff();
+  if (!staff) return { error: "Not authorized: agency staff only." };
+
+  // Direct update — the tenants_update_member RLS policy ensures only a member may
+  // change it; scope to studio clients so this never touches a self_serve space.
+  const { error } = await staff.supabase
+    .from("tenants")
+    .update({ name: parsed.data.name, schema_variant: parsed.data.schema_variant })
+    .eq("id", parsed.data.id)
+    .eq("kind", "studio_client");
+  if (error) return { error: error.message };
+
+  revalidatePath(`/clients/${parsed.data.id}`);
+  revalidatePath("/dashboard");
+  return null;
+}
+
+/** Map (or clear) a client's custom domain (M4.8). An empty value clears it. The
+ *  tenants_update_member RLS policy gates this to tenant members; scoping to
+ *  studio_client keeps it off self_serve spaces. The DB CHECK + a UNIQUE constraint
+ *  back the Zod validation — a taken domain surfaces a friendly message. */
+export async function setCustomDomain(
+  _prev: ClientActionState,
+  formData: FormData,
+): Promise<ClientActionState> {
+  const parsed = updateCustomDomainSchema.safeParse({
+    id: formData.get("id"),
+    custom_domain: formData.get("custom_domain") ?? "",
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid domain" };
+
+  const staff = await requireStaff();
+  if (!staff) return { error: "Not authorized: agency staff only." };
+
+  const { error } = await staff.supabase
+    .from("tenants")
+    .update({ custom_domain: parsed.data.custom_domain })
+    .eq("id", parsed.data.id)
+    .eq("kind", "studio_client");
+  if (error) {
+    if (error.code === "23505")
+      return { error: "That domain is already mapped to another client." };
+    return { error: error.message };
+  }
+
+  revalidatePath(`/clients/${parsed.data.id}`);
+  return null;
+}
+
+/** Save a client's Site look. Bound to the client id by the page and called by
+ *  the shared `SiteLookForm` with the whole look; re-checked with Zod, gated to
+ *  agency staff, and the update rides tenants_update_member RLS, scoped to
+ *  studio_client. Merges onto the existing theme so unrelated keys survive. */
+export async function updateTenantTheme(
+  clientId: string,
+  input: unknown,
+): Promise<{ error: string } | null> {
+  const parsed = updateThemeSchema.safeParse({ ...(input as object), id: clientId });
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
+
+  const staff = await requireStaff();
+  if (!staff) return { error: "Not authorized: agency staff only." };
+
+  const { data: client } = await staff.supabase
+    .from("tenants")
+    .select("theme")
+    .eq("id", parsed.data.id)
+    .eq("kind", "studio_client")
+    .maybeSingle();
+  if (!client) return { error: "Client not found." };
+
+  const { id, ...theme } = parsed.data;
+  const nextTheme = { ...(client.theme as Record<string, unknown>), ...theme } as Json;
+  const { error } = await staff.supabase
+    .from("tenants")
+    .update({ theme: nextTheme })
+    .eq("id", id)
+    .eq("kind", "studio_client");
+  if (error) return { error: error.message };
+
+  revalidatePath(`/clients/${id}`);
+  revalidatePath(`/clients/${id}/builder`);
+  return null;
+}
+
+/** Publish or unpublish a client's site. The sites_write_member RLS policy gates
+ *  this to tenant members; the form passes the tenant id and the desired state. */
+export async function setSitePublished(
+  _prev: ClientActionState,
+  formData: FormData,
+): Promise<ClientActionState> {
+  const tenantId = String(formData.get("tenant_id") ?? "");
+  const publish = formData.get("publish") === "true";
+  if (!tenantId) return { error: "Missing client." };
+
+  const staff = await requireStaff();
+  if (!staff) return { error: "Not authorized: agency staff only." };
+
+  // Capture a version on publish (each publish = a restorable release). Best-effort:
+  // resolve the site, snapshot, then flip the flag.
+  if (publish) {
+    const { data: site } = await staff.supabase
+      .from("sites")
+      .select("id")
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+    if (site)
+      await staff.supabase.rpc("snapshot_site", { p_site_id: site.id, p_label: "Published" });
+  }
+
+  const { error } = await staff.supabase
+    .from("sites")
+    .update({ is_published: publish })
+    .eq("tenant_id", tenantId);
+  if (error) return { error: error.message };
+
+  revalidatePath(`/clients/${tenantId}`);
+  return null;
+}
+
+/** Manually capture a version ("Save version") of a client's site. */
+export async function snapshotSite(
+  _prev: ClientActionState,
+  formData: FormData,
+): Promise<ClientActionState> {
+  const tenantId = String(formData.get("tenant_id") ?? "");
+  const siteId = String(formData.get("site_id") ?? "");
+  if (!siteId) return { error: "Missing site." };
+
+  const staff = await requireStaff();
+  if (!staff) return { error: "Not authorized: agency staff only." };
+
+  // snapshot_site is membership-gated server-side (is_tenant_member).
+  const { error } = await staff.supabase.rpc("snapshot_site", {
+    p_site_id: siteId,
+    p_label: "Manual save",
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath(`/clients/${tenantId}`);
+  return null;
+}
+
+/** Restore a client's site to a saved version. restore_site_version snapshots the
+ *  current state first ("Before restore"), so a restore is itself reversible. */
+export async function restoreSiteVersion(
+  _prev: ClientActionState,
+  formData: FormData,
+): Promise<ClientActionState> {
+  const tenantId = String(formData.get("tenant_id") ?? "");
+  const versionId = String(formData.get("version_id") ?? "");
+  if (!versionId) return { error: "Missing version." };
+
+  const staff = await requireStaff();
+  if (!staff) return { error: "Not authorized: agency staff only." };
+
+  const { error } = await staff.supabase.rpc("restore_site_version", {
+    p_version_id: versionId,
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath(`/clients/${tenantId}`);
+  revalidatePath(`/clients/${tenantId}/builder`);
+  return null;
+}

@@ -17,6 +17,14 @@
     "lineWidth": 100
   },
   "files": {
-    "ignore": [".next", "node_modules", "supabase/migrations", "src/lib/supabase/database.types.ts"]
+    "ignore": [
+      "**/.next",
+      "**/node_modules",
+      "**/dist",
+      ".turbo",
+      "**/migrations/**",
+      "**/database.types.ts",
+      "supabase/functions/*/vendor/**"
+    ]
   }
 }

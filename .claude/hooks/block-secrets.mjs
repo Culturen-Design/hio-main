@@ -15,14 +15,19 @@ const isExample = (p) => p.endsWith(".env.example");
 if (tool === "Read" || tool === "Edit" || tool === "Write") {
   const p = toolFilePath(payload);
   if (p && ENV_FILE.test(p) && !isExample(p)) {
-    block(`Access to secret/env file "${p}" is blocked. Use .env.example for documentation; real secrets live in Netlify/GitHub Actions, never in context.`);
+    block(
+      `Access to secret/env file "${p}" is blocked. Use .env.example for documentation; real secrets live in Netlify/GitHub Actions, never in context.`,
+    );
   }
 }
 
 if (tool === "Bash") {
   const cmd = String(payload.tool_input?.command ?? "");
   // Reading/echoing env files
-  if (/\b(cat|type|less|more|head|tail|bat|Get-Content|gc)\b[^\n]*\.env(\.|\b)/i.test(cmd) && !/\.env\.example/.test(cmd)) {
+  if (
+    /\b(cat|type|less|more|head|tail|bat|Get-Content|gc)\b[^\n]*\.env(\.|\b)/i.test(cmd) &&
+    !/\.env\.example/.test(cmd)
+  ) {
     block("This command would read a secret env file. Blocked.");
   }
   // Dumping the whole environment

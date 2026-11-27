@@ -1,0 +1,43 @@
+# Netlify site config for hio Studio. Create a SECOND Netlify site pointing at this
+# repo, using Netlify's monorepo "Package directory" = apps/studio (Base directory
+# stays "/", the repo root — required for npm workspaces to resolve).
+#
+# Custom domains (M4.8): client domains are served by THIS same site, not redirected.
+# For each client domain, add it as a Domain alias on the Studio Netlify site (Domain
+# management -> Add domain alias) and point its DNS at Netlify so a cert is issued.
+# Routing then happens in Next middleware: any incoming Host that is not an app host
+# is rewritten to /hosted, which renders that client's published site (resolved via
+# the get_public_site_by_domain RPC). Set NEXT_PUBLIC_STUDIO_APP_HOSTS to this site's
+# own primary host(s) if it ever uses a non-*.netlify.app domain for the app itself.
+
+# NOTE: this site uses Netlify's monorepo "Package directory" feature (set to
+# apps/studio in the dashboard) with Base directory left at the repo root ("/").
+# In that mode, relative paths in this file — e.g. `publish` — resolve against
+# BASE directory, not the directory this file lives in. So `publish` must be the
+# full path from the repo root, not just ".next".
+#
+# `command` MUST scope Turborepo to this app (--filter) — the root "build" script
+# is unscoped `turbo run build`, which builds BOTH apps. That fails here because
+# this site's env doesn't carry Self-Serve's vars (e.g. NEXT_PUBLIC_SITE_URL), and
+# vice versa on the Self-Serve site.
+
+[build]
+  command = "npm run build -- --filter=@hio/studio"
+  publish = "apps/studio/.next"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NEXT_TELEMETRY_DISABLED = "1"
+
+# Production deploys from `main`; Supabase integration injects PROD project env here.
+[context.production.environment]
+
+# Per-PR Deploy Previews (dev Supabase project / per-PR branch on Pro).
+[context.deploy-preview.environment]
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"

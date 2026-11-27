@@ -1,3 +1,29 @@
+# hio — monorepo
+
+This repository is **hio**: two products sharing one schema-driven AI editing engine, built on the
+AI-assisted dev workflow starter documented below.
+
+- **hio Self-Serve** — a self-register personal page builder (free + paid tiers unlock modules).
+- **hio Studio** — agency-managed custom client sites, each a theme + content-schema variant.
+- **One engine** — `@hio/ai-engine` builds its Claude tools from a `SchemaProvider`
+  (`@hio/content-model`, frozen at v1.0.0). Self-Serve ships one built-in provider; Studio resolves
+  one **per client**. Same engine, two products.
+
+**Start here:** [`docs/ROADMAP.md`](docs/ROADMAP.md) is authoritative for *what* we build and *in what
+order* (currently **M4 — Studio**). See also [`docs/TENANCY.md`](docs/TENANCY.md) (the unified tenant
+model), [`docs/ENVIRONMENTS.md`](docs/ENVIRONMENTS.md) (dev/prod), and
+[`packages/content-model/CONTRACT.md`](packages/content-model/CONTRACT.md) (the frozen seam).
+
+Layout: `apps/{self-serve,studio}` + `packages/{ai-engine,content-model,ui,db}` + `supabase/`
+(shared migrations + edge functions). Engineering rules: [`CLAUDE.md`](CLAUDE.md).
+
+> **Note:** this repo has **no local Supabase CLI**. Migrations are authored by hand
+> (`supabase/migrations/NNN_name.sql`) and applied to **dev** via the Supabase MCP; CI runs the CLI
+> path. The starter documentation below describes the general toolkit (the CLI-first flow is the
+> canonical design and what CI uses).
+
+---
+
 # Next.js + Supabase + Netlify — AI-Assisted Dev Workflow Starter
 
 A reusable starter for **small teams (2–5)** building Next.js + Postgres apps with
@@ -131,5 +157,5 @@ npm run plugin:build         # builds plugin/ai-dev-workflow from .claude/
 
 Chosen for AI-friendliness + low cost, isolated to single config points so you can replace them:
 **Drizzle/SQL** (migrations are plain SQL here), **Zod** (`src/lib/env.ts`), **Vitest**
-(`vitest.config.ts`), **Playwright** (e2e), **Biome** (`biome.json`). Swap any without touching
+(`vitest.config.ts`), **Playwright** (e2e, planned after launch), **Biome** (`biome.json`). Swap any without touching
 the workflow.

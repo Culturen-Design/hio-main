@@ -19,7 +19,7 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.122.1
 
       - name: Delete the PR's database branch (best-effort)
         run: |

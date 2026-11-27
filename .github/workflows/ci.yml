@@ -3,10 +3,9 @@ name: CI
 # Required status check for merging into main. Netlify builds the Deploy Preview
 # separately; this gate is lint + types + tests + build + migration safety.
 on:
-  pull_request:
-    branches: [main]
+  pull_request: # all PRs, regardless of base (we stage via integration/v2)
   push:
-    branches: [main]
+    branches: [main, "integration/**"]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -25,23 +24,37 @@ jobs:
 
       - run: npm ci
 
-      - name: Lint (Biome)
-        run: npm run lint
-
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Unit tests
-        run: npm run test
-
-      - name: Build
-        run: npm run build
+      # One Turborepo pass runs lint + typecheck + test + build across every
+      # workspace (apps + packages), with caching. Placeholder public env lets the
+      # Next builds compile without real secrets; runtime values come from Netlify.
+      - name: Lint / typecheck / test / build (turbo)
+        run: npx turbo run lint typecheck test build
         env:
-          # Build-time public env. Use harmless placeholders so the build compiles
-          # without real secrets; runtime values come from Netlify per context.
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
           NEXT_PUBLIC_SITE_URL: http://localhost:3000
+
+  edge-bundle:
+    # The ai-command edge function is not an npm workspace, so turbo doesn't cover
+    # it. Its vendored @hio/* copies are generated from the packages; verify they
+    # are in sync so the committed (and therefore deployed) function never drifts.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Regenerate the ai-command bundle
+        run: npm run bundle:ai-command
+
+      - name: Fail if the vendored bundle is out of sync with the packages
+        run: |
+          if ! git diff --exit-code -- supabase/functions/ai-command/vendor; then
+            echo "::error::ai-command vendor/ is stale. Run 'npm run bundle:ai-command' and commit the result."
+            exit 1
+          fi
 
   migrations:
     runs-on: ubuntu-latest
@@ -52,11 +65,19 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned: "latest" resolves to CLI v3 (Nov 2026), which changes flags and
+          # defaults. Move to v3 deliberately, following Supabase's migration guide.
+          version: 2.122.1
+        env:
+          # Authenticated GitHub API calls so resolving the CLI release doesn't hit
+          # the 60/hr unauthenticated rate limit.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Lint migrations (start local DB + db lint)
+        # -x edge-runtime: linting needs only Postgres. Skipping the edge runtime
+        # avoids the intermittent deno.land 5xx that used to fail this job.
         run: |
-          supabase start
+          supabase start -x edge-runtime
           supabase db lint --level warning
 
       - name: Enforce migration immutability

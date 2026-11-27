@@ -29,6 +29,13 @@ enable_signup = true
 enable_signup = true
 enable_confirmations = false
 
+# Edge Functions. The AI page editor; schema-driven by @hio/ai-engine.
+# Secrets (ANTHROPIC_API_KEY, optional ANTHROPIC_MODEL) are set with
+# `supabase secrets set` — never committed. Imports resolve via the per-function deno.json.
+[functions.ai-command]
+verify_jwt = true
+import_map = "./functions/ai-command/deno.json"
+
 # Branching (Supabase Pro). Leave disabled until you upgrade — see README cost notes.
 [experimental]
 # enable per-PR database branching by setting this in the dashboard, not here.

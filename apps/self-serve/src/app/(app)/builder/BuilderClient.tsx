@@ -1,0 +1,149 @@
+"use client";
+
+import { createClient } from "@/lib/supabase/client";
+import type { Json } from "@hio/db";
+import { parseSiteTheme, sitePreviewClassName, themeToStyle } from "@hio/ui";
+import {
+  Badge,
+  BuilderCanvas,
+  type BuilderSection,
+  CopyField,
+  type SendOutcome,
+  buildSuggestions,
+  buttonClasses,
+} from "@hio/ui/admin";
+import { useRouter } from "next/navigation";
+import { addModule, deleteSection, moveSection, setSectionWidth, updateContent } from "./actions";
+
+type CommandResponse = {
+  ok: boolean;
+  applied?: boolean;
+  message: string;
+  tool?: string | null;
+  session_id?: string;
+  edits?: { tool: string; sectionId: string | null; undoVersionId: string | null }[];
+};
+
+/**
+ * Thin binding layer: the shared BuilderCanvas is Next-free, so this wrapper
+ * owns the router, the Supabase client, and the app's server actions. The
+ * `send` adapter calls the shared `ai-command` edge function (schema-driven by
+ * @hio/ai-engine, which resolves the provider + membership-gates the edit).
+ * The conversation itself is SERVER-OWNED: this client only remembers the
+ * session id (per tab) so follow-up messages resume the same conversation.
+ */
+export function BuilderClient({
+  tenantId,
+  site,
+  sections,
+  palette,
+  widthRanges,
+  publicUrl,
+  theme,
+}: {
+  tenantId: string;
+  site: { id: string; slug: string };
+  sections: BuilderSection[];
+  palette: { type: string; label: string }[];
+  widthRanges: Partial<Record<string, [number, number]>>;
+  publicUrl: string;
+  theme?: unknown;
+}) {
+  const siteTheme = parseSiteTheme(theme);
+  const router = useRouter();
+  const sessionKey = `hio-chat-session-${site.id}`;
+
+  async function send(prompt: string): Promise<SendOutcome> {
+    const supabase = createClient();
+    const sessionId =
+      typeof window !== "undefined" ? window.sessionStorage.getItem(sessionKey) : null;
+    const { data, error } = await supabase.functions.invoke<CommandResponse>("ai-command", {
+      body: {
+        prompt,
+        tenant_id: tenantId,
+        site_id: site.id,
+        ...(sessionId ? { session_id: sessionId } : {}),
+      },
+    });
+
+    if (error) {
+      // Non-2xx (e.g. 503 when ANTHROPIC_API_KEY isn't set) — only FunctionsHttpError
+      // carries the Response in `context`; surface the body message when present.
+      const res = (error as { context?: Response }).context;
+      const body = res ? ((await res.json().catch(() => null)) as CommandResponse | null) : null;
+      return {
+        reply: body?.message ?? "AI chat is unavailable right now.",
+        applied: false,
+        failed: true,
+      };
+    }
+    if (data?.session_id && typeof window !== "undefined") {
+      window.sessionStorage.setItem(sessionKey, data.session_id);
+    }
+    return {
+      reply: data?.message ?? "Done.",
+      applied: Boolean(data?.ok && (data?.applied ?? data?.tool)),
+      undoVersionId: data?.edits?.[0]?.undoVersionId ?? null,
+    };
+  }
+
+  // One-click revert to the pre-edit snapshot the function captured.
+  // restore_site_version is SECURITY DEFINER + membership-gated, and snapshots
+  // the current state first ("Before restore"), so the undo is itself undoable.
+  async function onUndo(versionId: string) {
+    const supabase = createClient();
+    const { error } = await supabase.rpc("restore_site_version", { p_version_id: versionId });
+    if (error) return { ok: false, message: "Couldn't undo that change." };
+    router.refresh();
+    return { ok: true, message: "Reverted — your page is back to how it was before that edit." };
+  }
+
+  return (
+    <BuilderCanvas
+      title="Builder"
+      subtitle={
+        // There is no draft: every save, AI edit, move and delete is live at
+        // once. Say so plainly, next to the page's real address.
+        <span className="inline-flex flex-wrap items-center gap-2">
+          <Badge tone="success" title="Changes go live as soon as you make them">
+            ● Live
+          </Badge>
+          <span>Changes appear on your page straight away.</span>
+          <CopyField value={publicUrl} />
+        </span>
+      }
+      headerActions={
+        <a
+          href={`/${site.slug}`}
+          target="_blank"
+          rel="noreferrer"
+          className={buttonClasses("secondary", "sm")}
+        >
+          View your page ↗
+        </a>
+      }
+      sections={sections}
+      palette={palette}
+      canvasStyle={themeToStyle(siteTheme)}
+      previewClassName={sitePreviewClassName(siteTheme)}
+      widthRanges={widthRanges}
+      onAdd={addModule}
+      onDelete={deleteSection}
+      onMove={moveSection}
+      onSetWidth={setSectionWidth}
+      onSaveContent={(sectionId, type, next) => updateContent(sectionId, type, next as Json)}
+      chat={{
+        send,
+        onApplied: () => router.refresh(),
+        onUndo,
+        intro:
+          "Tell me what to change — e.g. “make the headline say Welcome”, “add a link to my shop”, or “add a testimonials section” (I'll fill it with sample content you can tweak). I can also remove a section if you ask.",
+        storageKey: `hio-chat-${site.id}`,
+        suggestions: buildSuggestions(
+          sections,
+          palette.map((p) => p.type),
+        ),
+      }}
+    />
+  );
+}

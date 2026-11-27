@@ -16,13 +16,18 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Opt-in gate: stays a no-op until you set repo variable PROD_DB_DEPLOY_ENABLED=true
+    # AND add the prod secrets. Prevents red builds before prod is wired up.
+    if: vars.PROD_DB_DEPLOY_ENABLED == 'true'
     environment: production # add required reviewers here for a manual approval gate
     steps:
       - uses: actions/checkout@v4
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned to v2: CLI v3 removes --project-ref (now --remote) and asks for
+          # confirmation on hosted changes, which would break this job.
+          version: 2.122.1
 
       - name: Link to production project
         run: supabase link --project-ref "$SUPABASE_PROD_REF"
