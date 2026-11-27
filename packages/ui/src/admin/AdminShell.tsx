@@ -7,7 +7,7 @@ import { cn } from "../cn";
  */
 export function navLinkClasses(active = false): string {
   return cn(
-    "inline-flex h-14 items-center border-b-2 px-1 text-sm whitespace-nowrap transition-colors",
+    "inline-flex h-full items-center border-b-2 px-1 text-sm whitespace-nowrap transition-colors",
     active
       ? "border-primary font-medium text-foreground"
       : "border-transparent text-muted-foreground hover:text-foreground",
@@ -38,7 +38,9 @@ export function AdminShell({
             {brand}
           </div>
           {nav ? (
-            <nav className="flex h-full min-w-0 flex-1 items-center gap-4 overflow-x-auto whitespace-nowrap">
+            // overflow-y-hidden: the header's 1px bottom border leaves 55px inside, and
+            // a 56px link would otherwise give the nav a stray vertical scrollbar.
+            <nav className="flex h-full min-w-0 flex-1 items-center gap-4 overflow-x-auto overflow-y-hidden whitespace-nowrap">
               {nav}
             </nav>
           ) : (

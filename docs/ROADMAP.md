@@ -431,6 +431,27 @@ onto tenants too, via expand→migrate→contract), **one generalized** tenant-a
 
 Every approved departure from the original plan, with its reason and cost.
 
+### 2026-11-27 — Design review: Claude reviews and fixes before the owner's walk-through (owner-directed)
+**Change:** inside the Design & UX phase, the owner asked Claude to walk the dev site, run audit
+agents (public page, editor UX, accessibility) and implement improvements locally overnight,
+instead of waiting for the owner's own journey walk (step 2) and a joint triage (step 4). Claude
+fixed the findings that were clear defects or direct asks in the owner's brief, on branch
+`feat/phase-3-design-polish`, with no database change. The biggest change is layout: published
+pages now use the existing `sections.width` column (a 12-column grid, already returned by
+`get_public_site`) so sections can sit side by side, with a width control in the builder limited to
+each module's range from the schema provider. **Not done (needs a decision):** a full-bleed /
+full-screen section option needs a new presentation column and an updated `get_public_site`
+(a migration, so its own approval); a real draft/publish step (today every edit is live at once,
+now said plainly in the UI); the landing page redesign; password reset; account settings page;
+Studio builder width control. **Why:** the owner's brief named concrete defects (clipped service
+text, boxed borders, floating dividers, brochure feel) that are cheaper to fix before the walk, so
+the owner reviews a better baseline. **Cost:** none to the schedule; the owner still walks and signs
+off. **Follow-ups:** the items above are listed in the handbook's Findings table for triage.
+**Revision (same day, owner feedback):** the owner was not moved by the first pass: cards were still
+boxes inside boxes, the offset shadows had no purpose, gallery captions had dashed lines, corner
+lines poked out and the margin pattern didn't line up. Claude replaced the per-module styling with
+eight written rules applied to every module and style (`docs/DESIGN-RULES.md`). No scope change.
+
 ### 2026-11-26 — Design & UX review before launch (owner-directed)
 **Change:** after the security pass, the owner asked for a product review before INFRA instead of
 going straight to prod. A new phase walks every user journey on dev (Self-Serve sign-up, builder,

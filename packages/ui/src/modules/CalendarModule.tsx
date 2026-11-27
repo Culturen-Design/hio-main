@@ -1,7 +1,7 @@
 import type { CalendarContent } from "@hio/content-model";
-import { cn } from "../cn";
 import type { StyleVariant } from "../style";
-import { cardClasses, headingClasses } from "../variant";
+import { cardClasses } from "../variant";
+import { SectionHeader, countLabel } from "./SectionHeader";
 
 /** Pinned to "en-US" (not the runtime default) so a server-rendered date
  *  string can't mismatch the client's own default locale on hydration — this
@@ -40,56 +40,56 @@ export function CalendarModule({
     .sort((a, b) => a.date.localeCompare(b.date));
 
   return (
-    <section
-      data-module="calendar"
-      className={cn("mx-auto max-w-[720px] p-10", cardClasses(variant))}
-    >
-      <p className="bp-count" aria-hidden>
-        {events.length} {events.length === 1 ? "event" : "events"}
-      </p>
-      <h2 className={cn("mt-0 text-xl", headingClasses(variant))}>{content.title}</h2>
-      {content.intro && (
-        <p className="mt-1 mb-5 max-w-[560px] leading-relaxed text-muted-foreground">
-          {content.intro}
-        </p>
-      )}
+    <section data-module="calendar" className={cardClasses(variant)}>
+      <SectionHeader
+        count={countLabel(events.length, "event", "events")}
+        title={content.title}
+        intro={content.intro}
+        variant={variant}
+      />
       {events.length === 0 ? (
-        <p className="text-muted-foreground">No upcoming events.</p>
+        <p className="mt-4 mb-0 text-muted-foreground">No upcoming events.</p>
       ) : (
-        <ul className="m-0 grid list-none gap-3 p-0">
+        // One event per row of the section's grid. The date is type, not a
+        // box (rule 6): a large day over a small month label.
+        <ul className="site-items">
           {events.map((e) => {
             const { day, month } = splitDate(e.date);
             return (
-              <li key={e.id} className="flex gap-4 rounded-[12px] border border-border px-4 py-3.5">
-                <div
-                  aria-label={fmtDate(e.date)}
-                  className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-card border border-border bg-muted text-center"
-                >
-                  <span className="font-bold text-foreground text-xl leading-none">{day}</span>
+              <li key={e.id} className="flex min-w-0 gap-5">
+                <time dateTime={e.date} className="flex w-12 shrink-0 flex-col">
+                  <span
+                    aria-hidden="true"
+                    className="font-semibold text-2xl text-foreground leading-none"
+                  >
+                    {day}
+                  </span>
                   {month && (
-                    <span className="mt-0.5 text-[10px] text-muted-foreground tracking-wide">
+                    <span aria-hidden="true" className="site-label mt-1">
                       {month}
                     </span>
                   )}
-                </div>
-                <div>
+                  <span className="sr-only">{fmtDate(e.date)}</span>
+                </time>
+                <div className="min-w-0 [overflow-wrap:anywhere]">
                   <span className="font-semibold">
                     {e.url ? (
-                      <a href={e.url} className="text-foreground">
+                      <a href={e.url} className="text-foreground underline underline-offset-2">
                         {e.title}
                       </a>
                     ) : (
                       e.title
                     )}
                   </span>
-                  {e.time && (
-                    <span className="block text-[13px] text-muted-foreground">{e.time}</span>
-                  )}
-                  {e.location && (
-                    <span className="block text-[13px] text-muted-foreground">📍 {e.location}</span>
+                  {(e.time || e.location) && (
+                    <span className="block text-muted-foreground text-sm">
+                      {[e.time, e.location].filter(Boolean).join(" · ")}
+                    </span>
                   )}
                   {e.description && (
-                    <span className="block text-sm text-muted-foreground">{e.description}</span>
+                    <span className="mt-1 block text-muted-foreground text-sm">
+                      {e.description}
+                    </span>
                   )}
                 </div>
               </li>

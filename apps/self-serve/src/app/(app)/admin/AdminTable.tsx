@@ -78,6 +78,7 @@ function AdminRow({
   const [locked, setLockedState] = useState(row.isLocked);
   const [disabled, setDisabledState] = useState(row.isDisabled);
   const [confirmingDowngrade, setConfirmingDowngrade] = useState(false);
+  const [confirmingAccess, setConfirmingAccess] = useState<"lock" | "disable" | null>(null);
   const [pending, start] = useTransition();
   const toast = useToast();
 
@@ -117,17 +118,22 @@ function AdminRow({
     applyTier(next as "free" | "paid");
   };
 
-  const toggleLocked = () => {
+  const applyLocked = () => {
     const next = !locked;
     setLockedState(next);
     run(() => setLocked(row.userId, next), next ? "Locked" : "Unlocked");
   };
 
-  const toggleDisabled = () => {
+  const applyDisabled = () => {
     const next = !disabled;
     setDisabledState(next);
     run(() => setDisabled(row.userId, next), next ? "Disabled" : "Enabled");
   };
+
+  // Locking or disabling blocks the user immediately — confirm first. Undoing
+  // (unlock / enable) is harmless and stays one click.
+  const toggleLocked = () => (locked ? applyLocked() : setConfirmingAccess("lock"));
+  const toggleDisabled = () => (disabled ? applyDisabled() : setConfirmingAccess("disable"));
 
   return (
     <tr>
@@ -138,11 +144,12 @@ function AdminRow({
           {isSelf && <Badge>you</Badge>}
           {pending && <Spinner className="size-3 text-muted-foreground" label="Saving…" />}
         </div>
-        <div className="font-mono text-[11px] text-muted-foreground">{row.userId}</div>
+        <div className="font-mono text-muted-foreground text-xs">{row.userId}</div>
       </td>
 
       <td className={cell}>
         <select
+          aria-label={`Plan for ${row.slug ? `/${row.slug}` : row.userId}`}
           value={tier}
           disabled={pending}
           onChange={(e) => changeTier(e.target.value)}
@@ -168,11 +175,18 @@ function AdminRow({
       <td className={cell}>
         <div className="flex flex-wrap gap-x-3.5 gap-y-2">
           {extraModules.map((type) => (
-            <label key={type} className="inline-flex items-center gap-1 text-[13px]">
+            <label
+              key={type}
+              className={cn(
+                "inline-flex items-center gap-1 text-sm",
+                tier === "paid" && "opacity-50",
+              )}
+              title={tier === "paid" ? "Paid already includes every section" : undefined}
+            >
               <input
                 type="checkbox"
-                checked={selected.has(type)}
-                disabled={pending}
+                checked={tier === "paid" || selected.has(type)}
+                disabled={pending || tier === "paid"}
                 onChange={() => toggleModule(type)}
               />
               {type}
@@ -208,6 +222,24 @@ function AdminRow({
             {disabled ? "Enable" : "Disable"}
           </button>
         </div>
+        <ConfirmDialog
+          open={confirmingAccess !== null}
+          title={confirmingAccess === "lock" ? "Lock this user?" : "Disable this user?"}
+          description={
+            confirmingAccess === "lock"
+              ? "They won't be able to edit their page until you unlock it. Their published page stays visible."
+              : "They won't be able to edit their page until you enable them again. Their published page stays visible."
+          }
+          confirmLabel={confirmingAccess === "lock" ? "Lock" : "Disable"}
+          destructive
+          onConfirm={() => {
+            const what = confirmingAccess;
+            setConfirmingAccess(null);
+            if (what === "lock") applyLocked();
+            if (what === "disable") applyDisabled();
+          }}
+          onCancel={() => setConfirmingAccess(null)}
+        />
       </td>
     </tr>
   );

@@ -30,8 +30,17 @@ export function SettingsForm({
   const [selectedRadius, setSelectedRadius] = useState(radius);
   const [selectedStyle, setSelectedStyle] = useState(style);
   const [selectedMargin, setSelectedMargin] = useState(marginPattern);
+  const [saved, setSaved] = useState({ accent, font, radius, style, marginPattern });
   const [pending, start] = useTransition();
   const toast = useToast();
+  const dirty =
+    selectedAccent !== saved.accent ||
+    selectedFont !== saved.font ||
+    selectedRadius !== saved.radius ||
+    selectedStyle !== saved.style ||
+    selectedMargin !== saved.marginPattern;
+  // Margin patterns are drawn by the Warm Blueprint style only.
+  const marginApplies = selectedStyle === "warm-blueprint-brutalism";
 
   // Called directly (not via useActionState): the action returns null on
   // success, which useActionState can't distinguish from its initial state —
@@ -41,8 +50,17 @@ export function SettingsForm({
     const formData = new FormData(e.currentTarget);
     start(async () => {
       const res = await updateTheme(null, formData);
-      const t = toastFromResult(res ?? { ok: true }, "Theme saved");
+      const t = toastFromResult(res ?? { ok: true }, "Site look saved — it's live on your page.");
       if (t) toast(t);
+      if (!res || !("error" in res)) {
+        setSaved({
+          accent: selectedAccent,
+          font: selectedFont,
+          radius: selectedRadius,
+          style: selectedStyle,
+          marginPattern: selectedMargin,
+        });
+      }
     });
   }
 
@@ -68,12 +86,14 @@ export function SettingsForm({
                   value={s.value}
                   checked={selectedAccent === s.value}
                   onChange={() => setSelectedAccent(s.value)}
-                  className="sr-only"
+                  className="peer sr-only"
                 />
+                <span className="sr-only">{s.name}</span>
                 <span
+                  aria-hidden="true"
                   title={s.name}
                   className={cn(
-                    "block size-8 rounded-full ring-1 ring-border",
+                    "block size-8 rounded-full ring-1 ring-border peer-focus-visible:ring-2 peer-focus-visible:ring-foreground peer-focus-visible:ring-offset-2",
                     selectedAccent === s.value && "ring-2 ring-primary ring-offset-2",
                   )}
                   style={{ background: s.value }}
@@ -97,7 +117,7 @@ export function SettingsForm({
           </Select>
         </Field>
 
-        <Field label="Rounding">
+        <Field label="Rounding" hint="How rounded buttons and cards are.">
           <Select
             name="radius"
             value={selectedRadius}
@@ -111,7 +131,7 @@ export function SettingsForm({
           </Select>
         </Field>
 
-        <Field label="Page style">
+        <Field label="Page style" hint="The overall look: lines, type and colours of your page.">
           <Select
             name="style"
             value={selectedStyle}
@@ -125,9 +145,17 @@ export function SettingsForm({
           </Select>
         </Field>
 
-        <Field label="Margin pattern">
+        <Field
+          label="Margin pattern"
+          hint={
+            marginApplies
+              ? "A faint texture in the margins around your page."
+              : "Only shown with the Warm Blueprint page style."
+          }
+        >
           <Select
             name="marginPattern"
+            disabled={!marginApplies}
             value={selectedMargin}
             onChange={(e) => setSelectedMargin(e.target.value)}
           >
@@ -139,14 +167,21 @@ export function SettingsForm({
           </Select>
         </Field>
 
-        <Button type="submit" disabled={pending} className="self-start">
-          {pending ? <Spinner label="Saving…" /> : "Save changes"}
-        </Button>
+        {/* A disabled select isn't submitted; keep the stored value. */}
+        {!marginApplies && <input type="hidden" name="marginPattern" value={selectedMargin} />}
+        <div className="flex items-center gap-3">
+          <Button type="submit" disabled={pending || !dirty}>
+            {pending ? <Spinner label="Saving…" /> : "Save changes"}
+          </Button>
+          <span aria-live="polite" className="text-muted-foreground text-xs">
+            {dirty ? "You have unsaved changes." : "All changes saved."}
+          </span>
+        </div>
       </form>
 
       <div className="min-w-[320px] flex-[1_1_380px]">
         <p className="mb-2 text-xs text-muted-foreground">
-          Live preview — updates as you change a control above, before you save.
+          Preview with sample content — updates as you change a control, before you save.
         </p>
         <iframe
           title="Site look preview"

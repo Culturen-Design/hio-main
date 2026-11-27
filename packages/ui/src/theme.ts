@@ -68,7 +68,9 @@ export interface SiteTheme {
 export const ACCENT_SWATCHES: ReadonlyArray<{ name: string; value: string; foreground: string }> = [
   { name: "Slate", value: "#0f172a", foreground: "#ffffff" },
   { name: "Blue", value: "#2563eb", foreground: "#ffffff" },
-  { name: "Emerald", value: "#059669", foreground: "#ffffff" },
+  // Dark text: white on #059669 is 3.77:1, below WCAG AA for button-size text;
+  // slate-900 is 4.75:1. (The value stays put so stored themes keep matching.)
+  { name: "Emerald", value: "#059669", foreground: "#0f172a" },
   { name: "Rose", value: "#e11d48", foreground: "#ffffff" },
   { name: "Amber", value: "#d97706", foreground: "#0f172a" },
   { name: "Violet", value: "#7c3aed", foreground: "#ffffff" },

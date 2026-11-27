@@ -35,6 +35,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const push = useCallback((toast: ToastDescriptor) => {
     const id = nextId.current++;
     setToasts((current) => [...current, { ...toast, id }]);
+    // Errors stay until dismissed so they can't vanish before they're read.
+    if (toast.kind === "error") return;
     setTimeout(() => {
       setToasts((current) => current.filter((t) => t.id !== id));
     }, AUTO_DISMISS_MS);
