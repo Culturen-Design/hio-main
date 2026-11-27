@@ -29,10 +29,11 @@ export function widthOptions(
 }
 
 /**
- * One section on the canvas: a chrome bar (drag handle, name, move up/down,
- * width, ghost Edit — manual editing is deliberately demoted — and Delete)
- * over the live preview or the inline editor (children decide which). The
- * card spans its share of the canvas grid, like the published page.
+ * One section on the canvas: a chrome bar (collapse, drag handle, name, move
+ * up/down, width, ghost Edit — manual editing is deliberately demoted — and
+ * Delete) over the live preview or the inline editor (children decide which).
+ * Collapsed, only the bar shows, with a one-line summary in place of the
+ * preview. The card spans its share of the canvas grid, like the published page.
  */
 export function SectionCard({
   type,
@@ -46,6 +47,9 @@ export function SectionCard({
   onMoveUp,
   onMoveDown,
   editing,
+  collapsed = false,
+  summary,
+  onCollapseToggle,
   disabled,
   isDragging,
   isOver,
@@ -69,6 +73,10 @@ export function SectionCard({
   onMoveUp?: () => void;
   onMoveDown?: () => void;
   editing: boolean;
+  /** Bar only: the preview is hidden and `summary` shows instead. */
+  collapsed?: boolean;
+  summary?: string;
+  onCollapseToggle?: () => void;
   disabled: boolean;
   isDragging: boolean;
   isOver: boolean;
@@ -96,8 +104,36 @@ export function SectionCard({
         isDragging && "opacity-50",
       )}
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted px-2 py-1.5">
-        <div className="flex min-w-0 items-center gap-1">
+      <div
+        className={cn(
+          "flex flex-wrap items-center justify-between gap-2 bg-muted px-2 py-1.5",
+          !collapsed && "border-b border-border",
+        )}
+      >
+        <div className="flex min-w-0 flex-1 items-center gap-1">
+          {onCollapseToggle && (
+            <button
+              type="button"
+              className={iconBtn}
+              onClick={onCollapseToggle}
+              aria-expanded={!collapsed}
+              aria-label={collapsed ? `Expand ${name}` : `Collapse ${name}`}
+              title={collapsed ? "Expand" : "Collapse"}
+            >
+              <svg
+                viewBox="0 0 16 16"
+                aria-hidden="true"
+                className={cn("size-3.5 transition-transform", collapsed && "-rotate-90")}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M4 6l4 4 4-4" />
+              </svg>
+            </button>
+          )}
           <button
             type="button"
             aria-label={`Drag to reorder ${name}`}
@@ -129,7 +165,10 @@ export function SectionCard({
           >
             ↓
           </button>
-          <span className="ml-1 truncate text-xs font-semibold text-foreground">{name}</span>
+          <span className="ml-1 shrink-0 text-xs font-semibold text-foreground">{name}</span>
+          {collapsed && summary ? (
+            <span className="ml-1 min-w-0 truncate text-xs text-muted-foreground">{summary}</span>
+          ) : null}
         </div>
         <div className="flex items-center gap-1">
           {options.length > 1 && (
@@ -166,7 +205,7 @@ export function SectionCard({
           </button>
         </div>
       </div>
-      <div className="flex-1">{children}</div>
+      {collapsed ? null : <div className="flex-1">{children}</div>}
     </div>
   );
 }
